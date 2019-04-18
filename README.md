@@ -1,5 +1,9 @@
 # Dart-Fss
 
+[![Build Status](https://travis-ci.com/josw123/dart-fss.svg?branch=master)](https://travis-ci.com/josw123/dart-fss)
+[![Coverage](https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg)](https://codecov.io/gh/josw123/dart-fss)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde)](https://www.codacy.com/app/josw123/dart-fss?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josw123/dart-fss&amp;utm_campaign=Badge_Grade)
+
 한국 금융감독원에서 운영하는 Dart 시스템 크롤링을 위한 라이브러리
 
 ## Features
