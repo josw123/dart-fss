@@ -10,7 +10,6 @@ def test_dict_to_html():
     html = dict_to_html(data)
     soup = BeautifulSoup(html, 'html.parser')
     tr = soup.find_all('tr')
-    th = tr[1].find('th')
-    actual = th.text
-    expected = 'B'
+    actual = set(x.find('th').text for x in tr)
+    expected = set(x for x in data.keys())
     assert actual == expected
