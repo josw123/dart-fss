@@ -32,7 +32,7 @@ setup(
     ],
     packages=find_packages(exclude=['dart_fss.tests']),
     keywords=['fss', 'dart-fss', 'scrapping'],
-    python_requires='>=3',
+    python_requires='>=3.5',
     package_data={},
     install_requires=INSTALL_REQUIRES
 )

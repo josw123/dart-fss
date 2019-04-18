@@ -159,3 +159,26 @@ fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', sep
 fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', separator=False)
 
 ```
+
+### 주의사항
+
+현재 DART 오픈 API의 응답방식이 JSON인 경우 오류 발생시 오류 메시지를 보내지 않음
+(응답방식이 xml인 경우 올바르게 작동함)
+
+http://dart.fss.or.kr/api/search.xml?auth=x&bsn_tp=a
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<result>
+    <err_code>010</err_code>
+    <err_msg>미등록 인증키</err_msg>
+    <page_no>1</page_no>
+    <page_set>10</page_set>
+    <total_count>0</total_count>
+    <total_page>0</total_page>
+</result>
+```
+
+http://dart.fss.or.kr/api/search.json?auth=x&bsn_tp=a
+```json
+{"err_code":"000","err_msg":"정상","page_no":1,"page_set":10,"total_count":0,"total_page":0,"list":[]}
+```
