@@ -122,11 +122,15 @@ class Report(object):
             self.load_page()
 
         path = r'./{}/{}'.format(self.crp_nm, self.rpt_nm) if path is None else path
+        path = os.path.abspath(path)
         if not os.path.exists(path):
             os.makedirs(path)
 
+        # 파일명에 허용되지 않는 특수문자
+        sub_sc = re.compile(r'\/|\\|\?|\%|\*|\||\"|\<|\>')
         for idx, page in enumerate(tqdm(self._pages, desc='Save files', unit='page')):
-            page.to_file(path, '{}_{}'.format(idx, page.title))
+            page_title = sub_sc.sub('_', page.title)
+            page.to_file(path, '{}_{}'.format(idx, page_title))
 
     @property
     def pages(self) -> List[Page]:

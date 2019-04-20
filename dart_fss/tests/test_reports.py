@@ -52,5 +52,18 @@ def test_reports_to_file(last_report):
                 pytest.fail("Can't save files")
 
 
+def test_reports_to_file2():
+    import os
+    import tempfile
+    last_report = search_report_with_cache(crp_cd='080440', start_dt='20190419', dsp_tp='b')[0]
+    with tempfile.TemporaryDirectory() as path:
+        last_report.to_file(path)
+        for _, _, files in os.walk(path):
+            if len(files) is not len(last_report):
+                pytest.fail("Can't save files")
+
+
+
+
 
 
