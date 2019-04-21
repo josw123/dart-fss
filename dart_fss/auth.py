@@ -6,7 +6,8 @@ from ._utils import Singleton, request_get
 
 
 def dart_set_api_key(api_key):
-    auth = DartAuth(api_key=api_key)
+    DartAuth().api_key = api_key
+    auth = DartAuth()
     return auth.api_key
 
 
