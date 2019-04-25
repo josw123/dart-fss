@@ -25,24 +25,24 @@ def request_get(url: str, params: dict = None, timeout: int = 120):
 
 
 def download_file(url: str, path: str) -> str:
-    with requests.get(url, stream=True) as r:
-        headers = r.headers.get('Content-Disposition')
+    r = requests.get(url, stream=True)
+    headers = r.headers.get('Content-Disposition')
 
-        if not re.search('attachment', headers):
-            raise Exception('Invalid Data')
+    if not re.search('attachment', headers):
+        raise Exception('Invalid Data')
 
-        total_size = int(r.headers.get('content-length', 0))
-        block_size = 8192
+    total_size = int(r.headers.get('content-length', 0))
+    block_size = 8192
 
-        filename = re.findall(r'filename="(.*?)"', headers)[0]
-        file_path = os.path.join(path, filename)
-        with open(file_path, 'wb') as f:
-            for chunk in tqdm(r.iter_content(chunk_size=block_size),
-                              total=math.ceil(total_size//block_size),
-                              desc='Download',
-                              unit='KB', unit_scale=True):
-                if chunk is not None:
-                    f.write(chunk)
+    filename = re.findall(r'filename="(.*?)"', headers)[0]
+    file_path = os.path.join(path, filename)
+    with open(file_path, 'wb') as f:
+        for chunk in tqdm(r.iter_content(chunk_size=block_size),
+                          total=math.ceil(total_size//block_size),
+                          desc='Download',
+                          unit='KB', unit_scale=True):
+            if chunk is not None:
+                f.write(chunk)
     return file_path
 
 
