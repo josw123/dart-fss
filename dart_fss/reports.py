@@ -199,12 +199,15 @@ class Report(object):
         progressbar_disable = kwargs.get('progressbar_disable', False)
 
         process_cnt = mp.cpu_count() - 1
-        pool = mp.Pool(processes=process_cnt)
-        tree = list(tqdm(pool.imap(loading_page, raw), desc='Loading', leave=False,
-                         total=len(raw), unit='page', disable=progressbar_disable))
-        pool.close()
-        pool.join()
-
+        if process_cnt > 0:
+            pool = mp.Pool(processes=process_cnt)
+            tree = list(tqdm(pool.imap(loading_page, raw), desc='Loading', leave=False,
+                             total=len(raw), unit='page', disable=progressbar_disable))
+            pool.close()
+            pool.join()
+        else:
+            tree = [loading_page(r) for r in tqdm(raw, desc='Loading', leave=False,
+                                                  total=len(raw), unit='page', disable=progressbar_disable)]
         tree = [x for x in tree if x]
         tree.sort(key=lambda x: int(x.ele_id))
 
