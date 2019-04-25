@@ -288,8 +288,10 @@ def search_report(crp_cd: str = None, start_dt: str = None, end_dt: str = None,
     return SearchResults(params=params, data=data)
 
 
+# 최대 캐싱 시간(분)
 MAX_CACHED_MINUTES = 30
-MAX_CACHED_REPORT = 100
+# 최대 캐싱 검색 결과 리포트 수
+MAX_CACHED_SEARCH_RESULTS = 4
 cached_reports = OrderedDict()
 
 
@@ -345,8 +347,7 @@ def search_report_with_cache(**kwargs):
     cashed_time, report = cached_reports.get(key, (None, None))
     if report is None:
         report = search_report(**kwargs)
-        if len(cached_reports) > MAX_CACHED_REPORT:
-            print(cached_reports)
+        if len(cached_reports) >= MAX_CACHED_SEARCH_RESULTS:
             cached_reports.popitem(last=False)
         cached_reports[key] = (datetime.now(), report)
     else:

@@ -107,12 +107,24 @@ annual_report.to_file(r'C:\annual_report_2019') # C:\annual_report_2019에 사�
 
 # "연결재무제표" 포함, "주석" 미포함 페이지만 로딩
 annual_report.load_page(includes="연결재무제표", excludes="주석")
+
+
+# 전지공시 조회 (캐싱기능 사용)
+# 최대 캐싱 시간(분, 기본설정 30분)
+dart.search.MAX_CACHED_MINUTES = 10 
+# 최대 캐싱 검새결과 수(기본 4)
+dart.search.MAX_CACHED_SEARCH_RESULTS = 2 
+
+# 전지공시 조회 (캐싱기능 사용)
+cached_reports = dart.search.search_report_with_cache(start_dt='20190101', end_dt='20190201')
+
 ```
 
 ### 제무제표 검색
 
-제무제표는 pandas의 DataFrame 형태로 반환 된다.
-또한 각각의 회사마다 동일한 항목에 대하여 다른 명칭을 사용하는 경우가 있기 때문에 concept을 이용하여 구분하는 것이 편하다.
+-   제무제표는 pandas의 DataFrame 형태로 반환 됩니다.
+-   concept_id는 [금감원-XBRL 자료실](http://acct.fss.or.kr/fss/acc/bbs/list.jsp?url=/fss/ac/1277791244405&bbsid=1277791244405)을 참고하시기 바랍니다.
+-   재무제표 검색은 search_report_with_cache를 사용하여 조회하기 때문에 메모리 부족시 MAX_CACHED_SEARCH_RESULTS 값을 조절하기 바랍니다.
 
 ```python
 import dart_fss as dart
