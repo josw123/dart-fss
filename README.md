@@ -1,5 +1,5 @@
 # Dart-Fss
-![PyPI](https://img.shields.io/pypi/v/dart-fss.svg)
+[![PyPI](https://img.shields.io/pypi/v/dart-fss.svg)](https://pypi.org/project/dart-fss/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dart-fss.svg)
 [![Build Status](https://travis-ci.com/josw123/dart-fss.svg?branch=master)](https://travis-ci.com/josw123/dart-fss)
 [![Coverage](https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg)](https://codecov.io/gh/josw123/dart-fss)
@@ -123,7 +123,7 @@ cached_reports = dart.search.search_report_with_cache(start_dt='20190101', end_d
 ### 제무제표 검색
 
 -   제무제표는 pandas의 DataFrame 형태로 반환 됩니다.
--   concept_id는 [금감원-XBRL 자료실](http://acct.fss.or.kr/fss/acc/bbs/list.jsp?url=/fss/ac/1277791244405&bbsid=1277791244405)을 참고하시기 바랍니다.
+-   concept_id는 [금감원-XBRL 자료실](http://acct.fss.or.kr/fss/acc/bbs/list.jsp?url=/fss/ac/1277791244405&bbsid=1277791244405)의 계정과목을 참고하시기 바랍니다.
 -   재무제표 검색은 search_report_with_cache를 사용하여 조회하기 때문에 메모리 부족시 MAX_CACHED_SEARCH_RESULTS 값을 조절하기 바랍니다.
 
 ```python
@@ -175,10 +175,10 @@ fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', sep
 
 ### 주의사항
 
-현재 DART 오픈 API의 응답방식이 JSON인 경우 오류 발생시 오류 메시지를 보내지 않음
-(응답방식이 xml인 경우 올바르게 작동함)
+-   Dart-Fss 라이브러리는 오픈 API의 응답 방식 중 JSON 방식을 사용 중
+-   현재 DART 오픈 API의 응답 방식이 JSON인 경우 오류 발생시 오류 메시지를 보내지 않음 (응답방식이 xml인 경우 올바르게 작동함)
 
-http://dart.fss.or.kr/api/search.xml?auth=x&bsn_tp=a
+[XML](http://dart.fss.or.kr/api/search.xml?auth=x&bsn_tp=a) 결과
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <result>
@@ -191,7 +191,7 @@ http://dart.fss.or.kr/api/search.xml?auth=x&bsn_tp=a
 </result>
 ```
 
-http://dart.fss.or.kr/api/search.json?auth=x&bsn_tp=a
+[JSON](http://dart.fss.or.kr/api/search.json?auth=x&bsn_tp=a) 결과
 ```json
 {"err_code":"000","err_msg":"정상","page_no":1,"page_set":10,"total_count":0,"total_page":0,"list":[]}
 ```
