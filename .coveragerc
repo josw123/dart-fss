@@ -1,0 +1,9 @@
+[run]
+omit =
+    dart_fss/_version.py
+
+[report]
+exclude_lines =
+    # Don't complain about missing debug-only code:
+    def __repr__
+    def _repr_html_
