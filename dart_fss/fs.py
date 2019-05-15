@@ -14,6 +14,10 @@ from .search import search_report_with_cache
 from ._utils import compare_str, korean_unit_to_number_unit
 
 
+def get_header_regex_text():
+    return r'(제.*분?기초?기?말?|전환일)'
+
+
 def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
                    lang: str = 'ko', separate: bool = False) -> List[str]:
     """ DataFrame 의 columns 이름을 html 을 참고하여 변환
@@ -34,14 +38,16 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
     list of str
         columns 이름들
     """
-    regex = re.compile(r'(제.*분?기초?)')
+    regex_text = get_header_regex_text()
+    regex = re.compile(regex_text)
     regex_3month = re.compile(r'3개월')
+    regex_sub_parentheses = re.compile(r'\(.*?\)')
     new_col = []
-
     for col_name in columns:
         new_col_name = col_name
         if regex.search(col_name):
             key = regex.search(col_name).group(1).replace(' ', '')
+            key = regex_sub_parentheses.sub('', key)
             if separate:
                 title = '별도재무제표' if compare_str(lang, 'ko') else 'Separate'
             else:
@@ -196,21 +202,24 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
 
     def stod(year, month, day): return datetime(year=int(year), month=int(month), day=int(day))
 
-    extract_header = re.findall(r'(제.*분?기초?).*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2}).*현재',
-                                header_html.text)
+    regex_text = get_header_regex_text()
+    regex_text += r'.*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2}).*현재'
+    found = header_html.findAll(text=re.compile(regex_text))
+    extract_header = [re.findall(regex_text, e)[0] for e in found]
     if len(extract_header) > 0:
-        header = {key.replace(' ', ''): {'instant_datetime': stod(iye, imo, ida),
+        header = {e[0].replace(' ', ''): {'instant_datetime': stod(e[1], e[2], e[3]),
                                          'start_datetime': None,
-                                         'end_datetime': None}
-                  for key, iye, imo, ida in extract_header}
+                                         'end_datetime': None} for e in extract_header}
     else:
-        reg_text = r'(제.*분?기초?).*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})'
-        reg_text += r'.*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})'
-        extract_header = re.findall(reg_text, header_html.text)
-        header = {key.replace(' ', ''): {'instant_datetime': None,
-                                         'start_datetime': stod(sy, sm, sd),
-                                         'end_datetime': stod(ey, em, ed)}
-                  for key, sy, sm, sd, ey, em, ed in extract_header}
+        regex_text = get_header_regex_text()
+        regex_text += r'.*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})'
+        regex_text += r'.*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})'
+        found = header_html.findAll(text=re.compile(regex_text))
+        extract_header = [re.findall(regex_text, e)[0] for e in found]
+        header = {e[0].replace(' ', ''): {'instant_datetime': None,
+                                         'start_datetime': stod(e[1], e[2], e[3]),
+                                         'end_datetime': stod(e[4], e[5], e[6])}
+                  for e in extract_header}
     table_html = header_html.findNext('table', {'class': ''})
 
     columns = get_table_header(table_html)
@@ -314,7 +323,7 @@ def append_fs(financial_statements: DataFrame, reports: list_of_report,
     DataFrame
         제무제표 DataFrame
     """
-    desc = 'Loading report - {}'.format(report_tp)
+    desc = 'Extracting {}-{}'.format(fs_tp, report_tp)
     regex_label = re.compile(r'[ㄱ-힣]+\(?[ㄱ-힣]+\)?')
     for report in tqdm(reports[1:], desc=desc, unit='page'):
         fs = read_fs_table(report, fs_tp=fs_tp, separate=separate, lang=lang)
