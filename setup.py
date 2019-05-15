@@ -6,7 +6,7 @@ import versioneer
 NAME = 'dart-fss'
 
 INSTALL_REQUIRES = (
-    ['numpy', 'pandas', 'requests', 'lxml', 'tqdm', 'beautifulsoup4', 'isodate', 'arelle', 'fake-useragent']
+    ['numpy', 'pandas', 'requests', 'lxml', 'tqdm', 'beautifulsoup4', 'isodate', 'arelle', 'fake-useragent', 'openpyxl']
 )
 
 
