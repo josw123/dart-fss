@@ -210,3 +210,11 @@ def query_to_regex(query):
     else:
         raise TypeError('Invalid query type')
     return regex
+
+
+def remove_duplicate(columns):
+    results = []
+    for column in columns:
+        if column not in results:
+            results.append(column)
+    return results

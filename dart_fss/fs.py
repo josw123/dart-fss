@@ -11,11 +11,11 @@ from bs4 import BeautifulSoup
 
 from .reports import Report
 from .search import search_report_with_cache
-from ._utils import compare_str, korean_unit_to_number_unit
+from ._utils import compare_str, korean_unit_to_number_unit, remove_duplicate
 
 
 def get_header_regex_text():
-    return r'(제.*분?기초?기?말?|전환일)'
+    return r'(제.*분?기초?기?말?|전\s*환\s*일)'
 
 
 def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
@@ -29,7 +29,7 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
     columns: list of str
         DataFrame 의 columns 이름
     lang: str, optional
-        'ko' 한글, 'en' 영
+        'ko' 한글, 'en' 영문
     separate: bool
         개별 제무제표 유무
 
@@ -57,13 +57,26 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
             else:
                 additional = ''
 
-            if header[key]['instant_datetime'] is None:
-                start_datetime = header[key]['start_datetime'].strftime('%Y-%m-%d')
-                end_datetime = header[key]['end_datetime'].strftime('%Y-%m-%d')
-                new_col_name = '[{},{}]{}{}'.format(start_datetime, end_datetime, title, additional)
-            else:
-                instant_datetime = header[key]['instant_datetime'].strftime('%Y-%m-%d')
-                new_col_name = '[{}]{}{}'.format(instant_datetime, title, additional)
+            header_data = header.get(key, None)
+            if header_data is None:
+                regex_num = re.compile(r'\d{1,3}')
+                for header_key in header:
+                    if re.search(header_key, key):
+                        header_data = header[header_key]
+                    else:
+                        key_num = regex_num.search(key).group(0)
+                        header_key_num = regex_num.search(header_key).group(0)
+                        if key_num == header_key_num:
+                            header_data = header[header_key]
+
+            if header_data:
+                if header_data['instant_datetime'] is None:
+                    start_datetime = header_data['start_datetime'].strftime('%Y-%m-%d')
+                    end_datetime = header_data['end_datetime'].strftime('%Y-%m-%d')
+                    new_col_name = '[{},{}]{}{}'.format(start_datetime, end_datetime, title, additional)
+                else:
+                    instant_datetime = header_data['instant_datetime'].strftime('%Y-%m-%d')
+                    new_col_name = '[{}]{}{}'.format(instant_datetime, title, additional)
         new_col.append(new_col_name)
     return new_col
 
@@ -94,7 +107,6 @@ def str_to_float(text: str) -> float:
                 return float(text)
         except ValueError:
             return float('nan')
-
     elif isinstance(text, (int, float)):
         return float(text)
     else:
@@ -166,6 +178,39 @@ def get_table_body(soup: BeautifulSoup) -> str:
     return '<table>' + str(tbody) + '</table>'
 
 
+def merge_duplicates(df: DataFrame, column: str) -> DataFrame:
+    """ 2개의 Column으로 구성된 데이터를 1개의 Column으로 변환
+
+    Parameters
+    ----------
+    df: DataFrame
+        Table의 DataFrame
+    column: str
+        column 이름
+
+    Returns
+    -------
+    DataFrame
+        변환된 DataFrame
+    """
+    if isinstance(df[column], DataFrame):
+        import math
+        df_column = df[column]
+        df = df.drop(column, axis=1).copy()
+        new_data = []
+        for i in range(len(df_column)):
+            new_value = float('nan')
+            for value in df_column.iloc[i]:
+                if isinstance(value, str):
+                    new_value = value
+                elif isinstance(value, (int, float)) and not math.isnan(value):
+                    new_value = value
+                    break
+            new_data.append(new_value)
+        df[column] = new_data
+    return df
+
+
 def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') -> DataFrame:
     """ html 에서 DataFrame 추출
 
@@ -205,7 +250,12 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
     regex_text = get_header_regex_text()
     regex_text += r'.*(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2}).*현재'
     found = header_html.findAll(text=re.compile(regex_text))
-    extract_header = [re.findall(regex_text, e)[0] for e in found]
+
+    if found:
+        extract_header = [re.findall(regex_text, e)[0] for e in found]
+    else:
+        extract_header = re.findall(regex_text, header_html.text)
+
     if len(extract_header) > 0:
         header = {e[0].replace(' ', ''): {'instant_datetime': stod(e[1], e[2], e[3]),
                                          'start_datetime': None,
@@ -226,12 +276,16 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
     tbody = get_table_body(table_html)
     df = pd.read_html(tbody)[0]
     df.columns = rename_columns(header=header, columns=columns, lang=lang, separate=separate)
-    for column in df.columns[1:]:
+
+    if '주석' in df.columns:
+        df = df.drop('주석', axis=1)
+
+    columns = remove_duplicate(df.columns[1:])
+    for column in columns:
+        df = merge_duplicates(df, column)
         df[column] = df[column].apply(str_to_float)
-
-    df[df.columns[1:]] = df[df.columns[1:]].apply(lambda x: x * unit)
-
-    df.columns = ['label_ko'] + list(df.columns[1:])
+    df[columns] = df[columns].apply(lambda x: x * unit)
+    df.columns = ['label_ko'] + list(columns)
     return df
 
 
