@@ -22,4 +22,12 @@ hyundai_cf = TestCrp(crp_nm='현대자동차')
 hyundai_cf.add_test_set('cf', '20120101', 'concept_id', '20101231',
                         'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 6215815000000)
 
-test_crp_list = [samsung_fs, samsung_is, samsung_ci, samsung_cf, hyundai_fs, hyundai_is, hyundai_ci, hyundai_cf]
+# 덱스터 테스트
+dexter_fs1 = TestCrp(crp_cd='206560')
+dexter_fs1.add_test_set('fs', '20120101', 'concept_id', '20140101', 'ifrs_CurrentAssets', 8945081994)
+dexter_fs2 = TestCrp(crp_cd='206560')
+dexter_fs2.add_test_set('fs', '20120101', 'concept_id', '20161231', 'ifrs_Equity', 78181834231)
+
+test_crp_list = [samsung_fs, samsung_is, samsung_ci, samsung_cf,
+                 hyundai_fs, hyundai_is, hyundai_ci, hyundai_cf,
+                 dexter_fs1, dexter_fs2]
