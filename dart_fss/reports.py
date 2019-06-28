@@ -72,6 +72,7 @@ class Report(object):
         self.rcp_dt = rcp_dt
         self.rmk = rmk.strip()
         self._pages = None
+        self._cached_pages = None
         self._xbrl_url = None
         self._xbrl = None
 
@@ -146,6 +147,12 @@ class Report(object):
         if self._xbrl is None:
             self.load_xbrl()
         return self._xbrl
+
+    def cached_page(self, **kwargs) -> List[Page]:
+        """Cached Page 반환"""
+        if self._cached_pages is None:
+            self._cached_pages = self.load_page(**kwargs)
+        return self._cached_pages
 
     def load_page(self, **kwargs) -> List[Page]:
         """ 페이지들의 HTML을 불러오는 함수

@@ -323,7 +323,7 @@ def read_fs_table(report: Report, fs_tp: str = 'fs',
         'excludes': ['주석', '연결'] if separate else '주석',
         'progressbar_disable': True
     }
-    page = report.load_page(**options)
+    page = report.cached_page(**options)
     if len(page) == 0:
         return None
     else:
