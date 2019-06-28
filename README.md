@@ -34,6 +34,8 @@ pip install dart-fss
 
 ### Dart API Key 설정
 
+[DART API 신청](https://dart.fss.or.kr/dsag002/insertForm.do)후 [DART API 확인](http://dart.fss.or.kr/dsap001/apikeyManagement.do)
+
 환경 변수 DART_API_KEY 설정
 
 또는 패키지 사용전 아래와 같이 설정
