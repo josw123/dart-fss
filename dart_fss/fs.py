@@ -56,7 +56,6 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
                 additional = '(3M)'
             else:
                 additional = ''
-
             header_data = header.get(key, None)
             if header_data is None:
                 regex_num = re.compile(r'\d{1,3}')
@@ -64,10 +63,14 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
                     if re.search(header_key, key):
                         header_data = header[header_key]
                     else:
-                        key_num = regex_num.search(key).group(0)
-                        header_key_num = regex_num.search(header_key).group(0)
-                        if key_num == header_key_num:
+                        key_num = regex_num.search(key)
+                        header_key_num = regex_num.search(header_key)
+                        if key_num and header_key_num is None:
+                            pass
+                        elif key_num.group(0) == header_key_num.group(0):
                             header_data = header[header_key]
+                        else:
+                            pass
 
             if header_data:
                 if header_data['instant_datetime'] is None:
