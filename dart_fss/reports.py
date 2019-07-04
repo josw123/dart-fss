@@ -150,9 +150,34 @@ class Report(object):
 
     def cached_page(self, **kwargs) -> List[Page]:
         """Cached Page 반환"""
-        if self._cached_pages is None:
-            self._cached_pages = self.load_page(**kwargs)
-        return self._cached_pages
+        def get_metadata(params):
+            if params is None:
+                return None
+            elif isinstance(params, str):
+                return params
+            elif isinstance(params, list):
+                return '|'.join(params)
+            else:
+                raise ValueError('Invalid includes')
+
+        includes = get_metadata(kwargs.get('includes'))
+        excludes = get_metadata(kwargs.get('excludes'))
+        index = get_metadata(kwargs.get('index'))
+
+        metadata = (includes, excludes, index)
+        data = None
+
+        if self._cached_pages:
+            cached_metadata = self._cached_pages.get('metadata')
+            cached_data = self._cached_pages.get('data')
+            if cached_metadata == metadata:
+                data = cached_data
+
+        if data is None:
+            data = self.load_page(**kwargs)
+            self._cached_pages = {'metadata': metadata, 'data': self.load_page(**kwargs)}
+
+        return data
 
     def load_page(self, **kwargs) -> List[Page]:
         """ 페이지들의 HTML을 불러오는 함수
