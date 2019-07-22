@@ -175,6 +175,7 @@ fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', sep
 
 ### 주의사항
 
+-   2005년 이전의 재무제표 검색시 합계 표기방법으로 인한 일부 데이터가 음수로 표시되는 버그 (ex) 삼성전자 개별 재무제표의 유동자산
 -   Dart-Fss 라이브러리는 오픈 API의 응답 방식 중 JSON 방식을 사용 중
 -   현재 DART 오픈 API의 응답 방식이 JSON인 경우 오류 발생시 오류 메시지를 보내지 않음 (응답방식이 xml인 경우 올바르게 작동함)
 
