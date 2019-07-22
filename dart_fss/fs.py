@@ -2,7 +2,7 @@
 import re
 import pandas as pd
 
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from pandas import DataFrame
 from datetime import datetime
@@ -65,7 +65,7 @@ def rename_columns(header: Dict[str, Dict[str, str]], columns: List[str],
                     else:
                         key_num = regex_num.search(key)
                         header_key_num = regex_num.search(header_key)
-                        if key_num and header_key_num is None:
+                        if key_num is None or header_key_num is None:
                             pass
                         elif key_num.group(0) == header_key_num.group(0):
                             header_data = header[header_key]
@@ -99,7 +99,7 @@ def str_to_float(text: str) -> float:
     float
         변환된 숫자
     """
-    regex = re.compile(r'\((.*?)\)')
+    regex = re.compile(r'\((-*\d+)\)|\(-\)(\d*)')  # 음수 처리를 위한 정규식
     if isinstance(text, str):
         try:
             text = text.replace(',', '')
@@ -108,7 +108,7 @@ def str_to_float(text: str) -> float:
                 return -float(value)
             else:
                 return float(text)
-        except ValueError:
+        except (ValueError, TypeError):
             return float('nan')
     elif isinstance(text, (int, float)):
         return float(text)
@@ -214,15 +214,18 @@ def merge_duplicates(df: DataFrame, column: str) -> DataFrame:
     return df
 
 
-def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') -> DataFrame:
+def html_to_df(soup: BeautifulSoup, includes: List, excludes: List = [],
+               separate: bool = False, lang: str = 'ko') -> Union[DataFrame, None]:
     """ html 에서 DataFrame 추출
 
     Parameters
     ----------
     soup: BeautifulSoup
         Html 의 BeautifulSoup
-    regex_text: str
-        추출할 Table 이름의 regular expression
+    includes: List
+        추출할 Table에 포함될 Text
+    excludes: List
+        추출할 Table에 포함되지 않을 Text
     separate: bool, optional
         개별 제무제표 유무
     lang: str, optional
@@ -232,20 +235,39 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
     -------
     DataFrame
         추출한 Table 의 DataFrame
+    None
+        추출 가능한 Table이 없을 경우
     """
-    element = soup.find(text=re.compile(regex_text))
-    if element is None:
+    regex_includes = get_regex(includes)
+    elements = soup.find_all(text=re.compile(regex_includes))
+    element = None
+    if len(elements) == 0:
         return None
-
+    elif len(excludes) == 0:
+        element = elements[0]
+    else:
+        regex_excludes = get_regex(excludes)
+        for e in elements:
+            if re.search(regex_excludes, e):
+                pass
+            else:
+                element = e
+                break
     header_html = element.findParent('table', {'class': 'nb'})
     if header_html is None:
         header_html = element.findNext('table', {'class': 'nb'})
 
     won_regex = re.compile(r'(\w{0,3}원)')
+
+    if header_html is None:
+        return None
+
     korean_unit = header_html.find(text=won_regex)
     if korean_unit is None:
         korean_unit = header_html.findNext(text=won_regex)
 
+    if korean_unit is None:
+        return None
     unit = korean_unit_to_number_unit(str(korean_unit))
 
     def stod(year, month, day): return datetime(year=int(year), month=int(month), day=int(day))
@@ -277,7 +299,17 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
 
     columns = get_table_header(table_html)
     tbody = get_table_body(table_html)
-    df = pd.read_html(tbody)[0]
+
+    def convert_table_to_dataframe(table_body):
+        try:
+            return pd.read_html(table_body)[0]
+        except ValueError:
+            return None
+
+    df = convert_table_to_dataframe(tbody)
+    if df is None:
+        return None
+
     df.columns = rename_columns(header=header, columns=columns, lang=lang, separate=separate)
 
     if '주석' in df.columns:
@@ -294,7 +326,6 @@ def html_to_df(soup: BeautifulSoup, regex_text: str, separate=False, lang='ko') 
 
 def get_regex(parsing_table: List[str]):
     """추출할 table 검색을 위한 regular expression"""
-
     regex = r'\s*'.join(parsing_table[0])
     for table in parsing_table[1:]:
         regex += r'|' + r'\s*'.join(table)
@@ -321,37 +352,50 @@ def read_fs_table(report: Report, fs_tp: str = 'fs',
     DataFrame
         html 에서 추출한 DataFrame
     """
+
+    # 재무제표 페이지 검색을 위한 함수
+    def re_search_title(pattern, pages_list, pattern2=None):
+        reg = re.compile(pattern)
+        # pages_list = List[(title, page)]
+        for p in pages_list:
+            if reg.search(p[0]):
+                # page 반환
+                return p[1]
+        if pattern2 is not None:
+            # 검색 결과가 없을시 pattern2을 이용하여 검색
+            return re_search_title(pattern2, pages_list)
+        return None
+
     options = {
-        'includes': '재무제표',
-        'excludes': ['주석', '연결'] if separate else '주석',
+        'includes': ['재무제표'],
+        'excludes': ['주석', '연결', '유의점'] if separate else ['주석', '유의점'],
         'progressbar_disable': True
     }
-    page = report.cached_page(**options)
-    if len(page) == 0:
+    pages = report.cached_page(**options)  # page 추출
+    if len(pages) == 0:
         return None
     else:
-        page = page[0]
+        temp = [(p.title, p) for p in pages]
+        regex_title = '재무제표' if separate else '연결재무제표'
+        page = re_search_title(regex_title, temp, '재무제표')
+        if page is None:
+            return None
+
     soup = BeautifulSoup(page.html, 'html.parser')
     if fs_tp == 'fs':
-        separate_table = ['^재무상태표$', '^대차대조표$']
-        consolidated_table = ['연결재무상태표', '연결대차대조표']
+        includes = ['재무상태표$', '대차대조표$']
     elif fs_tp == 'is':
-        separate_table = ['^손익계산서$']
-        consolidated_table = ['연결 손익계산서']
+        includes = ['손익계산서$']
     elif fs_tp == 'ci':
-        separate_table = ['^포괄손익계산서']
-        consolidated_table = ['연결 포괄손익계산서']
+        includes = ['포괄손익계산서']
     elif fs_tp == 'cf':
-        separate_table = ['^현금흐름표$']
-        consolidated_table = ['연결 현금흐름표']
+        includes = ['현금흐름표$']
     else:
         raise ValueError('Invalid fs_tp')
-    separate_table = get_regex(separate_table)
-    consolidated_table = get_regex(consolidated_table)
 
-    regex_text = separate_table if separate else consolidated_table
+    excludes = ['연결'] if separate else []
 
-    df = html_to_df(soup, regex_text, separate=separate, lang=lang)
+    df = html_to_df(soup, includes, excludes, separate=separate, lang=lang)
     return df
 
 
