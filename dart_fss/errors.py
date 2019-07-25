@@ -29,13 +29,25 @@ def check_err_code(**kwargs) -> None:
     if err_code == '000':
         pass
     else:
-        raise DartException(err_code, err_msg)
+        raise DartAPIError(err_code, err_msg)
 
 
-class DartException(Exception):
+class DartError(Exception):
+    """ Dart Error """
+    pass
+
+
+class DartAPIError(DartError):
     """ DART API 에서 오류 메시지를 전송 받았을때 발생하는 오류 """
     def __init__(self, err_code, err_msg):
         if err_code not in ERROR_CODE:
             err_code = '900'
         message = '{}, {}'.format(ERROR_CODE[err_code], err_msg)
         super().__init__(message)
+
+
+class NotFoundConsolidated(DartError):
+    """ 연결재무제표가 없을때 발생하는 오류 """
+    def __init__(self, err_msg='Could not find consolidated financial statements'):
+        super().__init__(err_msg)
+

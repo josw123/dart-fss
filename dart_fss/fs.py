@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from .reports import Report
 from .search import search_report_with_cache
 from ._utils import compare_str, korean_unit_to_number_unit, remove_duplicate
-
+from .errors import NotFoundConsolidated
 
 def get_header_regex_text():
     return r'(제.*분?기초?기?말?|전\s*환\s*일)'
@@ -426,59 +426,63 @@ def append_fs(financial_statements: DataFrame, reports: list_of_report,
     """
     desc = 'Extracting {}-{}'.format(fs_tp, report_tp)
     regex_label = re.compile(r'[ㄱ-힣]+\(?[ㄱ-힣]+\)?')
-    for report in tqdm(reports[1:], desc=desc, unit='page'):
-        fs = read_fs_table(report, fs_tp=fs_tp, separate=separate, lang=lang)
+    try:
+        for report in tqdm(reports[1:], desc=desc, unit='page'):
+            fs = read_fs_table(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-        if fs is None:
-            continue
+            if fs is None:
+                continue
 
-        overlap = set(fs.columns[1:]).intersection(set(financial_statements.columns))
-        if len(overlap) == 0:
-            continue
+            overlap = set(fs.columns[1:]).intersection(set(financial_statements.columns))
+            if len(overlap) == 0:
+                continue
 
-        non_overlap = list(set(fs.columns[1:]) - overlap)
-        overlap = list(overlap)
+            non_overlap = list(set(fs.columns[1:]) - overlap)
+            overlap = list(overlap)
 
-        refs = [tuple(financial_statements[overlap].iloc[idx]) for idx in range(len(financial_statements))]
-        if 'label_ko' in financial_statements.columns:
-            refs_label = [financial_statements['label_ko'].iloc[idx].replace(' ', '')
-                          for idx in range(len(financial_statements))]
-        else:
-            refs_label = []
+            refs = [tuple(financial_statements[overlap].iloc[idx]) for idx in range(len(financial_statements))]
+            if 'label_ko' in financial_statements.columns:
+                refs_label = [financial_statements['label_ko'].iloc[idx].replace(' ', '')
+                              for idx in range(len(financial_statements))]
+            else:
+                refs_label = []
 
-        data_set = dict()
-        data_set_label = dict()
-        for idx in range(len(fs)):
-            keys = tuple(fs[overlap].iloc[idx])
-            is_nan = True
-            for key in keys:
-                if key != float('nan'):
-                    is_nan = False
+            data_set = dict()
+            data_set_label = dict()
+            for idx in range(len(fs)):
+                keys = tuple(fs[overlap].iloc[idx])
+                is_nan = True
+                for key in keys:
+                    if key != float('nan'):
+                        is_nan = False
+                        break
+                if is_nan is True:
                     break
-            if is_nan is True:
-                break
-            data = fs.iloc[idx].to_dict()
-            data_set[keys] = data
-            label = fs['label_ko'].iloc[idx]
-            if isinstance(label, str):
-                label = label.replace(' ', '')
-                label = regex_label.search(label).group(0)
-                data_set_label[label] = data
+                data = fs.iloc[idx].to_dict()
+                data_set[keys] = data
+                label = fs['label_ko'].iloc[idx]
+                if isinstance(label, str):
+                    label = label.replace(' ', '')
+                    label = regex_label.search(label).group(0)
+                    data_set_label[label] = data
 
-        column_data = {column: [] for column in non_overlap}
+            column_data = {column: [] for column in non_overlap}
 
-        for ref_val, ref_label in zip(refs, refs_label):
-            value = data_set.get(ref_val, data_set_label.get(ref_label, None))
+            for ref_val, ref_label in zip(refs, refs_label):
+                value = data_set.get(ref_val, data_set_label.get(ref_label, None))
+                for column in non_overlap:
+                    data = None
+                    if value is not None:
+                        data = value[column]
+                    column_data[column].append(data)
+
             for column in non_overlap:
-                data = None
-                if value is not None:
-                    data = value[column]
-                column_data[column].append(data)
+                financial_statements[column] = column_data[column]
 
-        for column in non_overlap:
-            financial_statements[column] = column_data[column]
-
-    return financial_statements
+        return financial_statements
+    except Exception:
+        msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
+        raise RuntimeError(msg)
 
 
 def get_statement_dataframe(xbrl, fs_tp='fs', separate: bool = False, lang: str = 'ko',
@@ -558,7 +562,7 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None, f
     statements = None
     reports = search_report_with_cache(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt, bsn_tp='A001', page_set=100)
     if len(reports) == 0:
-        raise FileNotFoundError('Could not find an annual report')
+        raise RuntimeError('Could not find an annual report')
     for idx, _ in enumerate(reports):
         last_report = reports[idx]
         last_xbrl = last_report.xbrl
@@ -567,6 +571,8 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None, f
             statements = get_statement_dataframe(last_xbrl, fs_tp=fs_tp, separate=separate, lang=lang,
                                                  show_abstract=show_abstract, show_class=show_class,
                                                  show_depth=show_depth, show_concept=show_concept, separator=separator)
+            if statements is None and separate is False:
+                raise NotFoundConsolidated('Could not find consolidated financial statements')
         else:
             statements = read_fs_table(last_report, fs_tp=fs_tp, separate=separate, lang=lang)
 
