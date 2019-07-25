@@ -173,6 +173,11 @@ fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', sep
 
 ```
 
+### 오류 코드 
+
+- DartAPIError: DART API 에서 오류 메시지를 전송 받았을때 발생하는 오류
+- NotFoundConsolidated: 연결재무제표가 없을때 발생하는 오류(해당사항이 없는 경우)
+
 ### 주의사항
 
 -   2005년 이전의 재무제표 검색시 합계 표기방법으로 인한 일부 데이터가 음수로 표시되는 버그 (ex) 삼성전자 개별 재무제표의 유동자산
