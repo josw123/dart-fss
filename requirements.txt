@@ -23,4 +23,5 @@ traitlets
 urllib3
 wcwidth
 lxml
+html5lib
 openpyxl
