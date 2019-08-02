@@ -75,6 +75,7 @@ class Report(object):
         self._cached_pages = None
         self._attached_files = None
         self._xbrl = None
+        self._attached_docs = None
 
     def to_dict(self) -> Dict[str, str]:
         """ dict 타입으로 정보 반환
@@ -237,6 +238,8 @@ class Report(object):
         params = dict(rcpNo=self.rcp_no)
         resp = request_get(url=self._REPORT_URL_, params=params)
 
+        self._get_attached_docs(resp.text)
+
         raw = re.findall(r'TreeNode\({(.*?)}\)', resp.text, re.S)
 
         includes = kwargs.get('includes')
@@ -275,7 +278,7 @@ class Report(object):
 
         return tree
 
-    def _get_attached_files(self, dcm_no):
+    def _get_attached_files(self, dcm_no: str) -> None:
         params = dict(rcp_no=self.rcp_no, dcm_no=dcm_no)
         resp = request_get(url=self._DOWNLOAD_URL_, params=params)
         soup = BeautifulSoup(resp.text, 'html.parser')
@@ -285,11 +288,25 @@ class Report(object):
         for tr in tr_list:
             if tr.find('a'):
                 td_list = tr.find_all('td')
-                file_name = td_list[0].text
+                file_name = td_list[0].text.strip()
                 if regex.search(file_name):
                     file_name = 'xbrl'
                 file_url = self._DART_URL_ + td_list[1].a.get('href')
                 self._attached_files.append({'file': file_name, 'url': file_url})
+
+    def _get_attached_docs(self, resp: str) -> None:
+        soup = BeautifulSoup(resp, 'html.parser')
+        attached = soup.find('p', class_='f_none')
+        attached_list = attached.find_all('option')
+        self._attached_docs = []
+        for docs in attached_list:
+            docs_name = re.sub(r'\s+', ' ',  docs.text).strip()
+            docs_url = docs.attrs.get('value')
+            if compare_str(docs_url, 'null'):
+                pass
+            else:
+                docs_url = self._REPORT_URL_ + '?' + docs_url
+                self._attached_docs.append({'docs': docs_name, 'url': docs_url})
 
     def __getitem__(self, item):
         if self._pages is None:
