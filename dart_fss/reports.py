@@ -5,13 +5,13 @@ import multiprocessing as mp
 
 from typing import Dict, List, Union
 
-from bs4 import BeautifulSoup, Comment
+from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from .markets import get_market_name
 from .types import RMK_TYPES
 from .pages import Page
-from ._utils import dict_to_html, request_get
+from ._utils import dict_to_html, request_get, compare_str
 from .xbrl import get_xbrl_from_website, DartXbrl
 
 
@@ -73,7 +73,7 @@ class Report(object):
         self.rmk = rmk.strip()
         self._pages = None
         self._cached_pages = None
-        self._xbrl_url = None
+        self._attached_files = None
         self._xbrl = None
 
     def to_dict(self) -> Dict[str, str]:
@@ -100,8 +100,8 @@ class Report(object):
             'rmk': self.rmk
         }
 
-        if self._xbrl_url is not None:
-            info['xbrl_url'] = self._xbrl_url
+        if self.xbrl_url is not None:
+            info['xbrl_url'] = self.xbrl_url
         info['pages'] = pages
 
         return info
@@ -144,9 +144,32 @@ class Report(object):
     @property
     def xbrl(self) -> Union[DartXbrl, list]:
         """DartXbrl or list of DartXbrl: DartXbrl 반환"""
-        if self._xbrl is None:
-            self.load_xbrl()
+
+        xbrl_url = self.xbrl_url
+
+        if xbrl_url is not None:
+            xbrl = get_xbrl_from_website(xbrl_url)
+            if len(xbrl) == 1:
+                self._xbrl = xbrl[0]
+            elif len(xbrl) > 1:
+                self._xbrl = xbrl
+            else:
+                self._xbrl = None
         return self._xbrl
+
+    @property
+    def xbrl_url(self) -> Union[str, None]:
+        """XBRL 파일 주소 반환 함수"""
+        xbrl_url = None
+        if self._attached_files is None:
+            self.load_page(index=[0], progressbar_disable=True)
+
+        for file in self._attached_files:
+            file_name = file.get('file')
+            if compare_str(file_name, 'xbrl'):
+                xbrl_url = file.get('url')
+
+        return xbrl_url
 
     def cached_page(self, **kwargs) -> List[Page]:
         """Cached Page 반환"""
@@ -245,40 +268,28 @@ class Report(object):
 
         if len(tree) > 0:
             dcm_no = tree[0].dcm_no
-            self._get_xbrl(dcm_no)
+            self._get_attached_files(dcm_no)
 
         if includes is None and excludes is None and index is None:
             self._pages = tree
 
         return tree
 
-    def load_xbrl(self) -> None:
-        """XBRL 파일 로드 함수"""
-        if self._xbrl_url is None:
-            self.load_page(index=[0], progressbar_disable=True)
-
-        if self._xbrl_url is not None:
-            xbrl = get_xbrl_from_website(self._xbrl_url)
-            if len(xbrl) == 1:
-                self._xbrl = xbrl[0]
-            elif len(xbrl) > 1:
-                self._xbrl = xbrl
-            else:
-                self._xbrl = None
-
-    def _get_xbrl(self, dcm_no):
+    def _get_attached_files(self, dcm_no):
         params = dict(rcp_no=self.rcp_no, dcm_no=dcm_no)
         resp = request_get(url=self._DOWNLOAD_URL_, params=params)
         soup = BeautifulSoup(resp.text, 'html.parser')
-        comment = soup.find_all(string=lambda text: isinstance(text, Comment))
-        for c in comment:
-            if len(re.findall(r'IFRS', c.string, re.IGNORECASE)) > 0:
-                a_href = c.find_next('a')
-                attrs = a_href.attrs.get('href')
-                if re.search('none', attrs):
-                    return
-                xbrl_url = self._DART_URL_ + attrs
-                self._xbrl_url = xbrl_url
+        tr_list = soup.find_all('tr')
+        regex = re.compile(r'IFRS', re.IGNORECASE)
+        self._attached_files = []
+        for tr in tr_list:
+            if tr.find('a'):
+                td_list = tr.find_all('td')
+                file_name = td_list[0].text
+                if regex.search(file_name):
+                    file_name = 'xbrl'
+                file_url = self._DART_URL_ + td_list[1].a.get('href')
+                self._attached_files.append({'file': file_name, 'url': file_url})
 
     def __getitem__(self, item):
         if self._pages is None:
@@ -321,8 +332,8 @@ class Report(object):
             '목차': page_list
         }
 
-        if self._xbrl_url is not None:
-            summary['XBRL_URL'] = self._xbrl_url
+        if self.xbrl_url is not None:
+            summary['XBRL_URL'] = self.xbrl_url
 
         return pformat(summary)
 
