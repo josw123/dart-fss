@@ -5,6 +5,7 @@ import copy
 import pandas as pd
 
 from typing import Union, List, Dict, Tuple, Pattern
+from collections import OrderedDict
 from pandas import DataFrame
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -12,7 +13,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 
 from dart_fss.reports import Report
-from dart_fss.search import search_report_with_cache
+from dart_fss.search import search_report
 from dart_fss._utils import compare_str, str_unit_to_number_unit, strWS, is_notebook
 from dart_fss.errors import NotFoundConsolidated
 from dart_fss.regex import str_to_regex
@@ -254,7 +255,7 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
 
 def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     """ Html의 tbody를 DataFrame으로 변환하는 함수"""
-    column_matrix = dict()
+    column_matrix = OrderedDict()
     for idx, column in enumerate(columns):
         key = tuple(column)
         if column_matrix.get(key):
@@ -369,7 +370,7 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
     dict of {str : dict }
         검색된 재무제표 결과
     """
-    fs_table = dict()
+    fs_table = OrderedDict()
 
     # 순서대로 검색 (순서 변경 금지)
     queryset = {
@@ -406,7 +407,7 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
 
 
 def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko'):
-    results = dict()
+    results = OrderedDict()
     for tp, table in fs_table.items():
         if tp in fs_tp:
             if table['table']:
@@ -869,7 +870,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate:
         'separator': separator
     }
 
-    statements = dict()
+    statements = OrderedDict()
     for tp in fs_tp:
         statements[tp] = func_fs[tp]()
         if statements[tp]:
@@ -951,8 +952,8 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
     statements = None
 
     # 사업보고서 검색(최종보고서)
-    reports = search_report_with_cache(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                                       bsn_tp='A001', page_set=100, fin_rpt=True)
+    reports = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
+                            bsn_tp='A001', page_set=100, fin_rpt=True)
 
     if len(reports) == 0:
         # todo 감사보고서를 이용하여 재무제표 검색
@@ -992,14 +993,14 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
         statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     if compare_str(report_tp, 'half') or compare_str(report_tp, 'quarter'):
-        half = search_report_with_cache(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                                        bsn_tp=['A002'], page_set=100, fin_rpt=True)
+        half = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
+                             bsn_tp=['A002'], page_set=100, fin_rpt=True)
         for report in tqdm(half, desc='Semiannual reports', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     if compare_str(report_tp, 'quarter'):
-        quarter = search_report_with_cache(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                                           bsn_tp=['A003'], page_set=100, fin_rpt=True)
+        quarter = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
+                                bsn_tp=['A003'], page_set=100, fin_rpt=True)
         for report in tqdm(quarter, desc='Quarterly report', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
