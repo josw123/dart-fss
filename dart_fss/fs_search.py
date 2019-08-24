@@ -910,8 +910,7 @@ def sorting_columns(statements):
         date_columns = [x[0] for x in date_columns]
 
         ncolumns = concept_columns + date_columns
-        ns = statements[tp][ncolumns]
-        statements[tp] = ns
+        statements[tp] = statements[tp][ncolumns]
     return statements
 
 
