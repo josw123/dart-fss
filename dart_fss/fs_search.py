@@ -306,7 +306,7 @@ def seek_table(tables: List, includes: Pattern,
                excludes: Union[Pattern, None] = None) -> Tuple[Union[str, None], Union[str, None], Union[str, None]]:
     """ Table 검색 """
     regex = re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}')
-    for idx, table in enumerate(tables):
+    for table in tables:
         for tag in table.previous_siblings:
             if isinstance(tag, Tag):
                 title = tag.findChild(text=includes)
@@ -533,7 +533,7 @@ def find_all_columns(df: DataFrame, query: str) -> list:
     columns = df.columns.tolist()
 
     results = []
-    for idx, column in enumerate(columns):
+    for column in columns:
         for item in column:
             if isinstance(item, str) and regex.search(item):
                 results.append(column)

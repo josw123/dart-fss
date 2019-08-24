@@ -571,7 +571,7 @@ class AttachedFile(object):
             info['related_report'] = self.rcp_no
             info['url'] = self.url
         return info
-    
+
     def __repr__(self):
         from pprint import pformat
         return pformat(self.to_dict())

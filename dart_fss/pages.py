@@ -41,7 +41,7 @@ class Page(object):
         self._html = None
         if not lazy_loading:
             self.load()
-    
+
     @property
     def html(self):
         """ html 반환

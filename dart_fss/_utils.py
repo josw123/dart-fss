@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import math
 import zipfile
 import requests
 
@@ -191,7 +190,7 @@ def query_to_regex(query):
 
 def create_folder(path):
     try:
-        os.makedirs(path)    
+        os.makedirs(path)
     except FileExistsError:
         pass
 
