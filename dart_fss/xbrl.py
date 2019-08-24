@@ -133,7 +133,7 @@ def get_value_from_dataset(classification, dataset, concept_id):
             return float(val)
         except ValueError:
             return val
-        
+
     if isinstance(classification, dict):
         classification = [classification]
 

@@ -55,7 +55,7 @@ class Page(object):
         if self._html is None:
             self.load()
         return self._html
-    
+
     def load(self):
         """ page loading 함수 """
         def change_url(bs, tag):

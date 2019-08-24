@@ -8,7 +8,7 @@ from urllib.parse import unquote, parse_qs
 from bs4 import BeautifulSoup
 
 from dart_fss.pages import Page
-from dart_fss._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file, is_notebook
+from dart_fss._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file
 from dart_fss.xbrl import get_xbrl_from_file
 from dart_fss.regex import str_to_regex
 
@@ -420,7 +420,7 @@ class Report(object):
 
 class RelatedReport(Report):
     """ 연관된 보고서 클래스
-
+block_size = 8192
     연관 보고서 정보를 담고 있는 클래스
     Report 클래스 상속
 
@@ -435,7 +435,7 @@ class RelatedReport(Report):
         if self.parent is None:
             raise ValueError('RelatedReport must have parent')
         kwargs.pop('parent')
-        super().__init__(**kwargs)     
+        super().__init__(**kwargs)
 
     @property
     def related_reports(self):
@@ -606,7 +606,7 @@ class AttachedFile(object):
 
         # total_size = int(r.headers.get('content-length', 0))
         block_size = 8192
-        
+
         filename = unquote(re.findall(r'filename="(.*?)"', headers)[0])
 
         filename = '{}_{}'.format(self.rcp_no, filename)
