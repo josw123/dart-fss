@@ -7,7 +7,7 @@ DART-FSS
 ..  image:: https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg
 ..  image:: https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde
 
-대한민국 금융감독원에서 운영하는 `DART <https://dart.fss.or.kr>`_ 시스템 크롤링을 위한 라이브러리
+대한민국 금융감독원에서 운영하는 다트(`DART <https://dart.fss.or.kr>`_) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
 
 Installation
 ------------
