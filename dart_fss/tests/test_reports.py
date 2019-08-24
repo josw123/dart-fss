@@ -15,13 +15,6 @@ def test_reports(last_report):
     assert actual == expected
 
 
-def test_reports_load_page(last_report):
-    page = last_report.load_page(includes="연결재무제표", excludes="주석")[0]
-    actual = page.ele_id
-    expected = '13'
-    assert actual == expected
-
-
 def test_reports_pages(last_report):
     first_page = last_report[0]
     actual = first_page.ele_id
@@ -41,29 +34,43 @@ def test_reports_xbrl(last_report):
     assert xbrl_file is not None
 
 
-def test_reports_to_file(last_report):
-    import os
-    import tempfile
-
-    with tempfile.TemporaryDirectory() as path:
-        last_report.to_file(path)
-        for _, _, files in os.walk(path):
-            if len(files) is not len(last_report):
-                pytest.fail("Can't save files")
-
-
-def test_reports_to_file2():
-    import os
-    import tempfile
-    last_report = search_report_with_cache(crp_cd='080440', start_dt='20190419', dsp_tp='b')[0]
-    with tempfile.TemporaryDirectory() as path:
-        last_report.to_file(path)
-        for _, _, files in os.walk(path):
-            if len(files) is not len(last_report):
-                pytest.fail("Can't save files")
+def test_reports_find_all(last_report):
+    query = {
+        'includes': '전문가 AND 확인',
+        'excludes': '1'
+    }
+    page = last_report.find_all(**query)['pages'][0]
+    actual = page.dcm_no
+    expected = '6060273'
+    assert actual == expected
 
 
+def test_reports_to_dict(last_report):
+    info = last_report.to_dict(summary=False)
+    actual = info.get('xbrl')
+    expected = 'IFRS(원문XBRL)(20180402005019_ifrs.zip)'
+    assert actual == expected
 
 
+def test_reports_replated_reports():
+    crp_cd='000660'
+    report = search_report_with_cache(crp_cd=crp_cd, start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
+    report.load()
+    related_reports = report.related_reports
+    actual = len(related_reports)
+    expected = 1
+    assert actual == expected
 
+
+def test_reports_find_all():
+    crp_cd='000660'
+    report = search_report_with_cache(crp_cd=crp_cd, start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
+    query = {
+        'includes': '전문가 AND 확인',
+        'excludes': '1'
+    }
+    page = report.find_all(**query)['pages'][0]
+    actual = page.dcm_no
+    expected = '6217166'
+    assert actual == expected
 

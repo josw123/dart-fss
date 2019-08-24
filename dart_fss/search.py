@@ -6,19 +6,47 @@ from datetime import datetime
 from collections import OrderedDict
 from typing import Union, Dict, List
 
-from .auth import DartAuth
-from .types import DSP_TYPES, BSN_TYPES
-from .reports import Report
-from .errors import check_err_code
-from ._utils import dict_to_html, request_get
+from dart_fss.auth import DartAuth
+from dart_fss.types import DSP_TYPES, BSN_TYPES
+from dart_fss.reports import Report
+from dart_fss.errors import check_err_code
+from dart_fss._utils import dict_to_html, request_get
 
 
 List_or_str = Union[List[str], str]
 
 
-def _set_params(params: Dict[str,Union[str,int]], crp_cd: str = None, start_dt: str = None, end_dt: str = None,
+def _set_params(params: Dict[str, Union[str, int]], crp_cd: str = None, start_dt: str = None, end_dt: str = None,
                 fin_rpt: bool = False, dsp_tp: List_or_str = None, bsn_tp: List_or_str = None,
-                sort: str = 'date', series: str = 'desc') -> Dict[str,Union[str,int]]:
+                sort: str = 'date', series: str = 'desc') -> Dict[str, Union[str, int]]:
+    """ 검색 Parameter 설정을 위해 사용되는 함수
+
+    Parameters
+    ----------
+    params: dict
+        저장될 Parameter
+    crp_cd: str
+        회사코드
+    start_dt: str
+        검색 시작 일자(yyyymmdd)
+    end_dt: str
+        검색 종료 일자(yyyymmdd)
+    fin_rpt: bool
+        True: 최종보고서만 검색 / False: 모든 보고서 검색
+    dsp_tp: str or list of str
+        검색할 공시 형태
+    bsn_tp: str of list of str
+        검색할 상세 보고서 타입
+    sort: str
+        정렬 방법, 접수일자(date), 회사명(crp), 보고서명(rpt) 기본값 : date
+    series: str
+        오름차순(asc), 내림차순(desc) 기본값 : desc
+
+    Returns
+    -------
+    dict or {str: str or int}
+        설정된 Parameter 반환
+    """
     if crp_cd:
         params['crp_cd'] = crp_cd
 
@@ -55,7 +83,20 @@ def _set_params(params: Dict[str,Union[str,int]], crp_cd: str = None, start_dt: 
     return params
 
 
-def _get_tp_params(types, tp_data):
+def _get_tp_params(types: str, tp_data: Union[str, List[str]]):
+    """ 보고서 TYPE 검사 및 반환
+
+    Parameters
+    ----------
+    types: str
+        dsp_tp: 공시 타입 / bsn_tp: 보고서 타입
+    tp_data: str or list of str
+        Parameter에 추가할 데이터(공시 타입 혹은 보고서 타입)
+    Returns
+    -------
+    dict or {str: str or int}
+        설정된 Parameter 반환
+    """
     params = dict()
     tp_dict = {'dsp_tp': DSP_TYPES, 'bsn_tp': BSN_TYPES}
     tp_list = tp_dict.get(types)
@@ -90,6 +131,7 @@ class SearchResults(object):
         self._set_data(**kwargs)
 
     def _set_data(self, **kwargs):
+        """ SearchResults 결과의 parameter를 저장하는 함수"""
         data = kwargs.get('data')
         check_err_code(**data)
         self._page_no = data['page_no']
@@ -100,16 +142,18 @@ class SearchResults(object):
         self._params = kwargs.get('params')
 
     def _search_report(self, **params):
+        """ 추가적인 검색을 위해 사용되는 함수"""
         res = search_report(**params, return_dict=True)
         self._set_data(**res)
 
     @property
-    def page_no(self) -> int:
-        """int: 검색 페이지 번호"""
+    def page_no(self):
+        """ 표시된 페이지 번호 """
         return self._page_no
 
     @page_no.setter
     def page_no(self, page_no):
+        """ 표시할 페이지 번호 설정"""
         params = self._params
         if isinstance(page_no, int) and 1 <= page_no <= self.total_page:
             params['page_no'] = page_no
@@ -118,14 +162,16 @@ class SearchResults(object):
             raise ValueError('Invalid page_no')
 
     def next_page(self):
+        """ 다음 페이지 표시"""
         self.page_no = self.page_no + 1
 
     def prev_page(self):
+        """ 이전 페이지 표시"""
         self.page_no = self.page_no - 1
 
     @property
-    def page_set(self) -> int:
-        """int: 페이지당 건수"""
+    def page_set(self):
+        """페이지당 표시할 리포트수"""
         return self._page_set
 
     @page_set.setter
@@ -189,7 +235,7 @@ class SearchResults(object):
 
         return search_report(**params)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         """ dict 타입으로 반환
 
         Returns
@@ -298,8 +344,8 @@ cached_reports = OrderedDict()
 def search_report_with_cache(**kwargs):
     """ DART 공시 정보 검색 - 캐쉬 사용
 
-    DART 에 공시된 정보를 검색하는 함수로, Parameters 가 설정되지 않을 경우 당일 접수 10건을 검색함.
-    MAX_CACHED_MINUTES, MAX_CACHED_REPORT에 따라 캐쉬 저장
+    캐쉬 기능을 사용하여 공시 정보를 검색하는 함수로 동일한 검색 파라미터 사용시 저장된 값을 불러오는 함수
+    기본 캐싱 시간 30분 / 최대 캐싱 검색 결과수 4
 
     Parameters
     ----------

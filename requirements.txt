@@ -9,7 +9,7 @@ fake-useragent
 idna
 ipython-genutils
 isodate
-numpy
+numpy >=1.17.0
 pandas
 pickleshare
 py
@@ -25,3 +25,4 @@ wcwidth
 lxml
 html5lib
 openpyxl
+halo

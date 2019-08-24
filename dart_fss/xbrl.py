@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 import os, sys
-import tempfile
+import math
+import datetime
 
 import pandas as pd
 from pandas import DataFrame
@@ -12,10 +13,12 @@ from dateutil.relativedelta import relativedelta
 from arelle.ModelXbrl import ModelXbrl
 from arelle import Cntlr, XbrlConst
 
-from ._utils import download_file, unzip, search_file, check_datetime, compare_str, dict_to_html, get_datetime
+from dart_fss._utils import check_datetime, compare_str, dict_to_html, get_datetime
+from dart_fss.regex import str_to_regex
 
 
 def get_label_list(relationship_set, concepts, relationship=None):
+    """ XBRL의 label list를 변환하는 함수 """
     if relationship is None:
         if len(relationship_set.modelRelationships) > 0:
             preferred = relationship_set.modelRelationships[0].preferredLabel
@@ -48,6 +51,7 @@ def get_label_list(relationship_set, concepts, relationship=None):
 
 
 def flatten(tuple_list, res=None):
+    """ 2차원 list를 1차원 리스트로 변환하는 함수 """
     results = list() if res is None else res
     for data in tuple_list:
         if isinstance(data, list):
@@ -58,6 +62,7 @@ def flatten(tuple_list, res=None):
 
 
 def get_max_depth(labels, show_abstract=False):
+    """ class의 최대 깊이를 확인하는 함수"""
     max_depth = 0
 
     if len(labels['children']) == 0 and labels['isAbstract'] is True:
@@ -75,27 +80,25 @@ def get_max_depth(labels, show_abstract=False):
 
 
 def get_title(cls, lang='ko'):
-    lang_type = {
-        'ko': 'label_ko',
-        'en': 'label_en',
-        'concepts': 'label_en'
-    }
-
-    name = cls[lang_type[lang]]
-    name = re.sub(r'\[.*?\]', '', name)
-    name = name.strip()
+    """ cls에서 column의 title을 생성하는 함수 """
+    title = []
 
     if cls['instant_datetime'] is None:
-        start_date = cls['start_datetime'].strftime('%Y-%m-%d')
-        end_date = cls['end_datetime'].strftime('%Y-%m-%d')
-        title = '[{},{}]{}'.format(start_date, end_date, name)
+        start_date = cls['start_datetime'].strftime('%Y%m%d')
+        end_date = cls['end_datetime'].strftime('%Y%m%d')
+        title.append('{}-{}'.format(start_date, end_date))
     else:
-        instant_date = cls['instant_datetime'].strftime('%Y-%m-%d')
-        title = '[{}]{}'.format(instant_date, name)
-    return title
+        instant_date = cls['instant_datetime'].strftime('%Y%m%d')
+        title.append('{}'.format(instant_date))
+    qlist = []
+    for qname in cls['label']:
+        qlist.append(cls['label'][qname][lang].strip())
+    title.append(tuple(qlist))
+    return tuple(title)
 
 
 def get_datetime_and_name(title):
+    """ Column Title에서 날짜와 Tilte 명을 추출하는 함수"""
     regx = re.search(r'\[(.*?)\]', title, re.IGNORECASE)
     result = None
     if regx is not None:
@@ -124,48 +127,60 @@ def get_datetime_and_name(title):
 
 
 def get_value_from_dataset(classification, dataset, concept_id):
+    """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val):
         try:
             return float(val)
         except ValueError:
             return val
 
-    results = list()
-
     if isinstance(classification, dict):
         classification = [classification]
 
+    results = list()
+    added_title = list()
     for cls in classification:
         value = float('nan')
         for data in dataset[cls['cls_id']]:
             if compare_str(data.concept.id, concept_id):
                 value = str_to_float(data.value)
                 break
-        results.append(value)
-
+        title = get_title(cls, 'en')
+        if title in added_title:
+            index = added_title.index(title)
+            if not math.isnan(value):
+                results[index] = value
+        else:
+            results.append(value)
+            added_title.append(title)
     return results
 
 
-def generate_df_columns(classification, max_depth, lang='ko', show_concept=True, show_class=True):
-    columns = ['concept_id'] if show_concept else []
-    columns += ['label_ko', 'label_en']
+def generate_df_columns(definition, classification, max_depth, lang='ko', show_concept=True, show_class=True):
+    """ Table의 DataFrame 변환시 Column Title 생성을 위한 함수"""
+    columns = [(definition, 'concept_id')] if show_concept else []
+    columns += [(definition, 'label_ko'), (definition, 'label_en')]
 
     if show_class:
-        for i in range(max_depth):
-            columns.append('class{}'.format(i))
+        for idx in range(max_depth):
+            columns.append((definition, 'class{}'.format(idx)))
 
     if isinstance(classification, dict):
         classification = [classification]
 
+    added_title = list()
     for cls in classification:
         title = get_title(cls, lang)
-        columns.append(title)
-    return columns
+        if title not in added_title:
+            columns.append(title)
+            added_title.append(title)
+    return pd.MultiIndex.from_tuples(columns)
 
 
 def generate_df_rows(labels, classification, dataset, max_depth,
                      lang="ko", parent=(), show_abstract=False,
                      show_concept=True, show_class=True):
+    """ Table의 DataFrame으로 변환시 DataFrame의 Row 생성을 위한 함수"""
     lang_type = {
         'ko': 'label_ko',
         'en': 'label_en',
@@ -206,6 +221,20 @@ def generate_df_rows(labels, classification, dataset, max_depth,
 
 
 def consolidated_code_to_role_number(code, separate=False):
+    """ 코드번호를 Role 번호로 변환하는 함수
+
+    Parameters
+    ----------
+    code: str
+        코드번호
+    separate: bool, optional
+        개별재무제표 여부
+
+    Returns
+    -------
+    list of str
+        Role 번호 리스트
+    """
     consolidated_code = {
         'D1001': ['D210000'],
         'D1002': ['D220000'],
@@ -243,9 +272,106 @@ def consolidated_code_to_role_number(code, separate=False):
     return separated_code[code] if separate else consolidated_code[code]
 
 
-class Table(object):
+def cls_datetime_check(cls, start_dt, end_dt):
+    """ classification 의 시간이 시작일자와 종료일자 사이인지 체크하는 함수
 
-    def __init__(self, xbrl, code, definition, uri):
+    Parameters
+    ----------
+    cls: cls
+        classification
+    start_dt: str
+        검색 시작 일자
+    end_dt: str
+        검색 종료 일자
+
+    Returns
+    -------
+    bool
+        시작일자와 종료일자 사이에 있을시 True / 아닐시 False
+
+    """
+    res = True
+    instant_datetime = cls.get('instant_datetime')
+    if instant_datetime:
+        res = res and check_datetime(instant_datetime, start_dt, end_dt)
+    start_datetime = cls.get('start_datetime')
+    if start_datetime:
+        res = res and check_datetime(start_datetime, start_dt, end_dt)
+    end_datetime = cls.get('end_datetime')
+    if end_datetime:
+        res = res and check_datetime(end_datetime, start_dt, end_dt)
+    return res
+
+
+def cls_label_check(cls, query):
+    """ classification label에 특정 단어가 포함된지 검색하는 함수
+
+    Parameters
+    ----------
+    cls: cls
+        classification
+    query: str
+        검색어
+
+    Returns
+    -------
+    bool
+        질의내용 포함시 True / 미포함시 False
+    """
+    if query is None:
+        return True
+    regex = str_to_regex(query)
+    label = ''
+    for qname in cls['label']:
+        label = label + cls['label'][qname]['ko'] + cls['label'][qname]['en']
+    if regex.search(label):
+        return True
+    return False
+
+
+def cls_merge_type(classification):
+    """ classification type이 2가지일 때 합쳐주는 함수
+
+    Parameters
+    ----------
+    classification: cls
+        classification 리스트
+
+    Returns
+    -------
+    list of cls
+        변환된 classification 리스트
+    """
+    cls_type = {'instant' if cls.get('instant_datetime') else 'not_instant' for cls in classification }
+
+    if len(cls_type) == 2:
+        for cls in classification:
+            instant_datetime = cls.get('instant_datetime')
+            if instant_datetime:
+                year = instant_datetime.year
+                start_datetime = datetime.datetime(year, 1, 1) # 해당년도 1월 1일로 설정
+                end_datetime = instant_datetime
+                cls['instant_datetime'] = None
+                cls['start_datetime'] = start_datetime
+                cls['end_datetime'] = end_datetime
+    return classification
+
+
+class Table(object):
+    """ XBRL Table
+
+        XBRL 파일에서 추출된 데이터를 기반으로 재무제표에 관한 정보를 담고 있는 클래스
+
+       Attributes
+       ----------
+       parent: str
+           로드한 파일 이름
+       xbrl: ModelXbrl
+           arelle Xbrl 클래스
+
+       """
+    def __init__(self, parent, xbrl, code, definition, uri):
+        self.parent = parent
         self.code = code
         self.definition = definition
         self.uri = uri
@@ -271,6 +397,7 @@ class Table(object):
 
     @property
     def dataset(self):
+        """dict of modelFact: """
         if self._dataset is None:
             dataset = dict()
             for fact in self.facts:
@@ -283,20 +410,45 @@ class Table(object):
         return self._dataset
 
     @property
-    def classification(self):
+    def cls(self):
+        """classification 반환"""
         if self._cls is None:
-            self._cls = self.get_classification()
+            self._get_cls()
         return self._cls
 
-    def get_classification(self, start_date=None, end_date=None, cls_type=None):
+    def cls_filter(self, start_dt=None, end_dt=None, label=None):
+        """ classification 필터링 함수
+
+        Parameters
+        ----------
+        start_dt: str
+            검색 시작 일자
+        end_dt: str
+            검색 종료 일자
+        label: str
+            포함할 label 명
+
+        Returns
+        -------
+        list of cls
+            필터된 classification
+        """
+        return [item for item in self.cls
+                if cls_datetime_check(item, start_dt, end_dt) and cls_label_check(item, label)]
+
+    def _get_cls(self):
+        """ classification 정보 추출 함수"""
         contexts = set()
         for data in self.facts:
-            contexts.add(data.context)
+            context = data.context
+            contexts.add(context)
 
         cls = list()
         for context in contexts:
             object_id = context.objectId()
-            if len(self.dataset[object_id]) < 2:
+
+            # data가 없을때 무시
+            if len(self.dataset[object_id]) < 1:
                 continue
 
             instant_datetime = None
@@ -304,97 +456,39 @@ class Table(object):
             end_datetime = None
             if context.isInstantPeriod is True:
                 instant_datetime = context.instantDatetime - relativedelta(days=1)
-                if not check_datetime(instant_datetime, start_date, end_date):
-                    continue
 
             else:
                 start_datetime = context.startDatetime
-                if not check_datetime(start_datetime, start_date, end_date):
-                    continue
                 end_datetime = context.endDatetime - relativedelta(days=1)
-                if not check_datetime(end_datetime, start_date, end_date):
-                    continue
 
+            label = dict()
             dims = context.qnameDims
             if len(dims) > 0:
-                for dimQname in sorted(dims.keys(), key=lambda d: str(d)):
+                for dimQname in sorted(dims.keys(), key=lambda d: str(d), reverse=True):
                     dim_value = dims[dimQname]
-
-                    label_ko = dim_value.member.label(lang='ko')
-                    label_en = dim_value.member.label(lang='en')
-
-                    if cls_type is not None:
-                        if re.search(cls_type, label_en + label_ko, re.IGNORECASE) is None:
-                            continue
-                    _cls = {
-                        'cls_id': object_id,
-                        'instant_datetime': instant_datetime,
-                        'start_datetime': start_datetime,
-                        'end_datetime': end_datetime,
-                        'label_ko': label_ko,
-                        'label_en': label_en
+                    ko = dim_value.member.label(lang='ko')
+                    ko = re.sub(r'\[.*?\]', '', ko)
+                    en = dim_value.member.label(lang='en')
+                    en = re.sub(r'\[.*?\]', '', en)
+                    label[dimQname] = {
+                        'ko': ko,
+                        'en': en
                     }
-                    cls.append(_cls)
-            else:
-                if (instant_datetime or start_datetime or end_datetime) is not None:
-                    _cls = {
-                        'cls_id': object_id,
-                        'instant_datetime': instant_datetime,
-                        'start_datetime': start_datetime,
-                        'end_datetime': end_datetime,
-                        'label_ko': '',
-                        'label_en': ''
-                    }
-                    cls.append(_cls)
-
-        cls_tp_set = {'start' if x.get('instant_datetime') is None else 'instant' for x in cls}
-        if len(cls_tp_set) == 2:
-
-            def instant_to_start_end(value):
-                if value['instant_datetime'] is not None:
-                    value['end_datetime'] = value['instant_datetime']
-                    value['start_datetime'] = get_datetime(value['instant_datetime']) - relativedelta(years=1)\
-                                              + relativedelta(days=1)
-                    value['instant_datetime'] = None
-                return value
-
-            def compare_class(cls1, cls2):
-                for key1, key2 in zip(cls1, cls2):
-                    if key1 == 'cls_id':
-                        continue
-                    if cls1[key1] != cls2[key2]:
-                        return False
-                return True
-
-            cls = [instant_to_start_end(x) for x in cls]
-
-            overlap = dict()
-
-            overlap_index = []
-            for idx, cls1 in enumerate(cls):
-                is_overlap = False
-                for cls2 in cls[idx+1:]:
-                    if compare_class(cls1, cls2):
-                        overlap[cls1['cls_id']] = cls2['cls_id']
-                        is_overlap = True
-                if is_overlap:
-                    overlap_index.append(idx)
-
-            new_cls = []
-            for idx, _ in enumerate(cls):
-                if idx not in overlap_index:
-                    new_cls.append(cls[idx])
-                else:
-                    form_cls_id = cls[idx]['cls_id']
-                    to_cls_id = overlap[form_cls_id]
-                    self._dataset[to_cls_id] += self._dataset[form_cls_id]
-            cls = new_cls
-
+            _cls = {
+                'cls_id': object_id,
+                'instant_datetime': instant_datetime,
+                'start_datetime': start_datetime,
+                'end_datetime': end_datetime,
+                'label': label
+            }
+            cls.append(_cls)
         cls.sort(key=lambda x: x.get('instant_datetime') or x.get('start_datetime'), reverse=True)
-        return cls
+        self._cls = cls
+        return self._cls
 
     @property
     def labels(self):
+        """labels 반환"""
         if self._labels is None:
             arcrole = XbrlConst.parentChild
             relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
@@ -403,19 +497,56 @@ class Table(object):
             self._labels = labels
         return self._labels
 
-    def to_Dataframe(self, cls=None, lang='ko', start_date=None, end_date=None,
-                     title=None, show_abstract=False, show_class=True, show_depth=10,
+    def to_DataFrame(self, cls=None, lang='ko', start_dt=None, end_dt=None,
+                     label=None, show_abstract=False, show_class=True, show_depth=10,
                      show_concept=True, separator=True):
-        if cls is None:
-            cls = self.get_classification(start_date=start_date, end_date=end_date, cls_type=title)
+        """ Pandas DataFrame으로 변환하는 함수
 
+        Parameters
+        ----------
+        cls: dict, optional
+            classification
+        lang: str, optional
+            'ko' 한글 or 'en' 영문
+        start_dt: str, optional
+            검색 시작 일자
+        end_dt: str, optional
+            검색 종료 일자
+        label: str, optional
+            Column Label에 포함될 단어
+        show_abstract: bool, optional
+            abtract 표시 여부
+        show_class: bool, optional
+            class 표시여부
+        show_depth: int, optional
+            class 표시 깊이
+        show_concept: bool, optional
+            concept_id 표시 여부
+        separator: bool, optional
+            숫자 첫단위 표시 여부
+
+        Returns
+        -------
+        DataFrame
+            재무제표 DataFrame
+        """
+        if cls is None:
+            cls = self.cls_filter(start_dt, end_dt, label)
+        cls = cls_merge_type(cls)
         depth = get_max_depth(self.labels, show_abstract=show_abstract)
         depth = depth if depth < show_depth else show_depth
-        columns = generate_df_columns(cls, depth, lang, show_concept=show_concept, show_class=show_class)
+
+        table = self.parent.get_table_by_code('d999004')
+        unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode')
+
+        definition = self.definition + ' (Unit: {})'.format(unit[0])
+        columns = generate_df_columns(definition, cls, depth, lang,
+                                      show_concept=show_concept, show_class=show_class)
 
         if separator:
             pd.options.display.float_format = '{:,}'.format
-
+        else:
+            pd.options.display.float_format = '{:}'.format
         df = pd.DataFrame(columns=columns)
 
         rows = generate_df_rows(self.labels, cls, self.dataset, depth, lang=lang,
@@ -424,14 +555,43 @@ class Table(object):
         for idx, r in enumerate(data):
             df.loc[idx] = r
 
+        regex_pass = str_to_regex('concept_id OR label_ko OR label_en OR class')
+        df_count = df.count()
+        drop_columns = []
+        for key in df_count.keys().tolist():
+            if regex_pass.search(' '.join(key[1])):
+                pass
+            elif df_count[key] <= 1:
+                drop_columns.append(key)
+        df = df.drop(drop_columns, axis=1)
         return df
 
-    def get_value_by_concept_id(self, concept_id, start_date=None, end_date=None, cls_type=None, lang='en'):
-        cls = self.get_classification(start_date=start_date, end_date=end_date, cls_type=cls_type)
+    def get_value_by_concept_id(self, concept_id, start_dt=None, end_dt=None, label=None, lang='en'):
+        """ concept_id을 이용하여 값을 찾아 주는 함수
+
+        Parameters
+        ----------
+        concept_id: str
+            재무제표 계정의 concept_id
+        start_dt: str
+            검색 시작 일자
+        end_dt: str
+            검색 종료 일자
+        label: str
+            검색 포함 label
+        lang: str
+            'ko' 한글 / 'en' 영문
+
+        Returns
+        -------
+        dict of (str or float)
+            { column 이름 : 값 }
+        """
+        cls = self.cls_filter(start_dt, end_dt, label)
         data = get_value_from_dataset(classification=cls, dataset=self.dataset, concept_id=concept_id)
         results = dict()
         for c, d in zip(cls, data):
-            title = get_title(c, lang)
+            title = get_title(c, lang=lang)
             results[title] = d
         return results
 
@@ -463,7 +623,7 @@ class DartXbrl(object):
         self._link_roles = None
 
     @property
-    def tables(self):
+    def tables(self) -> List[Table]:
         """list of Table: Table 리스트"""
         if self._tables is not None:
             return self._tables
@@ -485,7 +645,7 @@ class DartXbrl(object):
 
                 role_code = re.search(r"\[(.*?)\]", definition)
                 role_code = role_code.group(1) if role_code else None
-                tables.append(Table(self.xbrl, role_code, definition, uri))
+                tables.append(Table(self, self.xbrl, role_code, definition, uri))
         self._tables = tables
         return tables
 
@@ -507,9 +667,23 @@ class DartXbrl(object):
                 return table
         return None
 
-    def _to_info_Dataframe(self, code: str, lang: str = 'ko') -> DataFrame:
+    def _to_info_DataFrame(self, code: str, lang: str = 'ko') -> DataFrame:
+        """ to_DataFrame wrapper
+
+        Parameters
+        ----------
+        code: str
+            Table Code
+        lang: str
+            'ko' or 'en'
+
+        Returns
+        -------
+        DataFrame
+            Pandas DataFrame
+        """
         table = self.get_table_by_code(code)
-        return table.to_Dataframe(lang=lang, show_class=False, show_concept=False, separator=False)
+        return table.to_DataFrame(lang=lang, show_class=False, show_concept=False, separator=False)
 
     def get_document_information(self, lang: str = 'ko') -> DataFrame:
         """ 공시 문서 정보
@@ -524,7 +698,7 @@ class DartXbrl(object):
         DataFrame
             공시 문서 정보
         """
-        return self._to_info_Dataframe('d999001', lang=lang)
+        return self._to_info_DataFrame('d999001', lang=lang)
 
     def get_period_information(self, lang: str = 'ko') -> DataFrame:
         """ 공시 문서 기간 정보
@@ -539,7 +713,7 @@ class DartXbrl(object):
         DataFrame
             공시 문서 기간 정보
         """
-        df = self._to_info_Dataframe('d999002', lang=lang)
+        df = self._to_info_DataFrame('d999002', lang=lang)
         data = df[df.columns[2:]].iloc[3]
         data_set = [(key, data[key]) for key in data.keys()]
         new_columns = list(df.columns[:2]) + [data[0] for data in sorted(data_set, key=lambda x: x[1], reverse=True)]
@@ -558,7 +732,7 @@ class DartXbrl(object):
         DataFrame
             감사 정보
         """
-        return self._to_info_Dataframe('d999003', lang=lang)
+        return self._to_info_DataFrame('d999003', lang=lang)
 
     def get_entity_information(self, lang: str = 'ko') -> DataFrame:
         """ 공시 대상 정보
@@ -573,7 +747,7 @@ class DartXbrl(object):
         DataFrame
             공시 대상 정보
         """
-        return self._to_info_Dataframe('d999004', lang=lang)
+        return self._to_info_DataFrame('d999004', lang=lang)
 
     def get_entity_address_information(self, lang: str = 'ko') -> DataFrame:
         """ 주소 정보
@@ -589,7 +763,7 @@ class DartXbrl(object):
             주소 정보
 
         """
-        return self._to_info_Dataframe('d999005', lang=lang)
+        return self._to_info_DataFrame('d999005', lang=lang)
 
     def get_author_information(self, lang: str = 'ko') -> DataFrame:
         """ 작성자 정보
@@ -604,7 +778,7 @@ class DartXbrl(object):
         DataFrame
             작성자 정보
         """
-        return self._to_info_Dataframe('d999006', lang=lang)
+        return self._to_info_DataFrame('d999006', lang=lang)
 
     def get_financial_statement_information(self, lang: str = 'ko') -> DataFrame:
         """ 재무제표 정보
@@ -619,21 +793,63 @@ class DartXbrl(object):
         DataFrame
             제무제표 정보
         """
-        return self._to_info_Dataframe('d999007', lang=lang)
+        return self._to_info_DataFrame('d999007', lang=lang)
 
-    def _get_statement(self, concept_id, separate=False):
+    def exist_consolidated(self):
+        """ 연결 재무제표 존재 여부를 확인하기 위한 함수
+
+        Returns
+        -------
+        bool
+            연결재무제표 존재시 True / 개별재무제표만 존재시 False
+        """
+        regex = re.compile(r'Consolidated', re.IGNORECASE)
+        info_table = self.get_table_by_code('d999007')
+        cls_list = info_table.cls
+        for cls in cls_list:
+            titles = get_title(cls, 'en')
+            for title in titles:
+                if isinstance(title, str):
+                    if regex.search(title):
+                        return True
+                else:
+                    if regex.search(' '.join(title)):
+                        return True
+        return False
+
+    def _get_statement(self, concept_id: str , separate: bool = False) -> Union[List[Table], None]:
+        """ Financial statement information 을 이용하여 제공되는 재무제표를 추출하는 함수
+
+        Parameters
+        ----------
+        concept_id: str
+            dart-gcd_StatementOfFinancialPosition: 재무상태표
+            dart-gcd_StatementOfComprehensiveIncome: 포괄손익계산서
+            dart-gcd_StatementOfChangesInEquity: 자본변동표
+            dart-gcd_StatementOfCashFlows: 현금프름표
+        separate: bool, optional
+            True: 개별재무제표
+            False: 연결재무제표
+
+        Returns
+        -------
+        Table or None
+
+
+        """
         table = self.get_table_by_code('d999007')
         table_dict = table.get_value_by_concept_id(concept_id)
         compare_name = 'Separate' if separate else 'Consolidated'
-        for key, value in table_dict.items():
-            name = get_datetime_and_name(key).get('name', '')
-            if compare_str(compare_name, name):
-                code_list = consolidated_code_to_role_number(value, separate=separate)
-                tables = [self.get_table_by_code(code) for code in code_list]
-                return tables
+        for keys, value in table_dict.items():
+            for key in keys:
+                title = ''.join(key)
+                if re.search(compare_name, title, re.IGNORECASE):
+                    code_list = consolidated_code_to_role_number(value, separate=separate)
+                    tables = [self.get_table_by_code(code) for code in code_list]
+                    return tables
         return None
 
-    def get_financial_statement(self, separate: bool = False) -> List[Table]:
+    def get_financial_statement(self, separate: bool = False) -> Union[List[Table], None]:
         """ 재무상태표(Statement of financial position)
 
         Parameters
@@ -648,7 +864,7 @@ class DartXbrl(object):
         """
         return self._get_statement('dart-gcd_StatementOfFinancialPosition', separate=separate)
 
-    def get_income_statement(self, separate: bool = False) -> List[Table]:
+    def get_income_statement(self, separate: bool = False) -> Union[List[Table], None]:
         """ 포괄손익계산서(Statement of comprehensive income)
 
         Parameters
@@ -663,7 +879,7 @@ class DartXbrl(object):
         """
         return self._get_statement('dart-gcd_StatementOfComprehensiveIncome', separate=separate)
 
-    def get_changes_in_equity(self, separate: bool = False) -> List[Table]:
+    def get_changes_in_equity(self, separate: bool = False) -> Union[List[Table], None]:
         """ 자본변동표(Statement of changes in equity	)
 
         Parameters
@@ -678,7 +894,7 @@ class DartXbrl(object):
         """
         return self._get_statement('dart-gcd_StatementOfChangesInEquity', separate=separate)
 
-    def get_cash_flows(self, separate: bool = False) -> List[Table]:
+    def get_cash_flows(self, separate: bool = False) -> Union[List[Table], None]:
         """ 현금흐름표(Statement of cash flow)
 
         Parameters
@@ -695,7 +911,8 @@ class DartXbrl(object):
 
     def __repr__(self):
         df = self.get_document_information()
-        dict_info = df.set_index('label_en').to_dict()
+        columns = df.columns.tolist()
+        dict_info = df.set_index(columns[1]).to_dict()
         info = None
         for key, value in dict_info.items():
             if key != 'label_ko':
@@ -704,7 +921,8 @@ class DartXbrl(object):
 
     def _repr_html_(self):
         df = self.get_document_information()
-        dict_info = df.set_index('label_en').to_dict()
+        columns = df.columns.tolist()
+        dict_info = df.set_index(columns[1]).to_dict()
         info = None
         header = None
         for key, value in dict_info.items():
@@ -715,7 +933,8 @@ class DartXbrl(object):
                 info.pop(keys[0])
 
         df = self.get_entity_information()
-        df = df.drop('label_ko', axis=1).set_index('label_en')
+        columns = df.columns.tolist()
+        df = df.drop(columns[0], axis=1).set_index(columns[1])
         info['Company name'] = df.loc['Entity iegistrant name'][0]
 
         return dict_to_html(info, header=header)
@@ -737,7 +956,10 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
         DartXbrl 클래스
     """
     # PyPI를 통해 설치된 Arelle 라이브러리 사용시 발생하는 오류 수정을 위한코드
-    # Github 버전에서는 수정된 상태로 이후 삭제예정
+    from .spinner import Spinner
+    spinner = Spinner('XBRL Loading')
+    spinner.start()
+
     if sys.platform == 'win32':
         pass
     elif sys.platform == 'darwin':
@@ -750,28 +972,6 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
             os.makedirs(arelle_app_dir)
     model_xbrl = Cntlr.Cntlr().modelManager.load(file_path)
     filename = file_path.split('\\')[-1]
-    return DartXbrl(filename, model_xbrl)
-
-
-def get_xbrl_from_website(url: str) -> List[DartXbrl]:
-    """ Zip 파일로 압축된 XBRL 파일 로드 함수
-
-    Parameters
-    ----------
-    url: str
-        XBRL Zip 파일 주소
-
-    Returns
-    -------
-    list of DartXbrl
-        DartXbrl 클래스 리스트
-    """
-    xbrl_list = []
-    with tempfile.TemporaryDirectory() as path:
-        file_path = download_file(url, path)
-        extract_path = unzip(file_path)
-        xbrl_file = search_file(extract_path)
-        for file in xbrl_file:
-            xbrl = get_xbrl_from_file(file)
-            xbrl_list.append(xbrl)
-    return xbrl_list
+    xbrl =  DartXbrl(filename, model_xbrl)
+    spinner.stop()
+    return xbrl

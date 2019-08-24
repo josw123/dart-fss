@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import math
 import zipfile
 import requests
 
 from typing import List, Union, Dict
 from datetime import datetime
-from tqdm import tqdm
 from fake_useragent import UserAgent
 
 
@@ -20,30 +18,8 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def request_get(url: str, params: dict = None, timeout: int = 120):
-    return requests.get(url=url, params=params, headers=user_agent(), timeout=timeout)
-
-
-def download_file(url: str, path: str) -> str:
-    r = requests.get(url, stream=True)
-    headers = r.headers.get('Content-Disposition')
-
-    if not re.search('attachment', headers):
-        raise Exception('Invalid Data')
-
-    total_size = int(r.headers.get('content-length', 0))
-    block_size = 8192
-
-    filename = re.findall(r'filename="(.*?)"', headers)[0]
-    file_path = os.path.join(path, filename)
-    with open(file_path, 'wb') as f:
-        for chunk in tqdm(r.iter_content(chunk_size=block_size),
-                          total=math.ceil(total_size//block_size),
-                          desc='Download',
-                          unit='KB', unit_scale=True):
-            if chunk is not None:
-                f.write(chunk)
-    return file_path
+def request_get(url: str, params: dict = None, timeout: int = 120, stream: bool = False):
+    return requests.get(url=url, params=params, headers=user_agent(), timeout=timeout, stream=stream)
 
 
 def unzip(file: str, path: str = None, create_folder=True) -> str:
@@ -108,13 +84,13 @@ def dict_to_html(dict_data: dict, exclude=None, header=None) -> str:
                 if exclude:
                     labels = [x for x in labels if x not in exclude]
 
-                table += '<table><thead><tr><th></th>'
+                table += '<table style="width:100%"><thead><tr><th width="20">No.</th>'
                 for label in labels:
                     table += '<th>{}</th>'.format(label)
                 table += '</tr></thead>'
                 table += '<tbody>'
                 for idx, v in enumerate(value):
-                    table += '<tr><th>{}</th>'.format(idx)
+                    table += '<tr><th width="20">{}</th>'.format(idx)
                     for l in labels:
                         table += '<td>{}</td>'.format(v.get(l))
                     table += '</tr>'
@@ -132,7 +108,7 @@ str_or_datetime = Union[str, datetime]
 
 def get_datetime(date: str_or_datetime) -> datetime:
     if isinstance(date, str):
-        return datetime.strptime(date, '%Y-%m-%d')
+        return datetime.strptime(date, '%Y%m%d')
     elif isinstance(date, datetime):
         return date
     else:
@@ -184,10 +160,9 @@ def user_agent() -> Dict[str, str]:
     return {'User-Agent': str(agent)}
 
 
-def korean_unit_to_number_unit(value: str) -> int:
-    korean_unit = re.search(r'(\w{0,3}원)', value)
-    korean_unit = korean_unit.group(1).strip()
-    korean_unit_to_unit = {
+def str_unit_to_number_unit(str_unit: str):
+    str_unit = re.sub(r'\s+', '', str_unit)
+    str_unit_to_unit = {
         '억원': 100000000,
         '천만원': 10000000,
         '백만원': 1000000,
@@ -196,9 +171,10 @@ def korean_unit_to_number_unit(value: str) -> int:
         '천원': 1000,
         '백원': 100,
         '십원': 10,
-        '원': 1
+        '원': 1,
+        'USD': 1
     }
-    return korean_unit_to_unit[korean_unit]
+    return str_unit_to_unit[str_unit]
 
 
 def query_to_regex(query):
@@ -212,9 +188,24 @@ def query_to_regex(query):
     return regex
 
 
-def remove_duplicate(columns):
-    results = []
-    for column in columns:
-        if column not in results:
-            results.append(column)
-    return results
+def create_folder(path):
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+
+def strWS(word):
+    return r'\s*'.join(word)
+
+
+# Jupyter Notebook Checker
+def is_notebook():
+    try:
+        from IPython import get_ipython
+        if 'IPKernelApp' not in get_ipython().config:
+            return False
+    except Exception:
+        return False
+    return True
+
