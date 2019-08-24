@@ -313,6 +313,8 @@ def seek_table(tables: List, includes: Pattern,
                     if len(title) > 12:
                         continue
                     header = table.find_previous('table', class_='nb')
+                    if header is None:
+                        continue
                     tr_list = header.find_all('tr')
                     if len(tr_list) < 2:
                         continue
@@ -573,7 +575,6 @@ def compare_df_and_ndf_label(column: Tuple[Union[str, Tuple[str]]],
     tuple of list
         추가할 column의 데이터 리스트, 추가할 column의 label 리스트
     """
-    # CNN 처리시 사용
     label_none_data = []
     df_label_column = find_all_columns(df, 'label_ko')[0]
     ndf_label_column = find_all_columns(ndf, 'label_ko')[0]
@@ -655,9 +656,11 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
             nvalue = None
             nlabel = ''
             value = df[col].iloc[idx]
-            if isinstance(nvalue, str):
+            if isinstance(value, str):
                 pass
-            elif nvalue and math.isnan(nvalue):
+            elif value is None:
+                pass
+            elif value and math.isnan(value):
                 pass
             else:
                 w = ndf[ndf[col] == value].dropna(axis=1, how='all').dropna(how='all')

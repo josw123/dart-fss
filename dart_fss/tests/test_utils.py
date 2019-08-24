@@ -6,7 +6,7 @@ def test_dict_to_html():
     data = {
         'A': 1,
         'B': 2,
-        'C': [{'D': 1}]
+        'C': [{'D': 3}, {'E': 4}]
     }
     html = dict_to_html(data)
     soup = BeautifulSoup(html, 'html.parser')
@@ -14,7 +14,7 @@ def test_dict_to_html():
     sub_tr = tr[2].find_all('tr')
 
     actual = (len(tr), len(sub_tr))
-    expected = (5, 2)
+    expected = (6, 3)
 
     assert actual == expected
 
