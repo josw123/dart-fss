@@ -7,6 +7,9 @@
 
 한국 금융감독원에서 운영하는 Dart 시스템 크롤링을 위한 라이브러리
 
+- Documentation: https://dart-fss.readthedocs.io
+- Source code: https://github.com/josw123/dart-fss
+
 ## Features
 
 -   [KIND](http://kind.krx.co.kr)를 이용한 기업정보 검색
