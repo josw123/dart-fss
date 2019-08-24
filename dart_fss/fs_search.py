@@ -295,7 +295,10 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 else:
                     row[key] = row[key] * unit
 
-        df = df.append(row, ignore_index=True)
+        ordered_list = []
+        for column in df_columns.tolist():
+            ordered_list.append(row.get(column, None))
+        df.loc[idx] = ordered_list
     return df
 
 
