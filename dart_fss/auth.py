@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-from .errors import check_err_code
-from ._utils import Singleton, request_get
+from dart_fss.errors import check_err_code
+from dart_fss._utils import Singleton, request_get
 
 
 def dart_set_api_key(api_key):

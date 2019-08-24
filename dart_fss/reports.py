@@ -1,357 +1,623 @@
 # -*- coding: utf-8 -*-
-
+import os
 import re
-import multiprocessing as mp
+import copy
 
-from typing import Dict, List, Union
+from urllib.parse import unquote, parse_qs
 
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
-from .markets import get_market_name
-from .types import RMK_TYPES
-from .pages import Page
-from ._utils import dict_to_html, request_get, compare_str
-from .xbrl import get_xbrl_from_website, DartXbrl
-
-
-def loading_page(r):
-    template = ['rcp_no', 'dcm_no', 'ele_id', 'offset', 'length', 'dtd']
-
-    leaf = {
-        'title': re.findall(r'text:\s\"(.*?)\"', r)[0].replace(' ', '')
-    }
-
-    view_doc = re.findall(r'viewDoc\((.*?)\)', r)
-    data = [x.strip() for x in view_doc[0].replace("'", "").split(',')]
-    data = [0 if x == 'null' else x for x in data]
-    for idx, _ in enumerate(template):
-        leaf[template[idx]] = data[idx]
-    new_page = Page(**leaf)
-    return new_page
+from dart_fss.pages import Page
+from dart_fss._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file, is_notebook
+from dart_fss.xbrl import get_xbrl_from_file
+from dart_fss.regex import str_to_regex
 
 
 class Report(object):
-    """ DART 공시 리포트 정보를 담고 있는 클래스
-
-    DART 공시 리포트 정보를 담고 있는 클래스.
-    개별 페이지는 즉시 Loading 되지 않고, 페이지 요청시 Lazy loading 된다.
+    """ 보고서 클래스
+    DART 재무제표 보고서 정보를 담고 있는 클래스
 
     Attributes
     ----------
-    crp_cls: str
-        법인구분 : Y(유가), K(코스닥), N(코넥스), E(기타)
-    crp_nm: str
-        회사(증권) 정보
-    crp_cd: str
-        종목 코드
-    rpt_nm: str
-        공시구분+보고서명+기타정보
     rcp_no: str
-        접수번호
-    flr_nm: str
-        공시 제출인명
-    rcp_dt: str
-        공시 접수일자(YYYYMMDD)
-    rmk: str
-        조합된 문자로 RMK_TYPES 참고
-
+        보고서 번호
+    dcm_no: str
+        document 번호
+    info: dict of {str: str}
+        기타 보고서 정보
+    html: BeautifulSoup
+        보고서 HTML
+    related_reports: list of RelatedReport
+        연관 보고서 리스트
+    attached_reports: list of AttachedReport
+        첨부 보고서 리스트
+    attached_files: list of AttachedFile
+        첨부 파일 리스트
+    xbrl: DartXbrl
+        XBRL 파일이 있을시 DartXbrl 클래스
     """
     _DART_URL_ = 'http://dart.fss.or.kr'
     _REPORT_URL_ = _DART_URL_ + '/dsaf001/main.do'
     _DOWNLOAD_URL_ = _DART_URL_ + '/pdf/download/main.do'
 
-    def __init__(self, crp_cls: str, crp_nm: str, crp_cd: str, rpt_nm: str,
-                 rcp_no: str, flr_nm: str, rcp_dt: str, rmk: str):
-        self.crp_cls = crp_cls
-        self.crp_nm = crp_nm
-        self.crp_cd = crp_cd
-        self.rpt_nm = rpt_nm
-        self.rcp_no = rcp_no
-        self.flr_nm = flr_nm
-        self.rcp_dt = rcp_dt
-        self.rmk = rmk.strip()
-        self._pages = None
-        self._cached_pages = None
-        self._attached_files = None
-        self._xbrl = None
-        self._attached_docs = None
+    def __init__(self, **kwargs):
+        """
+        Parameters
+        ----------
+        rcp_no: str
+            보고서 번호
+        dcm_no: str
+            document 번호
+        info: dict of {str:str}
+            기타 보고서 정보
+        lazy_loading: bool
+            True: lazy loading / False: 보고서 로드시 모든 정보 로딩
+        """
+        self.rcp_no = kwargs.get('rcp_no')
+        if self.rcp_no is None:
+            raise ValueError('rcp_no must be not None')
+        self.dcm_no = kwargs.get('dcm_no')
 
-    def to_dict(self) -> Dict[str, str]:
-        """ dict 타입으로 정보 반환
+        self.info = copy.deepcopy(kwargs)
+        self.info.pop('rcp_no')
+        if self.dcm_no:
+            self.info.pop('dcm_no')
+        
+        self.html = None
+        self._pages = None
+        self._xbrl = None
+        self._related_reports = None
+        self._attached_files = None
+        self._attached_reports = None
+
+        lazy_loading = kwargs.get('lazy_loading', True)
+        if not lazy_loading:
+            self.load()
+
+    def _get_report(self):
+        """ 보고서 html 불러오기"""
+        params = dict(rcpNo=self.rcp_no)
+        if self.dcm_no:
+            params['dcmNo'] = self.dcm_no
+        resp = request_get(url=self._REPORT_URL_, params=params)
+        self.html = BeautifulSoup(resp.text, 'html.parser')
+
+    @property
+    def related_reports(self):
+        """ 연관 보고서 반환
 
         Returns
         -------
-        dict
-            리포트 정보
+        list of RelatedReport
+            연관 보고서리스트 반환
 
         """
+        if self._related_reports is None:
+            self.extract_related_reports()
+        return self._related_reports
 
-        pages = 'Not loaded' if self._pages is None \
-            else [x.to_dict() for x in self._pages]
+    def extract_related_reports(self):
+        """ 연관 보고서 리스트 추출
 
-        info = {
-            'crp_cls': self.crp_cls,
-            'crp_nm': self.crp_nm,
-            'crp_cd': self.crp_cd,
-            'rpt_nm': self.rpt_nm,
-            'rcp_no': self.rcp_no,
-            'flr_nm': self.flr_nm,
-            'rcp_dt': self.rcp_dt,
-            'rmk': self.rmk
-        }
-
-        if self.xbrl_url is not None:
-            info['xbrl_url'] = self.xbrl_url
-        info['pages'] = pages
-
-        return info
-
-    def to_file(self, path: str = None) -> None:
-        """ 리포트 파일로 저장
-
-        리포트 페이지를 각각 html 파일 형태로 저장. 각각의 페이지가 따로 저장됨
-
-        Parameters
-        ----------
-        path: str
-            파일 저장 경로
+        Returns
+        -------
+        list of RelatedReport
+            연관 보고서리스트 반환
 
         """
-        import os
-
-        if self._pages is None:
-            self.load_page()
-
-        path = r'./{}/{}'.format(self.crp_nm, self.rpt_nm) if path is None else path
-        path = os.path.abspath(path)
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        # 파일명에 허용되지 않는 특수문자
-        sub_sc = re.compile(r'\/|\\|\?|\%|\*|\||\"|\<|\>')
-        for idx, page in enumerate(tqdm(self._pages, desc='Save files', unit='page')):
-            page_title = sub_sc.sub('_', page.title)
-            page.to_file(path, '{}_{}'.format(idx, page_title))
-
-    @property
-    def pages(self) -> List[Page]:
-        """list of Page: Page 리스트"""
-        if self._pages is None:
-            self.load_page()
-
-        return self._pages
+        if self.html is None:
+            self._get_report()
+        results = []
+        soup = self.html
+        family = soup.find('select', id='family')
+        related_reports = family.find_all('option')
+        for report in related_reports:
+            value = report.attrs.get('value')
+            if compare_str(value, 'null'):
+                continue
+            rpt_nm = re.sub(r'\s+', ' ', report.text).strip()
+            rcp_no = value.split('=')[1]
+            if compare_str(self.rcp_no, rcp_no):
+                if self.info.get('rpt_nm') is None:
+                    self.info['rpt_nm'] = rpt_nm
+                continue
+            info = {'rcp_no': rcp_no, 'rpt_nm': rpt_nm, 'parent': self}
+            results.append(RelatedReport(**info))
+        self._related_reports = sorted(results, key=lambda x: x.rcp_no, reverse=True)
+        return self._related_reports
 
     @property
-    def xbrl(self) -> Union[DartXbrl, list]:
-        """DartXbrl or list of DartXbrl: DartXbrl 반환"""
+    def pages(self):
+        """ 보고서 page 반환
 
-        xbrl_url = self.xbrl_url
-
-        if xbrl_url is not None:
-            xbrl = get_xbrl_from_website(xbrl_url)
-            if len(xbrl) == 1:
-                self._xbrl = xbrl[0]
-            elif len(xbrl) > 1:
-                self._xbrl = xbrl
-            else:
-                self._xbrl = None
-        return self._xbrl
-
-    @property
-    def xbrl_url(self) -> Union[str, None]:
-        """XBRL 파일 주소 반환 함수"""
-        xbrl_url = None
-        if self._attached_files is None:
-            self.load_page(index=[0], progressbar_disable=True)
-
-        for file in self._attached_files:
-            file_name = file.get('file')
-            if compare_str(file_name, 'xbrl'):
-                xbrl_url = file.get('url')
-
-        return xbrl_url
-
-    def cached_page(self, **kwargs) -> List[Page]:
-        """Cached Page 반환"""
-        def get_metadata(params):
-            if params is None:
-                return None
-            elif isinstance(params, str):
-                return params
-            elif isinstance(params, list):
-                return '|'.join(params)
-            else:
-                raise ValueError('Invalid includes')
-
-        includes = get_metadata(kwargs.get('includes'))
-        excludes = get_metadata(kwargs.get('excludes'))
-        index = get_metadata(kwargs.get('index'))
-
-        metadata = (includes, excludes, index)
-        data = None
-
-        if self._cached_pages:
-            cached_metadata = self._cached_pages.get('metadata')
-            cached_data = self._cached_pages.get('data')
-            if cached_metadata == metadata:
-                data = cached_data
-
-        if data is None:
-            data = self.load_page(**kwargs)
-            self._cached_pages = {'metadata': metadata, 'data': self.load_page(**kwargs)}
-
-        return data
-
-    def load_page(self, **kwargs) -> List[Page]:
-        """ 페이지들의 HTML을 불러오는 함수
-
-        Parameters
-        ----------
-        **kwargs
-            includes에 포함된 단어가 Page 타이틀에 포함된 경우만 로딩됨
-            excludes에 포함된 단어가 Page 타이틀에 포함되지 않은 경우만 페이지 로딩됨
-            index는 특정 index만 로딩됨
         Returns
         -------
         list of Page
-            로딩된 페이지 리스트 반환
+            보고서의 page 리스트 반환
 
         """
-        def get_pattern(data, pattern, filter_type):
-            if isinstance(pattern, str):
-                patterns = '{}'.format(pattern)
-            elif isinstance(pattern, list):
-                patterns = r'(' + '|'.join(pattern) + ')'
-            else:
-                raise ValueError('Invalid includes')
+        if self._pages is None:
+            self.extract_pages()
+        return self._pages
 
-            if filter_type == 'includes':
-                def condition(x): return re.search(patterns, x)
-            elif filter_type == 'excludes':
-                def condition(x): return not re.search(patterns, x)
-            else:
-                raise ValueError('Invalid types')
-            data = [r for r in data if condition(r)]
-            return data
+    def extract_pages(self):
+        """ 보고서 page 리스트 추출
 
-        params = dict(rcpNo=self.rcp_no)
-        resp = request_get(url=self._REPORT_URL_, params=params)
+        Returns
+        -------
+        list of Page
+            보고서의 page 리스트 반환
+        """
+        if self.html is None:
+            self._get_report()
+        results = []
+        raw_data = re.findall(r'TreeNode\({(.*?)}\)', self.html.text, re.S)
+        for raw in raw_data:
+            template = ['rcp_no', 'dcm_no', 'ele_id', 'offset', 'length', 'dtd']
 
-        self._get_attached_docs(resp.text)
+            leaf = {
+                'title': re.findall(r'text:\s\"(.*?)\"', raw)[0].replace(' ', '')
+            }
 
-        raw = re.findall(r'TreeNode\({(.*?)}\)', resp.text, re.S)
+            view_doc = re.findall(r'viewDoc\((.*?)\)', raw)
+            data = [x.strip() for x in view_doc[0].replace("'", "").split(',')]
+            data = [0 if x == 'null' else x for x in data]
+            for idx, _ in enumerate(template):
+                leaf[template[idx]] = data[idx]
+            results.append(Page(**leaf))
+        self._pages = results
+        return self._pages
 
-        includes = kwargs.get('includes')
-        if includes is not None:
-            raw = get_pattern(raw, includes, 'includes')
+    @property
+    def attached_files(self):
+        """ 첨부된 파일 리스트 반환
 
-        excludes = kwargs.get('excludes')
-        if excludes is not None:
-            raw = get_pattern(raw, excludes, 'excludes')
+        Returns
+        -------
+        list of AttachedFile
+            첨부된 파일 리스트
 
-        index = kwargs.get('index')
-        if index is not None:
-            raw = [r for idx, r in enumerate(raw) if idx in index]
+        """
+        if self._attached_files is None:
+            self.extract_attached_files()
+        return self._attached_files
 
-        progressbar_disable = kwargs.get('progressbar_disable', False)
+    def extract_attached_files(self):
+        """ 첨부된 파일 리스트 추출 및 반환
 
-        process_cnt = mp.cpu_count() - 1
-        if process_cnt > 0:
-            pool = mp.Pool(processes=process_cnt)
-            tree = list(tqdm(pool.imap(loading_page, raw), desc='Loading', leave=False,
-                             total=len(raw), unit='page', disable=progressbar_disable))
-            pool.close()
-            pool.join()
-        else:
-            tree = [loading_page(r) for r in tqdm(raw, desc='Loading', leave=False,
-                                                  total=len(raw), unit='page', disable=progressbar_disable)]
-        tree = [x for x in tree if x]
-        tree.sort(key=lambda x: int(x.ele_id))
+        Returns
+        -------
+        list of AttachedFile
+            첨부된 파일리스트
 
-        if len(tree) > 0:
-            dcm_no = tree[0].dcm_no
-            self._get_attached_files(dcm_no)
+        """
+        if self.html is None:
+            self._get_report()
+        results = []
+        a_href = self.html.find('a', href='#download')
+        a_onclick = a_href.attrs.get('onclick', '')
+        raw_data = re.search(r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
+        if raw_data is None:
+            return results
 
-        if includes is None and excludes is None and index is None:
-            self._pages = tree
+        rcp_no = raw_data.group(1)
+        dcm_no = raw_data.group(2)
 
-        return tree
-
-    def _get_attached_files(self, dcm_no: str) -> None:
-        params = dict(rcp_no=self.rcp_no, dcm_no=dcm_no)
+        params = dict(rcp_no=rcp_no, dcm_no=dcm_no)
         resp = request_get(url=self._DOWNLOAD_URL_, params=params)
+
         soup = BeautifulSoup(resp.text, 'html.parser')
         tr_list = soup.find_all('tr')
-        regex = re.compile(r'IFRS', re.IGNORECASE)
-        self._attached_files = []
+        attached_files = []
+
         for tr in tr_list:
             if tr.find('a'):
                 td_list = tr.find_all('td')
-                file_name = td_list[0].text.strip()
-                if regex.search(file_name):
-                    file_name = 'xbrl'
-                file_url = self._DART_URL_ + td_list[1].a.get('href')
-                self._attached_files.append({'file': file_name, 'url': file_url})
+                filename = td_list[0].text.strip()
+                file_url = td_list[1].a.get('href')
+                if not file_url:
+                    continue
+                info = dict()
+                info['rcp_no'] = self.rcp_no
+                info['url'] = file_url
+                info['filename'] = filename
+                attached_files.append(AttachedFile(**info))
+        self._attached_files = attached_files
+        return self._attached_files
 
-    def _get_attached_docs(self, resp: str) -> None:
-        soup = BeautifulSoup(resp, 'html.parser')
+    @property
+    def attached_reports(self):
+        """ 첨부된 보고서 반환
+
+        Returns
+        -------
+        list of AttachedReport
+            첨부된 보고서 리스트
+
+        """
+        if self._attached_reports is None:
+            self.extract_attached_reports()
+        return self._attached_reports
+
+    def extract_attached_reports(self):
+        """ 첨부된 보고서 리스트 추출 및 반환
+
+        Returns
+        -------
+        list of AttachedReport
+            첨부된 보고서 리스트
+
+        """
+        if self.html is None:
+            self._get_report()
+        soup = self.html
         attached = soup.find('p', class_='f_none')
         attached_list = attached.find_all('option')
-        self._attached_docs = []
+        attached_reports = []
+
         for docs in attached_list:
-            docs_name = re.sub(r'\s+', ' ',  docs.text).strip()
+            rpt_nm = re.sub(r'\s+', ' ', docs.text).strip()
             docs_url = docs.attrs.get('value')
             if compare_str(docs_url, 'null'):
                 pass
             else:
-                docs_url = self._REPORT_URL_ + '?' + docs_url
-                self._attached_docs.append({'docs': docs_name, 'url': docs_url})
+                info = dict()
+                parsed = parse_qs(docs_url)
+                info['rcp_no'] = parsed.get('rcpNo')[0]
+                info['dcm_no'] = parsed.get('dcmNo')[0]
+                info['rpt_nm'] = rpt_nm
+                info['parent'] = self
+                attached_reports.append(AttachedReport(**info))
+        self._attached_reports = sorted(attached_reports, key=lambda x: x.rcp_no, reverse=True)
+        return self._attached_reports
+
+    def load(self):
+        """ 페이지들의 HTML을 불러오는 함수 """
+        self._get_report()
+        self.extract_related_reports()
+        self.extract_attached_reports()
+        self.extract_pages()
+        self.extract_attached_files()
+        self.find_all()
+
+    def find_all(self, **kwargs):
+        """ 보고서의 Page 재묵을 검색하여 검색된 Page 리스틑 반환하는 함수
+
+         Other Parameters
+        ----------------
+        includes: str
+            Page 제목에 포함될 단어
+        excludes: str
+            Page 제목에 포함되지 않을 단어
+        scope: list
+            검색할 검색 범위(default: pages, related_reports, attached_reports, attached_files)
+        options: dict of {str: bool}
+
+        Returns
+        -------
+        list or dict of {str: list}
+            검색된 Page 리스트
+        """
+        includes = kwargs.get('includes')
+        excludes = kwargs.get('excludes')
+        scope = kwargs.get('scope', ['pages', 'related_reports', 'attached_reports', 'attached_files'])
+        options = kwargs.get('options')
+
+        def determinant(value):
+            det1 = str_to_regex(includes).search(value) if includes else True
+            det2 = not str_to_regex(excludes).search(value) if excludes else True
+            return det1 and det2
+
+        def pages(): return [x for x in self.pages if determinant(x.title)]
+
+        def related_reports():
+            if options and options.get('title'):
+                res = [y for x in self.related_reports for y in x.find_all(**kwargs) if determinant(x.title)]
+            else:
+                res = [y for x in self.related_reports for y in x.find_all(**kwargs)]
+            return res
+
+        def attached_reports():
+            if options and options.get('title'):
+                res = [y for x in self.attached_reports for y in x.find_all(**kwargs) if determinant(x.info['rpt_nm'])]
+            else:
+                res = [y for x in self.attached_reports for y in x.find_all(**kwargs)]
+            return res
+
+        def attached_files(): return [x for x in self.attached_files if determinant(x.filename)]
+
+        func_set = {
+            'pages': pages,
+            'related_reports': related_reports,
+            'attached_reports': attached_reports,
+            'attached_files': attached_files
+        }
+
+        dataset = dict()
+        for s in scope:
+            dataset[s] = func_set[s]()
+        return dataset if len(dataset) > 1 else dataset[scope[0]]
+
+    @property
+    def xbrl(self):
+        """ XBRL 데이터 반환"""
+        import tempfile
+        if self._xbrl is None:
+            xbrl = self._get_xbrl()
+            if xbrl:
+                xbrl_list = []
+                with tempfile.TemporaryDirectory() as path:
+                    file_path = xbrl.download(path)
+                    extract_path = unzip(file_path)
+                    xbrl_file = search_file(extract_path)
+                    for file in xbrl_file:
+                        xbrl = get_xbrl_from_file(file)
+                        xbrl_list.append(xbrl)
+                self._xbrl = xbrl_list[0]
+        return self._xbrl
+
+    def _get_xbrl(self):
+        """ XBRL 첨부파일 검색"""
+        query = {
+            'includes': 'IFRS OR XBRL',
+            'scope': ['attached_files']
+        }
+        attached_files = self.find_all(**query)
+        return attached_files[0] if len(attached_files) > 0 else None
+
+    def to_dict(self, summary=True):
+        """ Report 정보를 Dictionary 형태로 반환
+
+        Parameters
+        ----------
+        summary: bool, optional
+            True 요약정보 / False 모든 정보
+        Returns
+        -------
+        dict of {str: str or list}
+            Report 정보
+        """
+        info = dict()
+        info['rcp_no'] = self.rcp_no
+        info.update(self.info)
+        if not summary:
+            xbrl = self._get_xbrl()
+            if xbrl:
+                info['xbrl'] = xbrl.filename
+            related_reports = [x.to_dict() for x in self.related_reports]
+            if len(related_reports) > 0:
+                info['related_reports'] = related_reports
+            attached_reports = [x.to_dict() for x in self.attached_reports]
+            if len(attached_reports) > 0:
+                info['attached_reports'] = attached_reports
+            attached_files = [x.to_dict() for x in self.attached_files]
+            if len(attached_files) > 0:
+                info['attached_files'] = attached_files
+            info['pages'] = [x.to_dict() for x in self.pages]
+        return info
+
+    def __getattr__(self, item):
+        if item in self.info:
+            return self.info[item]
+        else:
+            error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
+            raise AttributeError(error)
 
     def __getitem__(self, item):
-        if self._pages is None:
-            self.load_page()
-
-        return self._pages[item]
+        return self.pages[item]
 
     def __len__(self):
         return len(self.pages)
 
     def __repr__(self):
         from pprint import pformat
-
         dict_data = self.to_dict()
-        if self._pages is None:
-            dict_data['pages'] = 'Not loaded'
-
         return pformat(dict_data)
 
     def _repr_html_(self):
-        return dict_to_html(self.to_dict(), header=['Label', 'Data'])
+        return dict_to_html(self.to_dict(summary=False), header=['Label', 'Data'])
 
-    def __str__(self):
+
+class RelatedReport(Report):
+    """ 연관된 보고서 클래스
+
+    연관 보고서 정보를 담고 있는 클래스
+    Report 클래스 상속
+
+    Attributes
+    ----------
+    parent: Report
+        상위 보고서
+
+    """
+    def __init__(self, **kwargs):
+        self.parent = kwargs.get('parent')
+        if self.parent is None:
+            raise ValueError('RelatedReport must have parent')
+        kwargs.pop('parent')
+        super().__init__(**kwargs)     
+
+    @property
+    def related_reports(self):
+        """ related_reports overriding """
+        return []
+    
+    def extract_related_reports(self):
+        """ extract_related_reports overriding"""
+        return []
+
+    def to_dict(self, summary=True):
+        """ Report 정보를 Dictionary 형태로 반환
+
+        Parameters
+        ----------
+        summary: bool, optional
+            True 요약정보 / False 모든 정보
+        Returns
+        -------
+        dict of {str: str or list}
+            Report 정보
+        """
+        info = dict()
+        if not summary:
+            info['parent'] = self.parent.rcp_no
+            info['rcp_no'] = self.rcp_no
+        info.update(self.info)
+        if not summary:
+            attached_reports = [x.to_dict() for x in self.attached_reports]
+            if len(attached_reports) > 0:
+                info['attached_reports'] = attached_reports
+            attached_files = [x.to_dict() for x in self.attached_files]
+            if len(attached_files) > 0:
+                info['attached_files'] = attached_files
+            info['pages'] = [x.to_dict() for x in self.pages]
+        return info
+    
+    def find_all(self, **kwargs):
+        """
+        보고서의 Page 재묵을 검색하여 검색된 Page 리스틑 반환하는 함수
+
+         Other Parameters
+        ----------------
+        includes: str
+            Page 제목에 포함될 단어
+        excludes: str
+            Page 제목에 포함되지 않을 단어
+
+        Returns
+        -------
+        list or dict of {str: list}
+            검색된 Page 리스트
+
+        """
+        includes = kwargs.get('includes')
+        excludes = kwargs.get('excludes')
+
+        def determinant(value):
+            det1 = str_to_regex(includes).search(value) if includes else True
+            det2 = not str_to_regex(excludes).search(value) if excludes else True
+            return det1 and det2
+        
+        return [
+            x for x in self.pages if determinant(x.title)
+        ]
+
+
+class AttachedReport(RelatedReport):
+    """
+    첨부된 보고서 클래스
+
+    첨부된 보고서 정보를 담고 있는 클래스
+
+    """
+    @property
+    def attached_reports(self):
+        return []
+
+    def extract_attached_reports(self):
+        return []
+
+    def to_dict(self, summary=True):
+        """ Report 정보를 Dictionary 형태로 반환
+
+        Parameters
+        ----------
+        summary: bool, optional
+            True 요약정보 / False 모든 정보
+        Returns
+        -------
+        dict of {str: str or list}
+            Report 정보
+        """
+        info = dict()
+        if not summary:
+            info['parent'] = self.parent.rcp_no
+            info['rcp_no'] = self.rcp_no
+        info.update(self.info)
+        if not summary:
+            info['pages'] = [x.to_dict() for x in self.pages]
+        return info
+
+
+class AttachedFile(object):
+    """
+    첨부파일 클래스
+
+
+    보고서에 첨부된 파일의 정보를 담고 있는 클래스
+
+
+    Attributes
+    ----------
+    rcp_no : str
+        첨부파일 페이지 번호
+    url : str
+        첨부파일 url
+    filename : str
+        첨부파일명
+
+    """
+    _DART_URL_ = 'http://dart.fss.or.kr'
+
+    def __init__(self, rcp_no, url, filename):
+        self.rcp_no = rcp_no
+        self.url = self._DART_URL_ + url
+        self.filename = filename
+    
+    def to_dict(self, summary=True):
+        info = dict()
+        info['filename'] = self.filename
+        if not summary:
+            info['related_report'] = self.rcp_no
+            info['url'] = self.url
+        return info
+    
+    def __repr__(self):
         from pprint import pformat
+        return pformat(self.to_dict())
 
-        if self._pages is None:
-            page_list = 'Not loaded'
-        else:
-            page_list = [page.title for page in self._pages]
+    def _repr_html_(self):
+        return dict_to_html(self.to_dict(summary=False), header=['Label', 'Data'])
 
-        summary = {
-            '구분': get_market_name(self.crp_cls),
-            '종목명': self.crp_nm,
-            '종목코드': self.crp_cd,
-            '공시구분': self.rpt_nm,
-            '접수번호': self.rcp_no,
-            '공시제출인': self.flr_nm,
-            '접수일자': self.rcp_dt,
-            '비고': RMK_TYPES[self.rmk] if len(self.rmk) > 0 else '',
-            '목차': page_list
-        }
+    def download(self, path):
+        """
+        첨부파일 다운로드 Method
 
-        if self.xbrl_url is not None:
-            summary['XBRL_URL'] = self.xbrl_url
+        Parameters
+        ----------
+        path: str
+            다운롣드 받을 경로
 
-        return pformat(summary)
+        Returns
+        -------
+        str
+            다운받은 첨부파일 경로
 
+        """
+        from dart_fss.spinner import Spinner
 
+        create_folder(path)
+
+        url = self.url
+        r = request_get(url=url, stream=True)
+        headers = r.headers.get('Content-Disposition')
+        if not re.search('attachment', headers):
+            raise Exception('invalid data found')
+
+        # total_size = int(r.headers.get('content-length', 0))
+        block_size = 8192
+        
+        filename = unquote(re.findall(r'filename="(.*?)"', headers)[0])
+
+        filename = '{}_{}'.format(self.rcp_no, filename)
+        spinner = Spinner('Downloading ' + filename)
+        spinner.start()
+
+        file_path = os.path.join(path, filename)
+        with open(file_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=block_size):
+                if chunk is not None:
+                    f.write(chunk)
+        r.close()
+        spinner.stop()
+        return file_path

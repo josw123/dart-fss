@@ -1,15 +1,7 @@
 import pytest
 
+from dart_fss.fs_search import find_all_columns
 from ..search import search_report_with_cache
-from ..xbrl import get_xbrl_from_website
-
-
-def test_get_xbrl_from_website():
-    import re
-    url = 'http://dart.fss.or.kr/pdf/download/ifrs.do?rcp_no=20180402005019&dcm_no=6060273&lang=ko'
-    xbrl = get_xbrl_from_website(url=url)[0]
-    assert re.search(r'00126380_2011-04-30.xbrl', xbrl.filename)
-
 
 @pytest.fixture(scope='module')
 def samsung_xbrl():
@@ -59,7 +51,8 @@ def test_xbrl_get_entity_address_information(samsung_xbrl):
 
 def test_xbrl_get_author_information(samsung_xbrl):
     author = samsung_xbrl.get_author_information()
-    actual = author['[2017-01-01,2017-12-31]공시담당자'][3]
+    column = find_all_columns(author, '공시담당자')[0]
+    actual = author[column][3]
     expected = '031-277-7227'
     assert actual == expected
 
@@ -80,15 +73,15 @@ def test_xbrl_get_financial_statement(samsung_xbrl):
 
 def test_xbrl_to_Dataframe(samsung_xbrl):
     fs = samsung_xbrl.get_financial_statement()[0]
-    actual = int(fs.to_Dataframe(show_concept=False, show_class=False, title='연결').iloc[0][2])
+    actual = int(fs.to_DataFrame(show_concept=False, show_class=False, label='연결').iloc[0][2])
     expected = 146982464000000
     assert actual == expected
 
 
 def test_xbrl_get_value_by_concept_id(samsung_xbrl):
     fs = samsung_xbrl.get_financial_statement()[0]
-    data = fs.get_value_by_concept_id('ifrs_CurrentAssets', start_date='2017-01-01', cls_type='con')
-    _, actual = data.popitem()
+    data = fs.get_value_by_concept_id('ifrs_CurrentAssets', start_dt='20170101', label='Consolidated')
+    actual = data[('20171231', ('Consolidated',))]
     expected = 146982464000000
     assert actual == expected
 

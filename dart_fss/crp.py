@@ -4,20 +4,21 @@ from bs4 import BeautifulSoup
 
 from pandas import DataFrame
 
-from ._utils import Singleton, dict_to_html, request_get, query_to_regex
-from .auth import DartAuth
-from .markets import get_market_name
-from .errors import check_err_code
-from .search import search_report, SearchResults
-from .fs import search_financial_statement
+from dart_fss._utils import Singleton, dict_to_html, request_get, query_to_regex
+from dart_fss.auth import DartAuth
+from dart_fss.markets import get_market_name
+from dart_fss.errors import check_err_code
+from dart_fss.search import search_report, SearchResults
+from dart_fss.fs_search import search_financial_statement
+from dart_fss.fs import FinancialStatement
 
 str_or_list = Union[str, List[str]]
 
 
 class Crp(object):
-    """ 회사(종목) 정보
+    """ 회사(종목) 정보를 담고 있는 클래스
 
-    회사(종목)의 정보를 담고 있는 클래스. 종목 코드, 이름, 종목 분류 및 취급 물품에 관한 기본정보를 가지고 있으며
+    종목 코드, 이름, 종목 분류 및 취급 물품에 관한 기본정보를 가지고 있으며
     DART 에서 제공하는 기업개황 정보를 담고 있다.
 
     Attributes
@@ -56,7 +57,7 @@ class Crp(object):
         if lazy_loading is False:
             self.load()
 
-    def load(self) -> None:
+    def load(self):
         """ 종목 정보 로딩 """
         api_key = DartAuth().api_key
 
@@ -81,7 +82,7 @@ class Crp(object):
         return self._info
 
     def to_dict(self) -> Dict[str, str]:
-        """ 종목에 관한 모든 정보 반환
+        """ 종목에 관한 모든 정보를 Dictionary 형태로 반환
 
         Returns
         -------
@@ -145,11 +146,10 @@ class Crp(object):
         return search_report(self.crp_cd, start_dt, end_dt, fin_rpt, dsp_tp,
                              bsn_tp, sort, series, page_no, page_set)
 
-    def get_financial_statement(self, start_dt: str, end_dt: str = None, fs_tp: str = 'fs', separate: bool = False,
-                                report_tp: str = 'annual', lang: str = 'ko', show_abstract: bool = False,
-                                show_class: bool = True, show_depth: int = 10, show_concept: bool = True,
-                                separator: bool = True) -> DataFrame:
-        """ 재무제표 검색
+    def get_financial_statement(self, start_dt: str, end_dt: str = None, fs_tp: tuple = ('fs', 'is', 'ci', 'cf'),
+                                separate: bool = False, report_tp: str = 'annual',
+                                lang: str = 'ko', separator: bool = True) -> FinancialStatement:
+        """ 재무제표 검색 및 추출
 
         Parameters
         ----------
@@ -157,35 +157,25 @@ class Crp(object):
             검색 시작일자(YYYYMMDD)
         end_dt: str
             검색 종료일자(YYYYMMDD)
-        fs_tp: str
-            리포트 종류
+        fs_tp: tuple
+            'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
         separate: bool
             개별지업 여뷰
         report_tp: str
             'annual' 1년, 'half' 반기, 'quarter' 분기
         lang: str
             'ko' 한글, 'en' 영문
-        show_abstract: bool
-            abstract 표기 여부
-        show_class: bool
-            class 표기 여부
-        show_depth: int
-            class 표시 깊이
-        show_concept: bool
-            concept 표시 여부
         separator: bool
             1000단위 구분자 표시 여부
 
         Returns
         -------
-        DataFrame
+        FinancialStatement
             제무제표 검색 결과
 
         """
         return search_financial_statement(self.crp_cd, start_dt, end_dt=end_dt, fs_tp=fs_tp, separate=separate,
-                                          report_tp=report_tp, lang=lang, show_abstract=show_abstract,
-                                          show_class=show_class, show_depth=show_depth, show_concept=show_concept,
-                                          separator=separator)
+                                          report_tp=report_tp, lang=lang, separator=separator)
 
 
 class CrpList(object):
@@ -261,11 +251,35 @@ class CrpList(object):
         return query_res
 
     def find_by_product(self, query: str_or_list) -> List[Crp]:
+        """ 회사가 취급하는 물품을 검색한다
+
+        Parameters
+        ----------
+        query: str or list of str
+            검색식
+
+        Returns
+        -------
+        list of Crp
+            검색된 회사 리스트
+        """
         regex = query_to_regex(query)
         query_res = [crp for crp in self.crp_list if len(regex.findall(crp.crp_prod + crp.crp_ctp)) > 0]
         return query_res
 
     def find_by_crp_cd(self, crp_cd: str) -> Crp:
+        """ 회사 코드를 이용하여 검색
+
+        Parameters
+        ----------
+        crp_cd: str
+            회사 코드
+
+        Returns
+        -------
+        Crp
+            회사의 Crp Class
+        """
         query_res = [crp for crp in self.crp_list if crp.crp_cd == crp_cd]
         return query_res[0] if len(query_res) > 0 else None
 

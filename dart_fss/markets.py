@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Dict
-from .types import CRP_TYPES
+from dart_fss.types import CRP_TYPES
 
 MARKET = {key: market + 'Mkt' for key, market in CRP_TYPES.items()}
 

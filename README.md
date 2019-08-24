@@ -29,6 +29,9 @@ pip install dart-fss
 -   [isodate](https://github.com/gweis/isodate/)
 -   [tqdm](https://github.com/tqdm/tqdm)
 -   [fake-useragent](https://github.com/hellysmile/fake-useragent)
+-   [html5lib](https://github.com/html5lib/html5lib-python)
+-   [openpyxl](https://openpyxl.readthedocs.io/en/stable/)
+-   [halo](https://github.com/manrajgrover/halo)
 
 ## Usage
 
@@ -45,134 +48,6 @@ api_key='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 dart.dart_set_api_key(api_key=api_key)
 ```
 
-### 상장된 회사리스트
-```python
-import dart_fss as dart
-
-# Market Type
-# A: 모든 시장
-# Y: 유가증권시장
-# K: 코스닥
-# N: 코넥스
-# E: 기타
-
-crp_list = dart.get_crp_list() # default 모든 시장
-crp_list_stock = dart.get_crp_list(market='y') # 유가증권시장
-
-# 이름으로 검색
-samsung_electronics = crp_list.find_by_name('삼성전자')[0] # 리스트 반환
-
-# 코드로 검색
-sk_hynix = crp_list_stock.find_by_crp_cd('000660') # 특정 종목 반환
-
-# 관련 물품으로 검색
-stock_brokers = crp_list.find_by_product('증권') # 리스트 반환
-```
-
-### Dart 전자공시 조회
-
-```python
-import dart_fss as dart
-
-crp_list = dart.get_crp_list() # default 모든 시장
-samsung_electronics = crp_list.find_by_name('삼성전자')[0] # 리스트 반환
-
-# 오늘 공시된 전자공시 조회
-today = dart.search_report() 
-
-# 특정기간 검색 (3개월 이내)
-reports = dart.search_report(start_dt='20190101',end_dt='20190201')
-reports.page_no = 2     # 2번째 페이지로 이동
-reports.next_page()     # 다음 페이지로 이동
-reports.prev_page()     # 이전 페이지로 이동
-
-# 특정회사 검색 
-reports = dart.search_report(crp_cd='000660', start_dt='20190101') # 하이닉스
-# 또는
-reports = samsung_electronics.search_report(start_dt='20190101')
-
-# 검색결과 필터링
-reports = reports.filter(bsn_tp='a001') # 연말보고서만 출력
-
-annual_report = reports[0] # 2019년 사업보고서
-annual_report.pages # 2019년 사업보고서 Page List 출력
-
-# 3번째 페이지 조회
-page = annual_report[3]
-
-# 3번째 페이지의 HTML 
-html = page.html
-
-annual_report.to_file(r'C:\annual_report_2019') # C:\annual_report_2019에 사업보고서 저장(html 파일 형태로 파일별로 저장)
-
-# "연결재무제표" 포함, "주석" 미포함 페이지만 로딩
-annual_report.load_page(includes="연결재무제표", excludes="주석")
-
-
-# 전지공시 조회 (캐싱기능 사용)
-# 최대 캐싱 시간(분, 기본설정 30분)
-dart.search.MAX_CACHED_MINUTES = 10 
-# 최대 캐싱 검새결과 수(기본 4)
-dart.search.MAX_CACHED_SEARCH_RESULTS = 2 
-
-# 전지공시 조회 (캐싱기능 사용)
-cached_reports = dart.search.search_report_with_cache(start_dt='20190101', end_dt='20190201')
-
-```
-
-### 제무제표 검색
-
--   제무제표는 pandas의 DataFrame 형태로 반환 됩니다.
--   concept_id는 [금감원-XBRL 자료실](http://acct.fss.or.kr/fss/acc/bbs/list.jsp?url=/fss/ac/1277791244405&bbsid=1277791244405)의 계정과목을 참고하시기 바랍니다.
--   재무제표 검색은 search_report_with_cache를 사용하여 조회하기 때문에 메모리 부족시 MAX_CACHED_SEARCH_RESULTS 값을 조절하기 바랍니다.
-
-```python
-import dart_fss as dart
-
-crp_list = dart.get_crp_list() # 유가증권시장
-samsung_electronics = crp_list.find_by_name('삼성전자')[0]
-
-# 2012년부터 연간보고서에 포함된 연결 재무상태표 검색
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101')
-
-# 2012년부터 연간보고서에 포함된 연결 재무상태표 검색(반기 포함)
-fs_half = samsung_electronics.get_financial_statement(start_dt='20120101', report_tp='half')
-
-# 2012년부터 연간보고서에 포함된 연결재무상태표 검색(반기 및 분기 포함)
-fs_quarter = samsung_electronics.get_financial_statement(start_dt='20120101', report_tp='quarter')
-
-# 2012년부터 연결 손익계산서 검색(회사에 따라 제공되지 않는경우도 있음)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', fs_tp='is')
-
-# 2012년부터 연결 포괄손익계산서 검색(회사에 따라 제공되지 않는경우도 있음)
-ci_annual = samsung_electronics.get_financial_statement(start_dt='20120101', fs_tp='ci')
-
-# 2012년부터 연결 현금흐름표 검색
-cf_annual = samsung_electronics.get_financial_statement(start_dt='20120101', fs_tp='cf')
-
-# 표시언어 영어(기본 'ko')
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', lang='en')
-
-# Abstract 표시(기본 False)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', show_abstract=True)
-
-# Class 표시 안함(기본 True)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', show_class=False)
-
-# 표시할 Class 깊이(기본 10)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', show_depth=3)
-
-# concept 표시 안함(기본 True)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', show_concept=False)
-
-# 개별기업 연결 재무상태표 검색(기본 False)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', separate=True)
-
-# 1000단위 구분자 표시여부(기본 True)
-fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', separator=False)
-
-```
-
 ### 오류 코드 
 
 - DartAPIError: DART API 에서 오류 메시지를 전송 받았을때 발생하는 오류
@@ -180,7 +55,6 @@ fs_annual = samsung_electronics.get_financial_statement(start_dt='20120101', sep
 
 ### 주의사항
 
--   2005년 이전의 재무제표 검색시 합계 표기방법으로 인한 일부 데이터가 음수로 표시되는 버그 (ex) 삼성전자 개별 재무제표의 유동자산
 -   Dart-Fss 라이브러리는 오픈 API의 응답 방식 중 JSON 방식을 사용 중
 -   현재 DART 오픈 API의 응답 방식이 JSON인 경우 오류 발생시 오류 메시지를 보내지 않음 (응답방식이 xml인 경우 올바르게 작동함)
 

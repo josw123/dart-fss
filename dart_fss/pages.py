@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import re
-import os
 import base64
 
 from typing import Dict
 from bs4 import BeautifulSoup
-from ._utils import request_get
+from dart_fss._utils import request_get
 
 
 class Page(object):
@@ -25,15 +24,40 @@ class Page(object):
         리포트에서 페이지 번호
     dcm_no: str
         페이저 관리 번호
-    html: str
-        페이지의 HTML 값
 
     """
 
     _BASE_URL_ = 'http://dart.fss.or.kr/report/viewer.do'
 
-    def __init__(self, title: str, rcp_no: str, dcm_no: str, ele_id: str, offset: str, length: str, dtd: str):
+    def __init__(self, title: str, rcp_no: str, dcm_no: str, ele_id: str,
+                 offset: str, length: str, dtd: str, lazy_loading=True):
+        self.title = title
+        self.rcp_no = rcp_no
+        self.ele_id = ele_id
+        self.dcm_no = dcm_no
+        self._offset = offset
+        self._length = length
+        self._dtd = dtd
+        self._html = None
+        if not lazy_loading:
+            self.load()
+    
+    @property
+    def html(self):
+        """ html 반환
 
+        Returns
+        -------
+        str
+            page html
+
+        """
+        if self._html is None:
+            self.load()
+        return self._html
+    
+    def load(self):
+        """ page loading 함수 """
         def change_url(bs, tag):
             tags = bs.find_all(attrs={tag: re.compile(r'.*')})
             if tags:
@@ -44,21 +68,13 @@ class Page(object):
         def add_prefix(match_obj):
             return r"window.open('http://dart.fss.or.kr" + match_obj.group(1) + r"'"
 
-        self.title = title
-        self.rcp_no = rcp_no
-        self.ele_id = ele_id
-        self.dcm_no = dcm_no
-        self._offset = offset
-        self._length = length
-        self._dtd = dtd
-
         params = {
-            'rcpNo': rcp_no,
-            'dcmNo': dcm_no,
-            'eleId': ele_id,
-            'offset': offset,
-            'length': length,
-            'dtd': dtd
+            'rcpNo': self.rcp_no,
+            'dcmNo': self.dcm_no,
+            'eleId': self.ele_id,
+            'offset': self._offset,
+            'length': self._length,
+            'dtd': self._dtd
         }
         html = request_get(url=self._BASE_URL_, params=params).content
         try:
@@ -77,9 +93,9 @@ class Page(object):
             html = str(soup)
             html = re.sub(r'window.open\(\'(.*?)\'', add_prefix, html)
 
-            self.html = html
+            self._html = html
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self, summary=True) -> Dict[str, str]:
         """ dict 타입으로 반환
 
         Returns
@@ -88,37 +104,24 @@ class Page(object):
             title, rcp_no, ele_id를 dict 타입으로 반환
 
         """
-
-        return {'title': self.title,
-                'rcp_no': self.rcp_no,
-                'ele_id': self.ele_id}
-
-    def to_file(self, path: str, filename: str = None) -> None:
-        """ 파일로 저장
-
-        Parameters
-        ----------
-        path: str
-            저장되는 위치
-        filename: str, optional
-            파일 이름
-
-        """
-        if not os.path.exists(path):
-            os.makedirs(path)
-        if filename is None:
-            file = '{}_{}_{}.html'.format(self.rcp_no, self.ele_id, self.title)
-        else:
-            file = str(filename) + '.html'
-        path = os.path.join(path, file)
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write(self.html)
+        info = dict()
+        info['title'] = self.title
+        info['ele_id'] = self.ele_id
+        if not summary:
+            info['rcp_no'] = self.rcp_no
+            info['dcm_no'] = self.dcm_no
+            info['offset'] = self._offset
+            info['length'] = self._length
+            info['dtd'] = self._dtd
+        return info
 
     def __repr__(self) -> str:
         from pprint import pformat
-        return pformat(self.to_dict())
+        return pformat(self.to_dict(summary=False))
 
     def _repr_html_(self) -> str:
+        if self.html is None:
+            self.load()
         if len(self.html) == 0:
             html = 'blank page'
         else:
