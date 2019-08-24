@@ -3,11 +3,11 @@ from .._utils import dict_to_html, check_datetime
 
 def test_dict_to_html():
     from bs4 import BeautifulSoup
-    data = {
-        'A': 1,
-        'B': 2,
-        'C': [{'D': 3}, {'E': 4}]
-    }
+    from collections import OrderedDict
+    data = OrderedDict()
+    data['A'] = 1
+    data['B'] = 2
+    data['C'] = [{'D': 3}, {'E': 4}]
     html = dict_to_html(data)
     soup = BeautifulSoup(html, 'html.parser')
     tr = soup.find_all('tr')
