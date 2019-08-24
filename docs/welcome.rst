@@ -51,7 +51,7 @@ Quick Starts
 
 [XML](http://dart.fss.or.kr/api/search.xml?auth=x&bsn_tp=a) 결과
 
-..  code-block::
+..  code-block:: xml
 
     <?xml version="1.0" encoding="utf-8"?>
     <result>
@@ -66,7 +66,7 @@ Quick Starts
 
 [JSON](http://dart.fss.or.kr/api/search.json?auth=x&bsn_tp=a) 결과
 
-.. code-block::
+.. code-block:: json
 
     {"err_code":"000","err_msg":"정상","page_no":1,"page_set":10,"total_count":0,"total_page":0,"list":[]}
 
