@@ -272,6 +272,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     regex = str_to_regex('label_ko OR comment')
     str_unit = extract_unit_from_header(fs_table['header'])
     unit = str_unit_to_number_unit(str_unit)
+    unit_regex = re.compile(r'\(단위\s*?:\s*(.*)\)')
 
     for idx, tr in enumerate(tbody.find_all('tr')):
         extracted = [re.sub(r'\s+|=+', '', td.text) for td in tr.find_all('td')]
@@ -298,6 +299,16 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
         ordered_list = []
         for column in df_columns.tolist():
             ordered_list.append(row.get(column, None))
+
+        row_unit = unit_regex.search(ordered_list[0])
+        if row_unit:
+            row_unit = str_unit_to_number_unit(row_unit.group(1))
+            for jdx, value in enumerate(ordered_list):
+                if isinstance(value, str):
+                    pass
+                else:
+                    ordered_list[jdx] = ordered_list[jdx] / unit * row_unit
+
         df.loc[idx] = ordered_list
     return df
 
