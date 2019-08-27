@@ -563,7 +563,7 @@ class AttachedFile(object):
         self.rcp_no = rcp_no
         self.url = self._DART_URL_ + url
         self.filename = filename
-    
+
     def to_dict(self, summary=True):
         info = dict()
         info['filename'] = self.filename
