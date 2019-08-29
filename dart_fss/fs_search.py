@@ -272,7 +272,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     regex = str_to_regex('label_ko OR comment')
     str_unit = extract_unit_from_header(fs_table['header'])
     unit = str_unit_to_number_unit(str_unit)
-    unit_regex = re.compile(r'\(단위\s*?:\s*(.*)\)')
+    unit_regex = re.compile(r'\(단위\s*?:\s*([a-zA-Zㄱ-힣])\)')
 
     for idx, tr in enumerate(tbody.find_all('tr')):
         extracted = [re.sub(r'\s+|=+', '', td.text) for td in tr.find_all('td')]
