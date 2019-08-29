@@ -229,6 +229,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
 
             if item is None:
                 pass
+            elif compare_str(column[0], item):
+                continue
             elif regex_3month.search(item):
                 # extract date info
                 date_info = [datetime.strptime(date_str, '%Y%m%d') for date_str in column[0].split('-')]
@@ -249,7 +251,6 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
         else:
             column.append(tuple(sec_item))
         columns.append(column)
-
     return columns
 
 
