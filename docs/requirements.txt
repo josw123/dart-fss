@@ -2,3 +2,4 @@ sphinx
 sphinx-autodoc-typehints
 sphinx-rtd-theme
 numpydoc
+dart-fss
