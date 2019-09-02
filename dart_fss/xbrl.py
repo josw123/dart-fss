@@ -558,10 +558,10 @@ class Table(object):
         regex_pass = str_to_regex('concept_id OR label_ko OR label_en OR class')
         df_count = df.count()
         drop_columns = []
-        for key in df_count.keys().tolist():
+        for key, count in df_count.items():
             if regex_pass.search(' '.join(key[1])):
                 pass
-            elif df_count[key] <= 1:
+            elif count <= 1:
                 drop_columns.append(key)
         df = df.drop(drop_columns, axis=1)
         return df
