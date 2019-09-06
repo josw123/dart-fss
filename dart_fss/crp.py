@@ -287,6 +287,9 @@ class CrpList(object):
     def __getitem__(self, item):
         return self.crp_list[item]
 
+    def __len__(self):
+        return len(self.crp_list)
+
 
 def get_crp_list(market: str = None) -> CrpList:
     """ 상장된 회사 리스트를 반환하는 함수
