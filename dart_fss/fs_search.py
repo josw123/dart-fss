@@ -320,49 +320,53 @@ def seek_table(tables: List, includes: Pattern,
     regex = re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}')
     for table in tables:
         for tag in table.previous_siblings:
+            if tag in tables:
+                break
             if isinstance(tag, Tag):
-                title = tag.findChild(text=includes)
-                if title:
-                    title = re.sub(r'\s+', '', title)
-                    if excludes and excludes.search(title):
-                        continue
-                    if len(title) > 12:
-                        continue
-                    header = table.find_previous('table', class_='nb')
-                    if header is None:
-                        continue
-                    tr_list = header.find_all('tr')
-                    if len(tr_list) < 2:
-                        continue
-
-                    tr_cnt = 0
-                    for tr in tr_list:
-                        if regex.search(tr.text):
-                            tr_cnt += 1
-
-                    if tr_cnt == 0:
-                        found = table.find_previous(text=re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}'))
-                        if found is None:
+                children = tag.findChildren(text=includes)
+                for child in children:
+                    title = child
+                    if title:
+                        title = re.sub(r'\s+', '', title)
+                        if excludes and excludes.search(title):
                             continue
-                        header = found.parent
-                        extract_text = re.sub('<.*?>', '\n', str(header))
-                        extract_text = extract_text.split('\n')
-                        html = '<table class="nb"><tbody>'
-
-                        error = False
-                        for t in extract_text:
-                            if t.strip() == '':
-                                pass
-                            else:
-                                if len(t) > 100:
-                                    error = True
-                                    break
-                                html += '<tr><td>' + t + '</td></tr>'
-                        if error:
+                        if len(title) > 12:
                             continue
-                        html += '</tbody></table>'
-                        header = BeautifulSoup(html, 'html.parser')
-                    return title, header, table
+                        header = table.find_previous('table', class_='nb')
+                        if header is None:
+                            continue
+                        tr_list = header.find_all('tr')
+                        if len(tr_list) < 2:
+                            continue
+
+                        tr_cnt = 0
+                        for tr in tr_list:
+                            if regex.search(tr.text):
+                                tr_cnt += 1
+
+                        if tr_cnt == 0:
+                            found = table.find_previous(text=re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}'))
+                            if found is None:
+                                continue
+                            header = found.parent
+                            extract_text = re.sub('<.*?>', '\n', str(header))
+                            extract_text = extract_text.split('\n')
+                            html = '<table class="nb"><tbody>'
+
+                            error = False
+                            for t in extract_text:
+                                if t.strip() == '':
+                                    pass
+                                else:
+                                    if len(t) > 100:
+                                        error = True
+                                        break
+                                    html += '<tr><td>' + t + '</td></tr>'
+                            if error:
+                                continue
+                            html += '</tbody></table>'
+                            header = BeautifulSoup(html, 'html.parser')
+                        return title, header, table
     return None, None, None
 
 
@@ -416,7 +420,7 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
             excludes = str_to_regex(excludes)
 
         regex = str_to_regex(query)
-        title, header, tb= seek_table(tables=tables, includes=regex, excludes=excludes)
+        title, header, tb = seek_table(tables=tables, includes=regex, excludes=excludes)
         fs_table[key] = {'title': title, 'header': header, 'table': tb}
     return fs_table
 
@@ -434,7 +438,7 @@ def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko'):
     return results
 
 
-def report_find_all(report: Report, query:dict , fs_tp: Tuple[str], separate: bool) -> Tuple[int, Dict[str, Dict]]:
+def report_find_all(report: Report, query: dict, fs_tp: Tuple[str], separate: bool) -> Tuple[int, Dict[str, Dict]]:
     """
     Report의 Page 중 Query 조건에 맞는 페이지 검색후 모든 재무제표 Table 추출
 
@@ -893,7 +897,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate:
     return statements
 
 
-def sorting_columns(statements):
+def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     regex = re.compile(r'\d{8}')
 
     def sorting(value):
@@ -924,6 +928,27 @@ def sorting_columns(statements):
         ncolumns = concept_columns + date_columns
         statements[tp] = statements[tp][ncolumns]
     return statements
+
+
+def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict[str, DataFrame]:
+
+    for tp in df:
+        df_tp = df[tp]
+        if df_tp is None:
+            continue
+
+        if label_df:
+            none_columns = df_tp[df_tp != u''].isnull().all()
+        else:
+            none_columns = df_tp.isnull().all()
+
+        columns = []
+        for key, value in none_columns.items():
+            if value is not True:
+                columns.append(key)
+
+        df[tp] = df_tp[columns]
+    return df
 
 
 def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
@@ -1018,6 +1043,9 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
                                 bsn_tp=['A003'], page_set=100, fin_rpt=True)
         for report in tqdm(quarter, desc='Quarterly report', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+
+    statements = drop_empty_columns(statements)
+    label_df = drop_empty_columns(label_df)
 
     statements = sorting_columns(statements)
     label_df = sorting_columns(label_df)
