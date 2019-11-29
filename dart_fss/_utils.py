@@ -189,8 +189,9 @@ def query_to_regex(query):
 
 
 def create_folder(path):
+    import pathlib
     try:
-        os.makedirs(path)
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
     except FileExistsError:
         pass
 
