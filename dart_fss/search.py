@@ -9,7 +9,7 @@ from typing import Union, Dict, List
 from dart_fss.auth import DartAuth
 from dart_fss.types import DSP_TYPES, BSN_TYPES
 from dart_fss.reports import Report
-from dart_fss.errors import check_err_code
+from dart_fss.errors import check_status
 from dart_fss._utils import dict_to_html, request_get
 
 
@@ -133,7 +133,7 @@ class SearchResults(object):
     def _set_data(self, **kwargs):
         """ SearchResults 결과의 parameter를 저장하는 함수"""
         data = kwargs.get('data')
-        check_err_code(**data)
+        check_status(**data)
         self._page_no = data['page_no']
         self._page_set = data['page_set']
         self._total_count = data['total_count']

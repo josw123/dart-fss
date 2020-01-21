@@ -2,7 +2,6 @@ import pytest
 from dart_fss.fs_search import *
 from dart_fss.errors import NotFoundConsolidated
 
-from .test_crp import crp_list
 
 def test_str_to_float_number():
     actual = str_to_float(1.0)

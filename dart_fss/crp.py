@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from dart_fss._utils import Singleton, dict_to_html, request_get, query_to_regex
 from dart_fss.auth import DartAuth
 from dart_fss.markets import get_market_name
-from dart_fss.errors import check_err_code
+from dart_fss.errors import check_status
 from dart_fss.search import search_report, SearchResults
 from dart_fss.fs_search import search_financial_statement
 from dart_fss.fs import FinancialStatement
@@ -67,7 +67,7 @@ class Crp(object):
         resp = request_get(url=url, params=params)
         data = resp.json()
         data['crp_cd'] = data.pop('stock_cd')
-        check_err_code(**data)
+        check_status(**data)
         self.crp_nm = data.get('crp_nm')
         self._info = {key: value for key, value in data.items()
                       if key not in ['err_code', 'err_msg', 'crp_cd', 'crp_nm']}

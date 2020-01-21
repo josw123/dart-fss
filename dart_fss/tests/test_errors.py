@@ -1,25 +1,24 @@
 import pytest
 
-from .test_crp import crp_list
-from ..errors import DartAPIError, NotFoundConsolidated, check_err_code
+from dart_fss.errors import APIKeyError, NotFoundConsolidated, check_status
 
 
 def test_check_err_code():
-    with pytest.raises(DartAPIError, match=r'.*crp_cd.*'):
+    with pytest.raises(APIKeyError, match=r'.*crp_cd.*'):
         err_code = {
             'err_code': 100,
             'err_msg': 'crp_cd 없는 경우 검색기간은 3개월만 가능'
         }
-        check_err_code(**err_code)
+        check_status(**err_code)
 
 
 def test_check_err_code_900():
-    with pytest.raises(DartAPIError, match=r'.*Invalid.*'):
+    with pytest.raises(APIKeyError, match=r'.*Invalid.*'):
         err_code = {
             'err_code': 123,
             'err_msg': 'Invalid Error'
         }
-        check_err_code(**err_code)
+        check_status(**err_code)
 
 
 def test_not_found_consolidated(crp_list):
