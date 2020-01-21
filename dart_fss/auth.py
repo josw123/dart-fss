@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 
-from dart_fss.errors import check_err_code
 from dart_fss._utils import Singleton, request_get
+from dart_fss.errors import check_status
 
 
-def dart_set_api_key(api_key):
+def set_api_key(api_key):
     DartAuth().api_key = api_key
     auth = DartAuth()
     return auth.api_key
@@ -20,7 +20,7 @@ class DartAuth(object, metaclass=Singleton):
 
     Note
     ----
-    DART 인증키 발급은 http://dart.fss.or.kr/dsap001/intro.do 를 참고하십시오.
+    DART 인증키 발급은 https://opendart.fss.or.kr/ 를 참고하십시오.
 
     Attributes
     ----------
@@ -28,7 +28,6 @@ class DartAuth(object, metaclass=Singleton):
          DART 인증키
 
     """
-    _SEARCH_URL_ = 'http://dart.fss.or.kr/api/'
 
     __api_key = None
 
@@ -42,6 +41,7 @@ class DartAuth(object, metaclass=Singleton):
         api_key: str, optional
             DART API KEY 정보
         """
+        super().__init__()
         if api_key is None:
             api_key = os.getenv('DART_API_KEY')
         if api_key:
@@ -59,15 +59,17 @@ class DartAuth(object, metaclass=Singleton):
         if not isinstance(api_key, str):
             raise ValueError('The Dart Api key must be provided through the api_key variable')
 
-        url = 'http://dart.fss.or.kr/api/search.json'
-        params = dict()
-        params['auth'] = api_key
+        # 기업개황 테스트
+        url = 'https://opendart.fss.or.kr/api/company.json'
+        # 요청인자
+        # crtfc_key: API 인증키
+        # corp_code: 공시대항회사 고유번호 /  00126380 삼성전자
+        params = {'crtfc_key': api_key, 'corp_code': '00126380'}
 
         resp = request_get(url=url, params=params)
         data = resp.json()
-        check_err_code(**data)
 
-        self.__api_key = api_key
+        check_status(**data)
 
     def __repr__(self) -> str:
         return 'API key: {}'.format(self.api_key)
