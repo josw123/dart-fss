@@ -2,14 +2,18 @@
 from dart_fss.errors.errors import (APIKeyError, TemporaryLocked, OverQueryLimit,
                                     InvalidField, ServiceClose, UnknownError)
 
-ERROR = {
-    '010': APIKeyError,
-    '011': TemporaryLocked,
-    '020': OverQueryLimit,
-    '100': InvalidField,
-    '800': ServiceClose,
-    '900': UnknownError,
-}
+
+def check_error(status):
+    errors = {
+        '000': None,
+        '010': APIKeyError,
+        '011': TemporaryLocked,
+        '020': OverQueryLimit,
+        '100': InvalidField,
+        '800': ServiceClose,
+        '900': UnknownError,
+    }
+    return errors.get(status, UnknownError)
 
 
 def check_status(**kwargs):
@@ -36,7 +40,7 @@ def check_status(**kwargs):
         정의되지 않은 오류
     """
     status = kwargs.get('status')
-    err = ERROR.get(status)
+    err = check_error(status)
     if err is not None:
         msg = kwargs.get('message')
         raise err(msg)
