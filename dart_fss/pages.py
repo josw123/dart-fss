@@ -5,7 +5,7 @@ import base64
 
 from typing import Dict
 from bs4 import BeautifulSoup
-from dart_fss._utils import request_get
+from dart_fss.utils._utils import request_get
 
 
 class Page(object):

@@ -8,7 +8,7 @@ from urllib.parse import unquote, parse_qs
 from bs4 import BeautifulSoup
 
 from dart_fss.pages import Page
-from dart_fss._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file
+from dart_fss.utils._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file
 from dart_fss.xbrl import get_xbrl_from_file
 from dart_fss.regex import str_to_regex
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from dart_fss._utils import Singleton, request_get
+from dart_fss.utils._utils import Singleton, request_get
 from dart_fss.errors import check_status
 
 

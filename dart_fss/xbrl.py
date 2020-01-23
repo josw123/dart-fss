@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta
 from arelle.ModelXbrl import ModelXbrl
 from arelle import Cntlr, XbrlConst
 
-from dart_fss._utils import check_datetime, compare_str, dict_to_html, get_datetime
+from dart_fss.utils._utils import check_datetime, compare_str, dict_to_html, get_datetime
 from dart_fss.regex import str_to_regex
 
 

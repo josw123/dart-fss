@@ -14,7 +14,7 @@ from bs4.element import Tag
 
 from dart_fss.reports import Report
 from dart_fss.search import search_report
-from dart_fss._utils import compare_str, str_unit_to_number_unit, strWS, is_notebook
+from dart_fss.utils._utils import compare_str, str_unit_to_number_unit, strWS, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated
 from dart_fss.regex import str_to_regex
 from dart_fss.fs import FinancialStatement

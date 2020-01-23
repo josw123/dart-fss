@@ -3,7 +3,7 @@ import pandas as pd
 from pandas import DataFrame
 from typing import Dict
 
-from dart_fss._utils import dict_to_html, create_folder
+from dart_fss.utils._utils import dict_to_html, create_folder
 
 
 class FinancialStatement(object):

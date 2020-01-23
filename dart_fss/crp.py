@@ -2,7 +2,7 @@
 from typing import Union, List, Dict
 from bs4 import BeautifulSoup
 
-from dart_fss._utils import Singleton, dict_to_html, request_get, query_to_regex
+from dart_fss.utils._utils import Singleton, dict_to_html, request_get, query_to_regex
 from dart_fss.auth import DartAuth
 from dart_fss.markets import get_market_name
 from dart_fss.errors import check_status

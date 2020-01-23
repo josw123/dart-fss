@@ -10,7 +10,7 @@ from dart_fss.auth import DartAuth
 from dart_fss.types import DSP_TYPES, BSN_TYPES
 from dart_fss.reports import Report
 from dart_fss.errors import check_status
-from dart_fss._utils import dict_to_html, request_get
+from dart_fss.utils._utils import dict_to_html, request_get
 
 
 List_or_str = Union[List[str], str]
