@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 class Singleton(type):
-    """
-    Singleton metaclass
-    """
+    """ Singleton metaclass """
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
