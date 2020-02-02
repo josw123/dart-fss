@@ -1,14 +1,36 @@
 # -*- coding: utf-8 -*-
 import os
 
-from dart_fss.utils._utils import Singleton, request_get
+from dart_fss.utils import Singleton, request
 from dart_fss.errors import check_status
 
 
-def set_api_key(api_key):
+def set_api_key(api_key: str) -> str:
+    """ Set Open DART API KEY
+
+    Parameters
+    ----------
+    api_key: str
+        Open DART API KEY
+    Returns
+    -------
+    str
+        설정된 API KEY
+    """
     DartAuth().api_key = api_key
     auth = DartAuth()
     return auth.api_key
+
+
+def get_api_key() -> str:
+    """ Get Open DART API KEY
+
+    Returns
+    -------
+    str
+        DART_API_KEY
+    """
+    return DartAuth().api_key
 
 
 class DartAuth(object, metaclass=Singleton):
@@ -29,8 +51,6 @@ class DartAuth(object, metaclass=Singleton):
 
     """
 
-    __api_key = None
-
     def __init__(self, api_key=None):
         """ api_key 초기화 메서드
 
@@ -42,6 +62,7 @@ class DartAuth(object, metaclass=Singleton):
             DART API KEY 정보
         """
         super().__init__()
+        self.__api_key = None
         if api_key is None:
             api_key = os.getenv('DART_API_KEY')
         if api_key:
@@ -66,10 +87,11 @@ class DartAuth(object, metaclass=Singleton):
         # corp_code: 공시대항회사 고유번호 /  00126380 삼성전자
         params = {'crtfc_key': api_key, 'corp_code': '00126380'}
 
-        resp = request_get(url=url, params=params)
+        resp = request.get(url=url, params=params)
         data = resp.json()
 
         check_status(**data)
+        self.__api_key = api_key
 
     def __repr__(self) -> str:
         return 'API key: {}'.format(self.api_key)
