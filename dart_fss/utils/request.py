@@ -9,12 +9,29 @@ from .singleton import Singleton
 
 @cache()
 def get_user_agent():
+    """ Return user-agent
+    Returns
+    -------
+    str
+        user-agent
+    """
     ua = UserAgent()
     agent = ua.chrome
     return str(agent)
 
 
 def query_to_regex(query):
+    """ query to regular expression
+    Parameters
+    ----------
+    query: str or list of str
+        query
+
+    Returns
+    -------
+    Pattern object
+        regular expression
+    """
     if isinstance(query, str):
         regex = re.compile(query, re.IGNORECASE)
     elif isinstance(query, list):
@@ -26,13 +43,32 @@ def query_to_regex(query):
 
 
 class Request(object, metaclass=Singleton):
+    """HTTP 요청을 보내는 클래스
 
+    HTTP 요청을 위해 사용되는 클래스입니다.
+    User-Agent 및 Cookies 관련 정보를 저장하고 있습니다.
+
+    Attributes
+    ---------
+    s: Session
+        Requests Session
+    delay: float
+        Delay for repeat delay
+
+    """
     def __init__(self):
         self.s = requests.Session()
         self.update_user_agent()
         self.delay = None
 
     def update_user_agent(self, force: bool = False):
+        """ Update User-Agent
+
+        Parameters
+        ----------
+        force: bool
+            Force update
+        """
         if force:
             ua = UserAgent()
             agent = ua.chrome
@@ -42,15 +78,36 @@ class Request(object, metaclass=Singleton):
         self.s.headers.update({'user-agent': user_agent})
 
     def update_referer(self, referer: str = None):
+        """ Update Referer
+
+        Parameters
+        ----------
+        referer: str
+            Referer url
+        """
         if referer is not None:
             self.s.headers.update({'referer': referer})
 
     def set_proxies(self, proxies: dict = None):
+        """ Set proxies
+
+        Parameters
+        ----------
+        proxies: dict
+            proxies
+        """
         if proxies is not None:
             import copy
             self.s.proxies = copy.deepcopy(proxies)
 
     def set_delay(self, second: float = None):
+        """ Set delay
+
+        Parameters
+        ----------
+        second: float
+            delay for repeat
+        """
         self.delay = second
 
     def request(self,
@@ -60,7 +117,28 @@ class Request(object, metaclass=Singleton):
                 referer: str = None,
                 stream: bool = False,
                 timeout: int = 120):
+        """ send http requests
 
+        Parameters
+        ----------
+        url: str
+            URL
+        method: str, optional
+            GET, OPTIONS, POST, PUT, PATCH or DELETE
+        payload: dict, optional
+            Request parameters
+        referer: str, optional
+            Temporary referer
+        stream: bool, optional
+            Stream optional, default False
+        timeout: int, optional
+            default 120s
+
+        Returns
+        -------
+        requests.Response
+            Response
+        """
         headers = self.s.headers
         if referer is not None:
             headers['referer'] = referer
@@ -80,6 +158,26 @@ class Request(object, metaclass=Singleton):
             referer: str = None,
             stream: bool = False,
             timeout: int = 120):
+        """ Request get method
+
+        Parameters
+        ----------
+        url: str
+            URL
+        payload: dict, optional
+            Request parameters
+        referer: str, optional
+            Temporary referer
+        stream: bool, optional
+            Stream optional, default False
+        timeout: int, optional
+            default 120s
+
+        Returns
+        -------
+        requests.Response
+            Response
+        """
         return self.request(url=url, method='GET', payload=payload, referer=referer, stream=stream, timeout=timeout)
 
     def post(self, url: str,
@@ -87,4 +185,28 @@ class Request(object, metaclass=Singleton):
              referer: str = None,
              stream: bool = False,
              timeout: int = 120):
+        """ Request post method
+
+        Parameters
+        ----------
+        url: str
+            URL
+        payload: dict, optional
+            Request parameters
+        referer: str, optional
+            Temporary referer
+        stream: bool, optional
+            Stream optional, default False
+        timeout: int, optional
+            default 120s
+
+        Returns
+        -------
+        requests.Response
+            Response
+        """
         return self.request(url=url, method='POST', payload=payload, referer=referer, stream=stream, timeout=timeout)
+
+
+# Request object
+request = Request()

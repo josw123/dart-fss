@@ -6,7 +6,18 @@ CACHE_DEFAULT_TTL = datetime.timedelta(hours=1)
 
 
 def cache(ttl=CACHE_DEFAULT_TTL):
-    """ Decorator """
+    """ TTL Cache Decorator
+
+    Parameters
+    ----------
+    ttl: datetime.timedelta
+        Time-To-Live
+
+    Returns
+    -------
+    function
+        Wrapped Function
+    """
     def wrap(func):
         cached = {}
 
