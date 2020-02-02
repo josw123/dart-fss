@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from dart_fss.utils._utils import is_notebook
+from .notebook import is_notebook
 
 if is_notebook():
     from halo import HaloNotebook as Halo

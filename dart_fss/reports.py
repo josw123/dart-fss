@@ -594,7 +594,7 @@ class AttachedFile(object):
             다운받은 첨부파일 경로
 
         """
-        from dart_fss.spinner import Spinner
+        from dart_fss.utils.spinner import Spinner
 
         create_folder(path)
 

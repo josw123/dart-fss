@@ -956,7 +956,7 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
         DartXbrl 클래스
     """
     # PyPI를 통해 설치된 Arelle 라이브러리 사용시 발생하는 오류 수정을 위한코드
-    from .spinner import Spinner
+    from dart_fss.utils.spinner import Spinner
     spinner = Spinner('XBRL Loading')
     spinner.start()
 
