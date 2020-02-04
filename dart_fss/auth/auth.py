@@ -85,9 +85,9 @@ class DartAuth(object, metaclass=Singleton):
         # 요청인자
         # crtfc_key: API 인증키
         # corp_code: 공시대항회사 고유번호 /  00126380 삼성전자
-        params = {'crtfc_key': api_key, 'corp_code': '00126380'}
+        payload = {'crtfc_key': api_key, 'corp_code': '00126380'}
 
-        resp = request.get(url=url, params=params)
+        resp = request.get(url=url, payload=payload)
         data = resp.json()
 
         check_status(**data)
