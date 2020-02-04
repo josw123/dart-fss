@@ -214,7 +214,7 @@ class Request(object, metaclass=Singleton):
                  method: str = 'GET',
                  payload: dict = None,
                  referer: str = None,
-                 timeout: int = 120):
+                 timeout: int = 120) -> dict:
         """ Download File
 
         Parameters
@@ -236,8 +236,8 @@ class Request(object, metaclass=Singleton):
 
         Returns
         -------
-        str
-            다운받은 첨부파일 경로
+        dict
+            filename, path, full_path
 
         """
 
@@ -259,7 +259,7 @@ class Request(object, metaclass=Singleton):
         block_size = 8192
 
         # Extract filename
-        extracted_filename = unquote(re.findall(r'filename="(.*?)"', headers)[0])
+        extracted_filename = unquote(re.findall(r'filename="?([^"]*)"?', headers)[0])
 
         if filename is None:
             filename = extracted_filename
@@ -276,7 +276,7 @@ class Request(object, metaclass=Singleton):
                     f.write(chunk)
         r.close()
         spinner.stop()
-        return file_path
+        return {'filename': filename, 'path':path, 'full_path': file_path}
 
 
 # Request object
