@@ -79,4 +79,20 @@ def create_folder(path: str):
         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
     except FileExistsError:
         pass
+    except OSError:
+        raise
 
+
+def cache_folder():
+    """ Create cache folder
+
+    Returns
+    -------
+    str
+        Cache Folder Path
+    """
+    from appdirs import user_cache_dir
+    appname = 'dart-fss'
+    cache_dir = user_cache_dir(appname)
+    create_folder(cache_dir)
+    return cache_dir
