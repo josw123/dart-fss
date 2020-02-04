@@ -24,17 +24,19 @@ def unzip(file: str, path: str = None, create_folder=True) -> str:
         unzip 경로
     """
     os.path.altsep = '\\'  # fixed extract bug
+    # Split the path into a pair head and tail
+    head, tail = os.path.split(file)
+
     if path:
         extract_path = path
     else:
-        extract_path = '\\'.join(file.split('\\')[:-1])
+        extract_path = head
 
     with zipfile.ZipFile(file, 'r') as zip_ref:
         if create_folder:
-            folder = file.split('\\')[-1]
-            folder = folder.replace('.zip', '')
-            extract_path = os.path.join(extract_path, folder)
-        zip_ref.extractall(extract_path)
+            new_folder = tail.replace('.zip', '')
+            extract_path = os.path.join(extract_path, new_folder)
+        zip_ref.extractall(path=extract_path)
     return extract_path
 
 
@@ -83,7 +85,7 @@ def create_folder(path: str):
         raise
 
 
-def cache_folder():
+def get_cache_folder():
     """ Create cache folder
 
     Returns
