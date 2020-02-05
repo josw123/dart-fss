@@ -57,14 +57,14 @@ def search_file(path: str, filename: str = None, extensions: str = 'xbrl') -> Li
     list of str
         검색된 파일 리스트
     """
-    files = []
+    file_list = []
     for root, _, files in os.walk(path):
         for file in files:
             if filename is not None and re.search(filename, file):
-                files.append(os.path.join(root, file))
+                file_list.append(os.path.join(root, file))
             if file.endswith('.' + extensions):
-                files.append(os.path.join(root, file))
-    return files
+                file_list.append(os.path.join(root, file))
+    return file_list
 
 
 def create_folder(path: str):
