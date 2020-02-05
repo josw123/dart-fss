@@ -15,6 +15,14 @@ class TemporaryLocked(RuntimeError):
         super().__init__(msg)
 
 
+class NoDataReceived(ValueError):
+    """
+    조회된 데이터가 없을때 발생하는 오류
+    """
+    def __init__(self, msg='No data received'):
+        super().__init__(msg)
+
+
 class OverQueryLimit(RuntimeError):
     """
     요청 제한을 초과하였을때 발생하는 오류

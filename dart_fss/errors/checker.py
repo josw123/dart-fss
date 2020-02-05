@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from dart_fss.errors.errors import (APIKeyError, TemporaryLocked, OverQueryLimit,
-                                    InvalidField, ServiceClose, UnknownError)
+from dart_fss.errors.errors import (APIKeyError, TemporaryLocked, NoDataReceived,
+                                    OverQueryLimit, InvalidField, ServiceClose, UnknownError)
 
 
 def check_error(status):
@@ -8,6 +8,7 @@ def check_error(status):
         '000': None,
         '010': APIKeyError,
         '011': TemporaryLocked,
+        '013': NoDataReceived,
         '020': OverQueryLimit,
         '100': InvalidField,
         '800': ServiceClose,
