@@ -248,7 +248,7 @@ class Request(object, metaclass=Singleton):
         # Create Folder
         create_folder(path)
 
-        r = self.request(url=url, method=method, payload=payload,referer=referer, stream=True, timeout=timeout)
+        r = self.request(url=url, method=method, payload=payload, referer=referer, stream=True, timeout=timeout)
 
         # Check validity
         headers = r.headers.get('Content-Disposition')
