@@ -2,11 +2,33 @@
 import re
 import os
 import zipfile
+import xmltodict
+from collections import OrderedDict
 
 from typing import List
 
 
-def unzip(file: str, path: str = None, create_folder=True) -> str:
+def xml_to_dict(path: str, encoding: str = 'utf8') -> OrderedDict:
+    """ Xml File to OrderedDict
+
+    Parameters
+    ----------
+    path: str
+        xml file path
+    encoding: str
+        file encoding
+
+    Returns
+    -------
+    OrderedDict
+        dictionary
+    """
+    with open(path, encoding=encoding) as f:
+        res = xmltodict.parse(f.read())
+    return res
+
+
+def unzip(file: str, path: str = None, newFolder: bool = True) -> str:
     """ unzip method
 
     Parameters
@@ -15,7 +37,7 @@ def unzip(file: str, path: str = None, create_folder=True) -> str:
         zip 파일
     path: str
         unzip 경로
-    create_folder: bool
+    newFolder: bool
         폴더 생성여부
 
     Returns
@@ -33,7 +55,7 @@ def unzip(file: str, path: str = None, create_folder=True) -> str:
         extract_path = head
 
     with zipfile.ZipFile(file, 'r') as zip_ref:
-        if create_folder:
+        if newFolder:
             new_folder = tail.replace('.zip', '')
             extract_path = os.path.join(extract_path, new_folder)
         zip_ref.extractall(path=extract_path)
