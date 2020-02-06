@@ -77,17 +77,6 @@ class Request(object, metaclass=Singleton):
             user_agent = get_user_agent()
         self.s.headers.update({'user-agent': user_agent})
 
-    def update_referer(self, referer: str = None):
-        """ Update Referer
-
-        Parameters
-        ----------
-        referer: str
-            Referer url
-        """
-        if referer is not None:
-            self.s.headers.update({'referer': referer})
-
     def set_proxies(self, proxies: dict = None):
         """ Set proxies
 
