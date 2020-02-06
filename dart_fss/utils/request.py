@@ -276,7 +276,7 @@ class Request(object, metaclass=Singleton):
                     f.write(chunk)
         r.close()
         spinner.stop()
-        return {'filename': filename, 'path':path, 'full_path': file_path}
+        return {'filename': filename, 'path': path, 'full_path': file_path}
 
 
 # Request object
