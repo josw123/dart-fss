@@ -5,7 +5,7 @@ from dart_fss.auth import get_api_key
 from dart_fss.utils import request, unzip, get_cache_folder, search_file, xml_to_dict
 
 
-def get_crp_code() -> OrderedDict:
+def get_corp_code() -> OrderedDict:
     """ Download CORPCODE.xml and convert xml file to OrderedDict
 
     Returns
