@@ -6,12 +6,12 @@ from dart_fss.utils import request, unzip, get_cache_folder, search_file, xml_to
 
 
 def get_corp_code() -> OrderedDict:
-    """ Download CORPCODE.xml and convert xml file to OrderedDict
+    """ DART에 등록되어있는 공시대상회사의 고유번호,회사명,대표자명,종목코드, 최근변경일자 다운로드
 
     Returns
     -------
     OrderedDict
-        corp_code list in Open DART
+        고유번호 및 회사 정보
     """
     import tempfile
 
