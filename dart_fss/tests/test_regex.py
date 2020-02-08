@@ -1,4 +1,4 @@
-from dart_fss.regex import str_to_regex
+from dart_fss.utils.regex import str_to_regex
 
 
 def test_str_to_regex():
