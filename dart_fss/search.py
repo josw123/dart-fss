@@ -6,11 +6,11 @@ from datetime import datetime
 from collections import OrderedDict
 from typing import Union, Dict, List
 
-from dart_fss.auth import DartAuth
+from dart_fss.auth import get_api_key
 from dart_fss.types import DSP_TYPES, BSN_TYPES
 from dart_fss.reports import Report
 from dart_fss.errors import check_status
-from dart_fss.utils._utils import dict_to_html, request_get
+from dart_fss.utils import dict_to_html, request_get
 
 
 List_or_str = Union[List[str], str]
@@ -309,7 +309,7 @@ def search_report(crp_cd: str = None, start_dt: str = None, end_dt: str = None,
 
     """
 
-    api_key = DartAuth().api_key
+    api_key = get_api_key()
 
     url = 'http://dart.fss.or.kr/api/search.json'
     params = dict()

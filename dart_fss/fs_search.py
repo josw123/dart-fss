@@ -14,9 +14,9 @@ from bs4.element import Tag
 
 from dart_fss.reports import Report
 from dart_fss.search import search_report
-from dart_fss.utils._utils import compare_str, str_unit_to_number_unit, strWS, is_notebook
+from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated
-from dart_fss.regex import str_to_regex
+from dart_fss.utils.regex import str_to_regex
 from dart_fss.fs import FinancialStatement
 
 
@@ -150,7 +150,7 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     str_unit = str_to_regex('원 OR USD').search(str_unit)
     if str_unit:
         str_unit = str_unit.group(0)
-        str_unit = 'KRW' if compare_str('원', str_unit) else 'USD'
+        str_unit = 'KRW' if str_compare('원', str_unit) else 'USD'
         for key in fs_string:
             fs_string[key] = fs_string[key] + '(Unit: {})'.format(str_unit)
 
@@ -229,7 +229,7 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
 
             if item is None:
                 pass
-            elif compare_str(column[0], item):
+            elif str_compare(column[0], item):
                 continue
             elif regex_3month.search(item):
                 # extract date info
@@ -393,10 +393,10 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
 
     # 순서대로 검색 (순서 변경 금지)
     queryset = {
-        'fs': strWS('재무상태표') + ' OR ' + strWS('대차대조표'),
-        'is': strWS('손익계산서'),
-        'ci': strWS('포괄손익계산서'),
-        'cf': strWS('현금흐름표'),
+        'fs': str_insert_whitespace('재무상태표') + ' OR ' + str_insert_whitespace('대차대조표'),
+        'is': str_insert_whitespace('손익계산서'),
+        'ci': str_insert_whitespace('포괄손익계산서'),
+        'cf': str_insert_whitespace('현금흐름표'),
     }
 
     for key, query in queryset.items():
@@ -406,15 +406,15 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
         # 연결재무제표 검색시 사용할 query 구문
         excludes = None
         if not separate:
-            query = query + ' AND ' + strWS('연결')
+            query = query + ' AND ' + str_insert_whitespace('연결')
         else:
-            excludes = strWS('연결')
+            excludes = str_insert_whitespace('연결')
 
         if key == 'is':
             if excludes:
-                excludes += ' OR ' + strWS('포괄')
+                excludes += ' OR ' + str_insert_whitespace('포괄')
             else:
-                excludes = strWS('포괄')
+                excludes = str_insert_whitespace('포괄')
 
         if excludes:
             excludes = str_to_regex(excludes)
@@ -1032,13 +1032,13 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
     for report in tqdm(reports[next_index:], desc='Annual reports', unit='report'):
         statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-    if compare_str(report_tp, 'half') or compare_str(report_tp, 'quarter'):
+    if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
         half = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
                              bsn_tp=['A002'], page_set=100, fin_rpt=True)
         for report in tqdm(half, desc='Semiannual reports', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-    if compare_str(report_tp, 'quarter'):
+    if str_compare(report_tp, 'quarter'):
         quarter = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
                                 bsn_tp=['A003'], page_set=100, fin_rpt=True)
         for report in tqdm(quarter, desc='Quarterly report', unit='report'):

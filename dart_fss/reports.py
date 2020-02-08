@@ -8,9 +8,9 @@ from urllib.parse import unquote, parse_qs
 from bs4 import BeautifulSoup
 
 from dart_fss.pages import Page
-from dart_fss.utils._utils import dict_to_html, request_get, compare_str, create_folder, unzip, search_file
+from dart_fss.utils import dict_to_html, request_get, str_compare, create_folder, unzip, search_file
 from dart_fss.xbrl import get_xbrl_from_file
-from dart_fss.regex import str_to_regex
+from dart_fss.utils.regex import str_to_regex
 
 
 class Report(object):
@@ -113,11 +113,11 @@ class Report(object):
         related_reports = family.find_all('option')
         for report in related_reports:
             value = report.attrs.get('value')
-            if compare_str(value, 'null'):
+            if str_compare(value, 'null'):
                 continue
             rpt_nm = re.sub(r'\s+', ' ', report.text).strip()
             rcp_no = value.split('=')[1]
-            if compare_str(self.rcp_no, rcp_no):
+            if str_compare(self.rcp_no, rcp_no):
                 if self.info.get('rpt_nm') is None:
                     self.info['rpt_nm'] = rpt_nm
                 continue
@@ -258,7 +258,7 @@ class Report(object):
         for docs in attached_list:
             rpt_nm = re.sub(r'\s+', ' ', docs.text).strip()
             docs_url = docs.attrs.get('value')
-            if compare_str(docs_url, 'null'):
+            if str_compare(docs_url, 'null'):
                 pass
             else:
                 info = dict()
