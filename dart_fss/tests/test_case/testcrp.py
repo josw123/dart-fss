@@ -1,6 +1,5 @@
 import pytest
-import dart_fss.crp as crp
-from dart_fss.utils._utils import str_compare
+import dart_fss.corp.corp as crp
 from dart_fss.fs_search import find_all_columns
 
 

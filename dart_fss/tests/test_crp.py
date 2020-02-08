@@ -1,5 +1,5 @@
 import pytest
-import dart_fss.crp as crp
+import dart_fss.corp.corp as crp
 
 
 @pytest.fixture(scope='session')
