@@ -60,14 +60,17 @@ class Corp(object):
         self._profile = profile
 
     def __getattr__(self, item):
-        # 기업 개황 로딩 설정시
-        if self._profile is True:
-            self.load()
         if item in self._info:
             return self._info[item]
         else:
-            error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
-            raise AttributeError(error)
+            # 기업 개황 로딩 설정시
+            if self._profile is True:
+                self.load()
+            if item in self._info:
+                return self._info[item]
+            else:
+                error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
+                raise AttributeError(error)
 
     def load(self):
         """ 종목 정보 로딩 """
