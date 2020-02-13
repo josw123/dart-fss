@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 
-from dart_fss.utils import Singleton
+from dart_fss.utils import Singleton, Spinner
 from dart_fss.api.filings import get_corp_code
 from dart_fss.corp.corp import Corp
 
@@ -16,12 +16,15 @@ class CorpList(object, metaclass=Singleton):
         self._profile = profile
 
     def load(self, profile=False):
+        spinner = Spinner('Loading CorpList')
+        spinner.start()
         self._corps = [Corp(**x, profile=profile) for x in get_corp_code()]
         for idx, x in enumerate(self._corps):
             self._corp_codes[x.corp_code] = idx
             self._corp_names.append(x.corp_name)
             if x.stock_code is not None:
                 self._stock_codes[x.stock_code] = idx
+        spinner.stop()
 
     @property
     def corps(self):
