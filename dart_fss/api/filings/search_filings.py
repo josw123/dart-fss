@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
+from typing import Union, List
+
 from dart_fss.auth import get_api_key
 from dart_fss.utils import request
 from dart_fss.errors import check_status
+
+str_or_list = Union[str, List[str]]
 
 
 def search_filings(corp_code: str = None,
                    bgn_de: str = None,
                    end_de: str = None,
                    last_reprt_at: str = 'N',
-                   pblntf_ty: str = None,
-                   pblntf_detail_ty: str = None,
+                   pblntf_ty: str_or_list = None,
+                   pblntf_detail_ty: str_or_list = None,
                    sort: str = 'date',
                    sort_mth: str = None, # 현재 sort_mth 설정시 오류 발생
                    page_no: int = 1,
