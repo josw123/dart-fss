@@ -8,6 +8,7 @@ from dart_fss.utils.singleton import Singleton
 from dart_fss.utils.spinner import Spinner
 from dart_fss.utils.string import str_compare, str_insert_whitespace, str_unit_to_number_unit
 from dart_fss.utils.regex import is_operator, precedence, infix_to_postfix, str_to_regex, str_to_pattern
+from dart_fss.utils.dataframe import dataframe_astype
 
 
 __all__ = ['cache', 'get_datetime', 'check_datetime', 'unzip', 'xml_to_dict',
@@ -15,4 +16,4 @@ __all__ = ['cache', 'get_datetime', 'check_datetime', 'unzip', 'xml_to_dict',
            'is_notebook', 'get_user_agent', 'query_to_regex', 'request',
            'Singleton', 'Spinner', 'str_compare', 'str_insert_whitespace',
            'str_unit_to_number_unit', 'is_operator', 'precedence',
-           'infix_to_postfix', 'str_to_regex', 'str_to_pattern']
+           'infix_to_postfix', 'str_to_regex', 'str_to_pattern', 'dataframe_astype']
