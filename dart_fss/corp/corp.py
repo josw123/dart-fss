@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from typing import Union, List, Dict
-#from bs4 import BeautifulSoup
+import pandas as pd
 
-from dart_fss.utils import dict_to_html
+from typing import Union, List, Dict
+from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
+from dart_fss.api.shareholder import get_executive_shareholder, get_major_shareholder
 
 str_or_list = Union[str, List[str]]
 
@@ -72,6 +73,12 @@ class Corp(object):
                 error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
                 raise AttributeError(error)
 
+    def __repr__(self) -> str:
+        return '[{}]{}'.format(self.corp_code, self.corp_name)
+
+    def _repr_html_(self) -> str:
+        return dict_to_html(self.to_dict(), header=['Label', 'Data'])
+
     def load(self):
         """ 종목 정보 로딩 """
         if self._loading is False:
@@ -100,11 +107,33 @@ class Corp(object):
         """
         return self.info
 
-    def __repr__(self) -> str:
-        return '[{}]{}'.format(self.corp_code, self.corp_name)
+    def get_executive_shareholder(self):
+        resp = get_executive_shareholder(corp_code=self.corp_code)
+        df = pd.DataFrame.from_dict(resp['list'])
 
-    def _repr_html_(self) -> str:
-        return dict_to_html(self.to_dict(), header=['Label', 'Data'])
+        columns_astype = [
+            ('sp_stock_lmp_cnt',int),
+            ('sp_stock_lmp_irds_cnt', int),
+            ('sp_stock_lmp_irds_rate',float),
+            ('sp_stock_lmp_rate', float)
+        ]
+        df = dataframe_astype(df, columns_astype)
+        return df
+
+    def get_major_shareholder(self):
+        resp = get_major_shareholder(corp_code=self.corp_code)
+        df = pd.DataFrame.from_dict(resp['list'])
+        columns_astype = [
+            ('stkqy', int),
+            ('stkqy_irds', int),
+            ('stkrt', float),
+            ('stkrt_irds', float),
+            ('ctr_stkqy', int),
+            ('ctr_stkrt', float)
+        ]
+        df = dataframe_astype(df, columns_astype)
+        return df
+
     #
     # def search_report(self, start_dt: str = None, end_dt: str = None, fin_rpt: bool = False,
     #                   dsp_tp: str_or_list = None, bsn_tp: str_or_list = None, sort: str = 'date',
