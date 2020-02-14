@@ -241,8 +241,8 @@ class Request(object, metaclass=Singleton):
 
         # Check validity
         headers = r.headers.get('Content-Disposition')
-        if not re.search('attachment', headers):
-            raise Exception('invalid data found')
+        if headers is None or not re.search('attachment', headers):
+            raise FileNotFoundError('target does not exist')
 
         # total_size = int(r.headers.get('content-length', 0))
         block_size = 8192

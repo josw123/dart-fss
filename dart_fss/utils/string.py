@@ -52,3 +52,14 @@ def str_unit_to_number_unit(str_unit: str) -> int:
 
 def str_insert_whitespace(word):
     return r'\s*'.join(word)
+
+
+def str_upper(strings):
+    if strings is None:
+        return strings
+    elif isinstance(strings, str):
+        return strings.upper()
+    elif isinstance(strings, list):
+        return [x.upper() for x in strings]
+    else:
+        raise ValueError('invalid type')

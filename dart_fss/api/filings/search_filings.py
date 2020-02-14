@@ -2,7 +2,7 @@
 from typing import Union, List
 
 from dart_fss.auth import get_api_key
-from dart_fss.utils import request
+from dart_fss.utils import request, str_upper
 from dart_fss.errors import check_status
 
 str_or_list = Union[str, List[str]]
@@ -51,6 +51,11 @@ def search_filings(corp_code: str = None,
     url = 'https://opendart.fss.or.kr/api/list.json'
 
     api_key = get_api_key()
+
+    last_reprt_at = str_upper(last_reprt_at)
+    pblntf_ty = str_upper(pblntf_ty)
+    pblntf_detail_ty = str_upper(pblntf_detail_ty)
+
     payload = {
         'crtfc_key': api_key,
         'corp_code': corp_code,
