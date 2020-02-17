@@ -15,7 +15,7 @@ def search_filings(corp_code: str = None,
                    pblntf_ty: str_or_list = None,
                    pblntf_detail_ty: str_or_list = None,
                    sort: str = 'date',
-                   sort_mth: str = None, # 현재 sort_mth 설정시 오류 발생
+                   sort_mth: str = 'desc',
                    page_no: int = 1,
                    page_count: int = 10):
     """ 공시보고서 검색
