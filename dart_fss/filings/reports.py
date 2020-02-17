@@ -56,7 +56,7 @@ class Report(object):
         """
         self.rcp_no = kwargs.get('rcp_no')
         if self.rcp_no is None:
-            self.rcp_no = kwargs.get('rcept_no')
+            self.rcept_no = kwargs.get('rcept_no')
             kwargs.pop('rcept_no')
         else:
             kwargs.pop('rcp_no')
@@ -80,11 +80,15 @@ class Report(object):
         if not lazy_loading:
             self.load()
 
-    def __getattr__(self, item):
-        # rcept_no 요청시 rcp_no 반환
-        if item == 'rcept_no':
-            return self.rcp_no
+    @property
+    def rcept_no(self):
+        return self.rcp_no
 
+    @rcept_no.setter
+    def rcept_no(self, rcept_no):
+        self.rcp_no = rcept_no
+
+    def __getattr__(self, item):
         if item in self.info:
             return self.info[item]
         else:
@@ -363,7 +367,6 @@ class Report(object):
         if self._xbrl is None:
             with tempfile.TemporaryDirectory() as path:
                 try:
-                    print(self.rcept_no)
                     file_path = download_xbrl(path=path, rcept_no=self.rcept_no)
                     self._xbrl = get_xbrl_from_file(file_path)
                 except FileNotFoundError:
