@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from typing import Dict
+
 from dart_fss.utils import dict_to_html
+from dart_fss.filings.reports import Report
 
 
 class SearchResults(object):
@@ -11,7 +13,7 @@ class SearchResults(object):
         self._page_count = resp['page_count']
         self._total_count = resp['total_count']
         self._total_page = resp['total_page']
-        self._report_list = resp['list']
+        self._report_list = [Report(**x) for x in resp['list']]
 
     @property
     def page_no(self):

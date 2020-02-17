@@ -16,19 +16,6 @@ def search(corp_code: str = None,
            page_no: int = 1,
            page_count: int = 10):
 
-    payload = {
-        'corp_code': corp_code,
-        'bgn_de': bgn_de,
-        'end_de': end_de,
-        'last_reprt_at': last_reprt_at,
-        'pblntf_ty': pblntf_ty,
-        'pblntf_detail_ty': pblntf_detail_ty,
-        'sort': sort,
-        'sort_mth': sort_mth,
-        'page_no': page_no,
-        'page_count': page_count
-    }
-
     resp = search_filings(corp_code=corp_code,
                           bgn_de=bgn_de,
                           end_de=end_de,
