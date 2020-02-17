@@ -5,7 +5,7 @@ import base64
 
 from typing import Dict
 from bs4 import BeautifulSoup
-from dart_fss.utils import request_get
+from dart_fss.utils import request
 
 
 class Page(object):
@@ -68,7 +68,7 @@ class Page(object):
         def add_prefix(match_obj):
             return r"window.open('http://dart.fss.or.kr" + match_obj.group(1) + r"'"
 
-        params = {
+        payload = {
             'rcpNo': self.rcp_no,
             'dcmNo': self.dcm_no,
             'eleId': self.ele_id,
@@ -76,7 +76,7 @@ class Page(object):
             'length': self._length,
             'dtd': self._dtd
         }
-        html = request_get(url=self._BASE_URL_, params=params).content
+        html = request.get(url=self._BASE_URL_, payload=payload, referer=self._BASE_URL_).content
         try:
             html = html.decode()
         except UnicodeDecodeError:

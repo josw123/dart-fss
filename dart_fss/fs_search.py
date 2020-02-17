@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from dart_fss.reports import Report
+from dart_fss.filings.reports import Report
 from dart_fss.search import search_report
 from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated

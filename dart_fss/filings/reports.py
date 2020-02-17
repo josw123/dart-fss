@@ -3,14 +3,15 @@ import os
 import re
 import copy
 
-from urllib.parse import unquote, parse_qs
+from urllib.parse import parse_qs
 
 from bs4 import BeautifulSoup
 
-from dart_fss.pages import Page
-from dart_fss.utils import dict_to_html, request_get, str_compare, create_folder, unzip, search_file
+from dart_fss.filings.pages import Page
+from dart_fss.utils import dict_to_html, request, str_compare, unzip, search_file
 from dart_fss.xbrl import get_xbrl_from_file
 from dart_fss.utils.regex import str_to_regex
+from dart_fss.api.finance import download_xbrl
 
 
 class Report(object):
@@ -45,7 +46,7 @@ class Report(object):
         Parameters
         ----------
         rcp_no: str
-            보고서 번호
+            보고서 번호(rcept_no)
         dcm_no: str
             document 번호
         info: dict of {str:str}
@@ -55,11 +56,16 @@ class Report(object):
         """
         self.rcp_no = kwargs.get('rcp_no')
         if self.rcp_no is None:
-            raise ValueError('rcp_no must be not None')
-        self.dcm_no = kwargs.get('dcm_no')
+            self.rcp_no = kwargs.get('rcept_no')
+            kwargs.pop('rcept_no')
+        else:
+            kwargs.pop('rcp_no')
 
+        if self.rcp_no is None:
+            raise ValueError('rcp_no must be not None')
+
+        self.dcm_no = kwargs.get('dcm_no')
         self.info = copy.deepcopy(kwargs)
-        self.info.pop('rcp_no')
         if self.dcm_no:
             self.info.pop('dcm_no')
         
@@ -74,12 +80,23 @@ class Report(object):
         if not lazy_loading:
             self.load()
 
+    def __getattr__(self, item):
+        # rcept_no 요청시 rcp_no 반환
+        if item == 'rcept_no':
+            return self.rcp_no
+
+        if item in self.info:
+            return self.info[item]
+        else:
+            error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
+            raise AttributeError(error)
+
     def _get_report(self):
         """ 보고서 html 불러오기"""
-        params = dict(rcpNo=self.rcp_no)
+        payload = dict(rcpNo=self.rcp_no)
         if self.dcm_no:
-            params['dcmNo'] = self.dcm_no
-        resp = request_get(url=self._REPORT_URL_, params=params)
+            payload['dcmNo'] = self.dcm_no
+        resp = request.get(url=self._REPORT_URL_, payload=payload, referer=self._DART_URL_)
         self.html = BeautifulSoup(resp.text, 'html.parser')
 
     @property
@@ -203,9 +220,9 @@ class Report(object):
         rcp_no = raw_data.group(1)
         dcm_no = raw_data.group(2)
 
-        params = dict(rcp_no=rcp_no, dcm_no=dcm_no)
-        resp = request_get(url=self._DOWNLOAD_URL_, params=params)
-
+        payload = dict(rcp_no=rcp_no, dcm_no=dcm_no)
+        resp = request.get(url=self._DOWNLOAD_URL_, payload=payload, referer=self._REPORT_URL_)
+        referer = resp.url
         soup = BeautifulSoup(resp.text, 'html.parser')
         tr_list = soup.find_all('tr')
         attached_files = []
@@ -221,6 +238,7 @@ class Report(object):
                 info['rcp_no'] = self.rcp_no
                 info['url'] = file_url
                 info['filename'] = filename
+                info['referer'] = referer
                 attached_files.append(AttachedFile(**info))
         self._attached_files = attached_files
         return self._attached_files
@@ -343,17 +361,23 @@ class Report(object):
         """ XBRL 데이터 반환"""
         import tempfile
         if self._xbrl is None:
-            xbrl = self._get_xbrl()
-            if xbrl:
-                xbrl_list = []
-                with tempfile.TemporaryDirectory() as path:
-                    file_path = xbrl.download(path)
-                    extract_path = unzip(file_path)
-                    xbrl_file = search_file(extract_path)
-                    for file in xbrl_file:
-                        xbrl = get_xbrl_from_file(file)
-                        xbrl_list.append(xbrl)
-                self._xbrl = xbrl_list[0]
+            with tempfile.TemporaryDirectory() as path:
+                try:
+                    print(self.rcept_no)
+                    file_path = download_xbrl(path=path, rcept_no=self.rcept_no)
+                    self._xbrl = get_xbrl_from_file(file_path)
+                except FileNotFoundError:
+                    xbrl_attached = self._get_xbrl()
+                    if xbrl_attached is not None:
+                        zip_path = xbrl_attached.download(path=path)
+                        folder_path = unzip(zip_path['full_path'])
+                        file = search_file(folder_path)
+                        if len(file) > 0:
+                            self._xbrl = get_xbrl_from_file(file[0])
+                    else:
+                        self._xbrl = None
+                finally:
+                    return self._xbrl
         return self._xbrl
 
     def _get_xbrl(self):
@@ -396,13 +420,6 @@ class Report(object):
             info['pages'] = [x.to_dict() for x in self.pages]
         return info
 
-    def __getattr__(self, item):
-        if item in self.info:
-            return self.info[item]
-        else:
-            error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
-            raise AttributeError(error)
-
     def __getitem__(self, item):
         return self.pages[item]
 
@@ -420,7 +437,7 @@ class Report(object):
 
 class RelatedReport(Report):
     """ 연관된 보고서 클래스
-block_size = 8192
+
     연관 보고서 정보를 담고 있는 클래스
     Report 클래스 상속
 
@@ -559,10 +576,11 @@ class AttachedFile(object):
     """
     _DART_URL_ = 'http://dart.fss.or.kr'
 
-    def __init__(self, rcp_no, url, filename):
+    def __init__(self, rcp_no, url, filename, referer):
         self.rcp_no = rcp_no
         self.url = self._DART_URL_ + url
         self.filename = filename
+        self.referer = referer
 
     def to_dict(self, summary=True):
         info = dict()
@@ -594,30 +612,5 @@ class AttachedFile(object):
             다운받은 첨부파일 경로
 
         """
-        from dart_fss.utils.spinner import Spinner
-
-        create_folder(path)
-
-        url = self.url
-        r = request_get(url=url, stream=True)
-        headers = r.headers.get('Content-Disposition')
-        if not re.search('attachment', headers):
-            raise Exception('invalid data found')
-
-        # total_size = int(r.headers.get('content-length', 0))
-        block_size = 8192
-
-        filename = unquote(re.findall(r'filename="(.*?)"', headers)[0])
-
-        filename = '{}_{}'.format(self.rcp_no, filename)
-        spinner = Spinner('Downloading ' + filename)
-        spinner.start()
-
-        file_path = os.path.join(path, filename)
-        with open(file_path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=block_size):
-                if chunk is not None:
-                    f.write(chunk)
-        r.close()
-        spinner.stop()
+        file_path = request.download(url=self.url, path=path, referer=self.referer)
         return file_path
