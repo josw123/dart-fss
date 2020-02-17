@@ -1,5 +1,5 @@
 import pytest
-from dart_fss.fs_search import *
+from dart_fss.fs.search import *
 from dart_fss.errors import NotFoundConsolidated
 
 

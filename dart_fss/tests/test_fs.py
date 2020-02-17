@@ -1,7 +1,6 @@
 import pytest
-from dart_fss.fs_search import find_all_columns
+from dart_fss.fs.search import find_all_columns
 
-from .test_crp import crp_list
 from .test_case.crp_case import test_crp_list
 
 @pytest.mark.parametrize("crp", test_crp_list)

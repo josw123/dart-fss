@@ -1,6 +1,6 @@
 import pytest
 
-from dart_fss.fs_search import find_all_columns
+from dart_fss.fs.search import find_all_columns
 from ..search import search_report_with_cache
 
 @pytest.fixture(scope='module')

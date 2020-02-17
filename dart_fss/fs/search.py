@@ -13,14 +13,14 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 
 from dart_fss.filings.reports import Report
-from dart_fss.search import search_report
+from dart_fss.filings import search as search_filings
 from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated
 from dart_fss.utils.regex import str_to_regex
-from dart_fss.fs import FinancialStatement
+from dart_fss.fs.fs import FinancialStatement
 
 
-def str_to_float(text: str) -> float:
+def str_to_float(text: str, unit: float) -> float:
     """ 문자를 float 데이터로 변환
 
     문자를 float 데이터로 변환, (1,000) 같은 경우 -1000 으로 변환
@@ -29,7 +29,8 @@ def str_to_float(text: str) -> float:
     ----------
     text: str
         입력문자
-
+    unit: float
+        unit for table
     Returns
     -------
     float
@@ -41,7 +42,12 @@ def str_to_float(text: str) -> float:
         try:
             text = re.sub(r',|\s+', '', text)
             if regex_korean.search(text):
-                return float(regex_korean.sub('', text))
+                value = float(regex_korean.sub('', text))
+                # Value 값에 단위가 들어간 경우 unit으로 나누어 이후 계산에서 일괄적으로 곱해질 unit 값을 제거한다
+                if re.search('원', text):
+                    return value / unit
+                else:
+                    return value
             if regex.search(text):
                 value = regex.search(text).group(1)
                 if value is None:
@@ -140,9 +146,9 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     regex = str_to_regex('과목 OR 주석')
 
     fs_string = {
-        'fs': 'Statement of financial position',
+        'bs': 'Statement of financial position',
         'is': 'Income statement',
-        'ci': 'Statement of comprehensive income',
+        'cis': 'Statement of comprehensive income',
         'cf': 'Statement of cash flows'
     }
 
@@ -288,7 +294,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                     value = extracted[index]
                     row[key] = value
                 else:
-                    value = str_to_float(extracted[index])
+                    value = str_to_float(extracted[index], unit)
                     row[key] += value
 
             if isinstance(row[key], float):
@@ -370,7 +376,7 @@ def seek_table(tables: List, includes: Pattern,
     return None, None, None
 
 
-def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
+def search_fs_table(tables: List, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
                     separate: bool = False) -> Dict[str, dict]:
     """
     페이지의 재무제표 테이블을 검색하는 함수
@@ -380,7 +386,7 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
     tables: list of ResultSet
         page 내부에서 검색된 모든 Tables
     fs_tp: tuple of str
-        'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     separate: bool
         개별 재무제표 여부
 
@@ -393,9 +399,9 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
 
     # 순서대로 검색 (순서 변경 금지)
     queryset = {
-        'fs': str_insert_whitespace('재무상태표') + ' OR ' + str_insert_whitespace('대차대조표'),
+        'bs': str_insert_whitespace('재무상태표') + ' OR ' + str_insert_whitespace('대차대조표'),
         'is': str_insert_whitespace('손익계산서'),
-        'ci': str_insert_whitespace('포괄손익계산서'),
+        'cis': str_insert_whitespace('포괄손익계산서'),
         'cf': str_insert_whitespace('현금흐름표'),
     }
 
@@ -479,7 +485,7 @@ def report_find_all(report: Report, query: dict, fs_tp: Tuple[str], separate: bo
     return count, fs_table
 
 
-def analyze_html(report: Report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
+def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
                  lang: str = 'ko', separate: bool = False) -> Dict[str, DataFrame]:
     """
     보고서의 HTML을 이용하여 재무제표를 추출하는 Method
@@ -489,7 +495,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
     report: Report
         리포트
     fs_tp: tuple of str
-        'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     lang: str
         'ko': 한글 / 'en' 영문
     separate: bool
@@ -704,7 +710,7 @@ additional_comparison_function = [compare_df_and_ndf_label]
 
 
 def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
-             report: Report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'),
+             report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
              lang: str = 'ko', separate: bool = False):
     """
     재무제표 DataFrame과 Report의 데이터를 합쳐주는 Method
@@ -718,7 +724,7 @@ def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
     report: Report
         Report
     fs_tp: tuple of str, optional
-        'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     lang: str, optional
         'ko' 한글, 'en' 영문
     separate: bool, optional
@@ -813,7 +819,7 @@ def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
         raise RuntimeError(msg)
 
 
-def analyze_xbrl(report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate: bool = False, lang: str = 'ko',
+def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
                  show_abstract: bool = False, show_class: bool = True, show_depth: int = 10,
                  show_concept: bool = True, separator: bool = True) -> Dict[str, DataFrame]:
     """
@@ -824,7 +830,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate:
     report: Report
         Report
     fs_tp: tuple of str, optional
-        'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     separate: bool, optional
         개별재무제표 여부
     lang: str, optional
@@ -872,9 +878,9 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate:
         return data[0] if data else None
 
     func_fs = {
-        'fs': get_fs,
+        'bs': get_fs,
         'is': get_is,
-        'ci': get_ci,
+        'cis': get_ci,
         'cf': get_cf,
     }
 
@@ -951,23 +957,23 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
     return df
 
 
-def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
-                               fs_tp: Tuple[str] = ('fs', 'is', 'ci', 'cf'), separate: bool = False,
-                               report_tp: str = 'annual', lang: str = 'ko',
-                               separator: bool = True) -> FinancialStatement:
+def search(corp_code: str, bgn_de: str, end_de: str = None,
+           fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False,
+           report_tp: str = 'annual', lang: str = 'ko',
+           separator: bool = True) -> FinancialStatement:
     """
     재무제표 검색
 
     Parameters
     ----------
-    crp_cd: str
-        종목코드
-    start_dt: str
+    corp_code: str
+        공시대상회사의 고유번호(8자리)
+    bgn_de: str
         검색 시작일자(YYYYMMDD)
-    end_dt: str, optional
+    end_de: str, optional
         검색 종료일자(YYYYMMDD)
     fs_tp: tuple of str, optional
-        'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     separate: bool, optional
         개별재무제표 여부
     report_tp: str, optional
@@ -992,21 +998,20 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
     statements = None
 
     # 사업보고서 검색(최종보고서)
-    reports = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                            bsn_tp='A001', page_set=100, fin_rpt=True)
+    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                             pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
 
     if len(reports) == 0:
         # todo 감사보고서를 이용하여 재무제표 검색
         raise RuntimeError('Could not find an annual report')
 
-    next_index = None
-
+    next_index = 0
     for idx, _ in enumerate(reports):
         # 가장 최근 보고서의 경우 XBRL 파일을 이용하여 재무제표 검색
         latest_report = reports[idx]
         latest_xbrl = latest_report.xbrl
         # XBRL 파일이 존재할 때
-        if latest_xbrl:
+        if latest_xbrl is not None:
             if separate is False and not latest_xbrl.exist_consolidated():
                 raise NotFoundConsolidated('Could not find consolidated financial statements')
 
@@ -1015,11 +1020,8 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
                                             show_abstract=False, show_class=True,
                                             show_depth=10, show_concept=True, separator=separator)
             statements = copy.deepcopy(analyzed_results)
-            break
-
         else:
             statements = analyze_html(latest_report, fs_tp=fs_tp, separate=separate, lang=lang)
-
         # Report 에 재무제표 정보 없이 수정 사항만 기록된 경우 다음 리포트 검색
         if statements is not None:
             next_index = idx + 1
@@ -1033,14 +1035,14 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
         statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
-        half = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                             bsn_tp=['A002'], page_set=100, fin_rpt=True)
+        half = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                              pblntf_detail_ty='A002', page_count=100, last_reprt_at='Y')
         for report in tqdm(half, desc='Semiannual reports', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     if str_compare(report_tp, 'quarter'):
-        quarter = search_report(crp_cd=crp_cd, start_dt=start_dt, end_dt=end_dt,
-                                bsn_tp=['A003'], page_set=100, fin_rpt=True)
+        quarter = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                 pblntf_detail_ty='A003', page_count=100, last_reprt_at='Y')
         for report in tqdm(quarter, desc='Quarterly report', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
@@ -1051,9 +1053,9 @@ def search_financial_statement(crp_cd: str, start_dt: str, end_dt: str = None,
     label_df = sorting_columns(label_df)
 
     info = {
-        'crp_cd': crp_cd,
-        'start_dt': start_dt,
-        'end_dt': end_dt,
+        'corp_code': corp_code,
+        'bgn_de': bgn_de,
+        'end_de': end_de,
         'separate': separate,
         'report_tp': report_tp,
         'lang': lang,
