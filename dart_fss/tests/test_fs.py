@@ -3,15 +3,17 @@ from dart_fss.fs.extract import find_all_columns
 
 from .test_case.crp_case import test_crp_list
 
-@pytest.mark.parametrize("crp", test_crp_list)
-def test_crp_financial_statement(crp):
-    crp.run_test()
+
+@pytest.mark.parametrize("corp", test_crp_list)
+def test_crp_financial_statement(corp):
+    corp.run_test()
 
 
 @pytest.fixture(scope='session')
-def fs_report(crp_list):
-    skhynix = crp_list.find_by_name('하이닉스')[0]
-    return skhynix.get_financial_statement(start_dt='20180101')
+def fs_report(corp_list):
+    # 00164779: SK하이닉스
+    skhynix = corp_list.find_by_corp_code('00164779')
+    return skhynix.extract_fs(bgn_de='20180101')
 
 
 def test_fs_class_false(fs_report):
@@ -40,7 +42,7 @@ def test_fs_show_depth(fs_report):
 
 def test_fs_to_dict(fs_report):
     info = fs_report.to_dict()
-    actual = info['crp_cd']
+    actual = info['corp_cd']
     expected = '000660'
     assert  actual == expected
 

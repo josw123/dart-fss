@@ -1,12 +1,12 @@
 import pytest
 
-from ..search import search_report
+from dart_fss.filings import search
 
 
 @pytest.fixture(scope='module')
 def annual_reports():
-    crp_cd = '005930'
-    return search_report(crp_cd=crp_cd, start_dt='20140101', end_dt='20190101', bsn_tp='a001')
+    corp_code = '00126380'
+    return search(corp_code=corp_code, bgn_de='20140101', end_de='20190101', pblntf_detail_ty='a001')
 
 
 def test_search_report_get_page_no(annual_reports):
@@ -55,10 +55,4 @@ def test_search_report_filter(annual_reports):
     actual = first_report.rcp_dt
     expected = '20140331'
     assert actual == expected
-
-
-def test_search_report_return_dict():
-    actual = search_report(start_dt='20190101', end_dt='20190102', dsp_tp='I', return_dict=True)
-    assert isinstance(actual, dict)
-
 

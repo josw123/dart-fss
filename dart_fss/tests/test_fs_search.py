@@ -1,6 +1,5 @@
 import pytest
 from dart_fss.fs.extract import *
-from dart_fss.errors import NotFoundConsolidated
 
 
 def test_str_to_float_number():
@@ -21,16 +20,9 @@ def test_extract_date_from_header():
     text = BeautifulSoup(text, 'html.parser')
 
     date_info = extract_date_from_header(text)
-    actaul = None
+    actual = None
     if len(date_info) > 0:
         date_info = date_info[0]
-        actaul = '-'.join([x.strftime('%Y%m%d') for x in date_info])
+        actual = '-'.join([x.strftime('%Y%m%d') for x in date_info])
     expected = '20180101-20181231'
-    assert actaul == expected
-
-
-def test_raise_NotFoundConsolidated(crp_list):
-    crp = crp_list.find_by_name('두원석재')[0]
-    with pytest.raises(NotFoundConsolidated):
-        crp.get_financial_statement(start_dt='20000101')
-
+    assert actual == expected

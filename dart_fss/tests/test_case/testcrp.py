@@ -1,21 +1,20 @@
 import pytest
-import dart_fss.corp.corp as crp
+from dart_fss.corp import CorpList
 from dart_fss.fs.extract import find_all_columns
+from dart_fss.utils import str_compare
 
 
 class TestCrp(object):
-    crp_list = crp.get_crp_list()
+    corp_list = CorpList()
 
-    def __init__(self, start_dt, separate, report_tp, crp_cd=None, crp_nm=None):
-        crp = None
-        if crp_cd:
-            crp = self.crp_list.find_by_crp_cd(crp_cd)
-        elif crp_nm:
-            crp = self.crp_list.find_by_name(crp_nm)[0]
+    def __init__(self, corp_code, bgn_de, separate, report_tp):
+        corp = None
+        if corp_code:
+            corp = self.corp_list.find_by_corp_code(corp_code)
         else:
             pytest.fail('The parameter should be initialized: crp_cd or crp_nm')
-        self.crp = crp
-        self.start_dt = start_dt
+        self.corp = corp
+        self.bgn_de = bgn_de
         self.separate = separate
         self.report_tp = report_tp
         self.test_set = []
@@ -31,7 +30,7 @@ class TestCrp(object):
         self.test_set.append(test_set)
 
     def run_test(self):
-        fs = self.crp.get_financial_statement(start_dt=self.start_dt, separate=self.separate, report_tp=self.report_tp)
+        fs = self.corp.extract_fs(bgn_de=self.bgn_de, separate=self.separate, report_tp=self.report_tp)
         for test in self.test_set:
             tp = test['fs_tp']
             date = test['date']
@@ -47,12 +46,13 @@ class TestCrp(object):
 
             for idx in range(len(df)):
                 text = df[label_column].iloc[idx].replace(' ', '')
-                if compare_str(text, item):
+                if str_compare(text, item):
                     actual = df[date_column].iloc[idx]
 
             if actual != expected:
-                pytest.fail("Test failed: crp_cd='{}', fs_tp='{}', ".format(self.crp.crp_cd, tp) +
-                            "start_dt='{}', report_tp='{}', ".format(self.start_dt, fs.info['report_tp']) +
+                pytest.fail("Test failed: corp_code='{}', ".format(self.corp.corp_code) +
+                            "corp_name='{}', fs_tp='{}', ".format(self.corp.corp_name, tp) +
+                            "start_dt='{}', report_tp='{}', ".format(self.bgn_de, fs.info['report_tp']) +
                             "date='{}', column='{}',".format(date, column) +
                             "item='{}', actual='{}', expected='{}'".format(item, actual, expected))
 

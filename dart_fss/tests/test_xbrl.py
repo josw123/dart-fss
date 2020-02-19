@@ -1,11 +1,13 @@
 import pytest
 
 from dart_fss.fs.extract import find_all_columns
-from ..search import search_report_with_cache
+from dart_fss.filings import search
+
 
 @pytest.fixture(scope='module')
 def samsung_xbrl():
-    report = search_report_with_cache(crp_cd='005930', start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
+    corp_code = '00126380'
+    report = search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
     return report.xbrl
 
 

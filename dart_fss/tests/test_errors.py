@@ -1,7 +1,7 @@
 import pytest
 
-from dart_fss.errors import APIKeyError, NotFoundConsolidated, check_status
-
+from dart_fss.errors import *
+from .test_corp import corp_list
 
 def test_check_err_code():
     with pytest.raises(APIKeyError, match=r'.*crp_cd.*'):
