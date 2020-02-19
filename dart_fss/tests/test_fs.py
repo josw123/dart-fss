@@ -43,7 +43,7 @@ def test_fs_show_depth(fs_report):
 def test_fs_to_dict(fs_report):
     info = fs_report.to_dict()
     actual = info['corp_code']
-    expected = '000660'
+    expected = '00164779'
     assert actual == expected
 
 
