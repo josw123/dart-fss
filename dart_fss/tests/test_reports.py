@@ -24,7 +24,7 @@ def test_reports_pages(last_report):
 
 def test_reports_to_dict(last_report):
     results = last_report.to_dict()
-    actual = results['crp_nm']
+    actual = results['corp_name']
     expected = '삼성전자'
     assert actual == expected
 

@@ -2,7 +2,7 @@ import pytest
 from dart_fss.fs.extract import find_all_columns
 
 from .test_case.crp_case import test_crp_list
-
+from .test_corp import corp_list
 
 @pytest.mark.parametrize("corp", test_crp_list)
 def test_crp_financial_statement(corp):

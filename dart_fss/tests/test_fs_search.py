@@ -3,14 +3,14 @@ from dart_fss.fs.extract import *
 
 
 def test_str_to_float_number():
-    actual = str_to_float(1.0)
+    actual = str_to_float(1.0, 1.0)
     expected = 1.0
     assert actual == expected
 
 
 def test_str_to_float_raise_value_error():
     with pytest.raises(ValueError):
-        _ = str_to_float([1, 2])
+        _ = str_to_float([1, 2], 1.0)
 
 
 def test_extract_date_from_header():

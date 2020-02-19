@@ -15,20 +15,10 @@ def test_search_report_get_page_no(annual_reports):
     assert actual == expected
 
 
-def test_search_report_set_page_no(annual_reports):
-    with pytest.raises(ValueError):
-        annual_reports.page_no = 2
-
-
 def test_search_report_get_page_set(annual_reports):
     actual = annual_reports.page_set
     expected = 10
     assert actual == expected
-
-
-def test_search_report_set_page_set(annual_reports):
-    with pytest.raises(ValueError):
-        annual_reports.page_set = 0
 
 
 def test_search_report_total_count(annual_reports):
@@ -46,13 +36,5 @@ def test_search_report_total_page(annual_reports):
 def test_search_report_report_list(annual_reports):
     actual = len(annual_reports.report_list)
     expected = 5
-    assert actual == expected
-
-
-def test_search_report_filter(annual_reports):
-    asc_reports = annual_reports.filter(sort='date', series='asc')
-    first_report = asc_reports[0]
-    actual = first_report.rcp_dt
-    expected = '20140331'
     assert actual == expected
 
