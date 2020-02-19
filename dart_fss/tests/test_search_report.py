@@ -15,12 +15,6 @@ def test_search_report_get_page_no(annual_reports):
     assert actual == expected
 
 
-def test_search_report_get_page_set(annual_reports):
-    actual = annual_reports.page_set
-    expected = 10
-    assert actual == expected
-
-
 def test_search_report_total_count(annual_reports):
     actual = annual_reports.total_count
     expected = 5
