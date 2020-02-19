@@ -957,10 +957,14 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
     return df
 
 
-def search(corp_code: str, bgn_de: str, end_de: str = None,
-           fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False,
-           report_tp: str = 'annual', lang: str = 'ko',
-           separator: bool = True) -> FinancialStatement:
+def extract(corp_code: str,
+            bgn_de: str,
+            end_de: str = None,
+            fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
+            separate: bool = False,
+            report_tp: str = 'annual',
+            lang: str = 'ko',
+            separator: bool = True) -> FinancialStatement:
     """
     재무제표 검색
 

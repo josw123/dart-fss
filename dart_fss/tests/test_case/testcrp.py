@@ -1,6 +1,6 @@
 import pytest
 import dart_fss.corp.corp as crp
-from dart_fss.fs.search import find_all_columns
+from dart_fss.fs.extract import find_all_columns
 
 
 class TestCrp(object):

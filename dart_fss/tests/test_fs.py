@@ -1,5 +1,5 @@
 import pytest
-from dart_fss.fs.search import find_all_columns
+from dart_fss.fs.extract import find_all_columns
 
 from .test_case.crp_case import test_crp_list
 

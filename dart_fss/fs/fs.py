@@ -62,7 +62,7 @@ class FinancialStatement(object):
         DataFrame
             재무제표
         """
-        from dart_fss.fs.search import find_all_columns
+        from dart_fss.fs.extract import find_all_columns
 
         df = self._statements[tp]
         if df is None:
