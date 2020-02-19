@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
 from dart_fss.api.shareholder import get_executive_shareholder, get_major_shareholder
 from dart_fss.filings import search as se
+from dart_fss.fs import extract, FinancialStatement
 
 str_or_list = Union[str, List[str]]
 
@@ -184,33 +185,38 @@ class Corp(object):
                   page_no=page_no,
                   page_count=page_count)
 
-    # def get_financial_statement(self, start_dt: str, end_dt: str = None, fs_tp: tuple = ('fs', 'is', 'ci', 'cf'),
-    #                             separate: bool = False, report_tp: str = 'annual',
-    #                             lang: str = 'ko', separator: bool = True) -> FinancialStatement:
-    #     """ 재무제표 검색 및 추출
-    #
-    #     Parameters
-    #     ----------
-    #     start_dt: str
-    #         검색 시작일자(YYYYMMDD)
-    #     end_dt: str
-    #         검색 종료일자(YYYYMMDD)
-    #     fs_tp: tuple
-    #         'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
-    #     separate: bool
-    #         개별지업 여뷰
-    #     report_tp: str
-    #         'annual' 1년, 'half' 반기, 'quarter' 분기
-    #     lang: str
-    #         'ko' 한글, 'en' 영문
-    #     separator: bool
-    #         1000단위 구분자 표시 여부
-    #
-    #     Returns
-    #     -------
-    #     FinancialStatement
-    #         제무제표 검색 결과
-    #
-    #     """
-    #     return search_financial_statement(self.crp_cd, start_dt, end_dt=end_dt, fs_tp=fs_tp, separate=separate,
-    #                                       report_tp=report_tp, lang=lang, separator=separator)
+    def extract_fs(self,
+                   bgn_de: str,
+                   end_de: str = None,
+                   fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
+                   separate: bool = False,
+                   report_tp: str = 'annual',
+                   lang: str = 'ko',
+                   separator: bool = True) -> FinancialStatement:
+        """
+         재무제표 검색
+
+         Parameters
+         ----------
+         bgn_de: str
+             검색 시작일자(YYYYMMDD)
+         end_de: str, optional
+             검색 종료일자(YYYYMMDD)
+         fs_tp: tuple of str, optional
+             'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
+         separate: bool, optional
+             개별재무제표 여부
+         report_tp: str, optional
+             'annual' 1년, 'half' 반기, 'quarter' 분기
+         lang: str, optional
+             'ko' 한글, 'en' 영문
+         separator: bool, optional
+             1000단위 구분자 표시 여부
+
+         Returns
+         -------
+         FinancialStatement
+             제무제표 검색 결과
+
+         """
+        return extract(self.crp_cd, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator)
