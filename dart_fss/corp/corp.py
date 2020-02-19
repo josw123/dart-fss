@@ -5,6 +5,7 @@ from typing import Union, List, Dict
 from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
 from dart_fss.api.shareholder import get_executive_shareholder, get_major_shareholder
+from dart_fss.filings import search as se
 
 str_or_list = Union[str, List[str]]
 
@@ -134,43 +135,55 @@ class Corp(object):
         df = dataframe_astype(df, columns_astype)
         return df
 
-    #
-    # def search_report(self, start_dt: str = None, end_dt: str = None, fin_rpt: bool = False,
-    #                   dsp_tp: str_or_list = None, bsn_tp: str_or_list = None, sort: str = 'date',
-    #                   series: str = 'desc', page_no: int = 1, page_set: int = 10) -> SearchResults:
-    #     """ 종목에 관한 DART 공시 정보 검색
-    #
-    #     Parameters
-    #     ----------
-    #     start_dt: str
-    #         검색 시작일자(YYYYMMDD)
-    #     end_dt: str
-    #         검색 종료일자(YYYYMMDD)
-    #     fin_rpt: bool
-    #         최종보고서만 검색여부, 기본값: False
-    #     dsp_tp: str
-    #         공시 유형(DSP_TYPES)
-    #     bsn_tp: str or list of str
-    #         공시 상세 유형(BSN_TYPES)
-    #     sort: str
-    #         정렬 방법, 접수일자(date), 회사명(crp), 보고서명(rpt), 기본값 : date
-    #     series: str
-    #         오름차순(asc), 내림차순(desc) 기본값 : desc
-    #     page_no: int
-    #         페이지 번호, 기본값: 1
-    #     page_set: int
-    #         페이지당 건수(1-100) 기본값: 10, 최대값: 100
-    #
-    #     Returns
-    #     -------
-    #     SearchResults
-    #         검색결과
-    #
-    #     """
-    #
-    #     return search_report(self.crp_cd, start_dt, end_dt, fin_rpt, dsp_tp,
-    #                          bsn_tp, sort, series, page_no, page_set)
-    #
+    def search_filings(self,
+                       bgn_de: str = None,
+                       end_de: str = None,
+                       last_reprt_at: str = 'N',
+                       pblntf_ty: Union[str, List[str], None] = None,
+                       pblntf_detail_ty: Union[str, List[str], None] = None,
+                       sort: str = 'date',
+                       sort_mth: str = 'desc',
+                       page_no: int = 1,
+                       page_count: int = 10):
+        """공시보고서 검색
+
+        Parameters
+        ----------
+        bgn_de: str, optional
+            검색시작 접수일자(YYYYMMDD), 없으면 종료일(end_de)
+        end_de: str, optional
+            검색종료 접수일자(YYYYMMDD), 없으면 당일
+        last_reprt_at: str, optional
+            최종보고서만 검색여부(Y or N), default : N
+        pblntf_ty: str, optional
+            공시유형
+        pblntf_detail_ty: str, optional
+            공시상세유형
+        sort: str, optional
+            정렬, {접수일자: date, 회사명: crp, 고서명: rpt}
+        sort_mth: str, optional
+            오름차순(asc), 내림차순(desc), default : desc
+        page_no: int, optional
+            페이지 번호(1~n) default : 1
+        page_count: int, optional
+            페이지당 건수(1~100) 기본값 : 10, default : 100
+
+        Returns
+        -------
+        SearchResults
+            검색결과
+        """
+        return se(self.corp_code,
+                  bgn_de=bgn_de,
+                  end_de=end_de,
+                  last_reprt_at=last_reprt_at,
+                  pblntf_ty=pblntf_ty,
+                  pblntf_detail_ty=pblntf_detail_ty,
+                  sort=sort,
+                  sort_mth=sort_mth,
+                  page_no=page_no,
+                  page_count=page_count)
+
     # def get_financial_statement(self, start_dt: str, end_dt: str = None, fs_tp: tuple = ('fs', 'is', 'ci', 'cf'),
     #                             separate: bool = False, report_tp: str = 'annual',
     #                             lang: str = 'ko', separator: bool = True) -> FinancialStatement:
