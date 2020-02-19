@@ -15,7 +15,7 @@ from bs4.element import Tag
 from dart_fss.filings.reports import Report
 from dart_fss.filings import search as search_filings
 from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
-from dart_fss.errors.errors import NotFoundConsolidated
+from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils.regex import str_to_regex
 from dart_fss.fs.fs import FinancialStatement
 
@@ -1000,69 +1000,77 @@ def extract(corp_code: str,
 
     # 재무제표 검색 결과
     statements = None
-
-    # 사업보고서 검색(최종보고서)
-    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                             pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
-
-    if len(reports) == 0:
-        # todo 감사보고서를 이용하여 재무제표 검색
-        raise RuntimeError('Could not find an annual report')
-
-    next_index = 0
-    for idx, _ in enumerate(reports):
-        # 가장 최근 보고서의 경우 XBRL 파일을 이용하여 재무제표 검색
-        latest_report = reports[idx]
-        latest_xbrl = latest_report.xbrl
-        # XBRL 파일이 존재할 때
-        if latest_xbrl is not None:
-            if separate is False and not latest_xbrl.exist_consolidated():
-                raise NotFoundConsolidated('Could not find consolidated financial statements')
-
-            # XBRL 정보를 이용하여 재무제표 정보 초기화
-            analyzed_results = analyze_xbrl(latest_report, fs_tp=fs_tp, separate=separate, lang=lang,
-                                            show_abstract=False, show_class=True,
-                                            show_depth=10, show_concept=True, separator=separator)
-            statements = copy.deepcopy(analyzed_results)
+    reports = []
+    try:
+        # 사업보고서 검색(최종보고서)
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
+    except NoDataReceived:
+        # 감사보고서 검색
+        if separate:
+            pblntf_detail_ty = 'F001'
         else:
-            statements = analyze_html(latest_report, fs_tp=fs_tp, separate=separate, lang=lang)
-        # Report 에 재무제표 정보 없이 수정 사항만 기록된 경우 다음 리포트 검색
-        if statements is not None:
-            next_index = idx + 1
-            break
+            pblntf_detail_ty = 'F002'
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+    finally:
+        if len(reports) == 0:
+            raise RuntimeError('Could not find an annual report')
 
-    if separate is False and all([statements[tp] is None for tp in statements]):
-        raise NotFoundConsolidated('Could not find consolidated financial statements')
+        next_index = 0
+        for idx, _ in enumerate(reports):
+            # 가장 최근 보고서의 경우 XBRL 파일을 이용하여 재무제표 검색
+            latest_report = reports[idx]
+            latest_xbrl = latest_report.xbrl
+            # XBRL 파일이 존재할 때
+            if latest_xbrl is not None:
+                if separate is False and not latest_xbrl.exist_consolidated():
+                    raise NotFoundConsolidated('Could not find consolidated financial statements')
 
-    label_df = None
-    for report in tqdm(reports[next_index:], desc='Annual reports', unit='report'):
-        statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+                # XBRL 정보를 이용하여 재무제표 정보 초기화
+                analyzed_results = analyze_xbrl(latest_report, fs_tp=fs_tp, separate=separate, lang=lang,
+                                                show_abstract=False, show_class=True,
+                                                show_depth=10, show_concept=True, separator=separator)
+                statements = copy.deepcopy(analyzed_results)
+            else:
+                statements = analyze_html(latest_report, fs_tp=fs_tp, separate=separate, lang=lang)
+            # Report 에 재무제표 정보 없이 수정 사항만 기록된 경우 다음 리포트 검색
+            if statements is not None:
+                next_index = idx + 1
+                break
 
-    if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
-        half = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                              pblntf_detail_ty='A002', page_count=100, last_reprt_at='Y')
-        for report in tqdm(half, desc='Semiannual reports', unit='report'):
+        if separate is False and all([statements[tp] is None for tp in statements]):
+            raise NotFoundConsolidated('Could not find consolidated financial statements')
+
+        label_df = None
+        for report in tqdm(reports[next_index:], desc='Annual reports', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-    if str_compare(report_tp, 'quarter'):
-        quarter = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty='A003', page_count=100, last_reprt_at='Y')
-        for report in tqdm(quarter, desc='Quarterly report', unit='report'):
-            statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+        if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
+            half = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                  pblntf_detail_ty='A002', page_count=100, last_reprt_at='Y')
+            for report in tqdm(half, desc='Semiannual reports', unit='report'):
+                statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-    statements = drop_empty_columns(statements)
-    label_df = drop_empty_columns(label_df)
+        if str_compare(report_tp, 'quarter'):
+            quarter = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                     pblntf_detail_ty='A003', page_count=100, last_reprt_at='Y')
+            for report in tqdm(quarter, desc='Quarterly report', unit='report'):
+                statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-    statements = sorting_columns(statements)
-    label_df = sorting_columns(label_df)
+        statements = drop_empty_columns(statements)
+        label_df = drop_empty_columns(label_df)
 
-    info = {
-        'corp_code': corp_code,
-        'bgn_de': bgn_de,
-        'end_de': end_de,
-        'separate': separate,
-        'report_tp': report_tp,
-        'lang': lang,
-        'separator': separator
-    }
-    return FinancialStatement(statements, label_df, info)
+        statements = sorting_columns(statements)
+        label_df = sorting_columns(label_df)
+
+        info = {
+            'corp_code': corp_code,
+            'bgn_de': bgn_de,
+            'end_de': end_de,
+            'separate': separate,
+            'report_tp': report_tp,
+            'lang': lang,
+            'separator': separator
+        }
+        return FinancialStatement(statements, label_df, info)
