@@ -219,4 +219,4 @@ class Corp(object):
              제무제표 검색 결과
 
          """
-        return extract(self.crp_cd, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator)
+        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator)
