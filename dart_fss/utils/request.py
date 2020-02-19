@@ -53,13 +53,13 @@ class Request(object, metaclass=Singleton):
     s: Session
         Requests Session
     delay: float
-        Delay for repeat delay
+        Delay for repeat delay, Default: 1s
 
     """
     def __init__(self):
         self.s = requests.Session()
         self.update_user_agent()
-        self.delay = None
+        self.delay = 1
 
     def update_user_agent(self, force: bool = False):
         """ Update User-Agent
