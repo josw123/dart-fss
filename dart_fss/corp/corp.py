@@ -161,9 +161,9 @@ class Corp(object):
         pblntf_detail_ty: str, optional
             공시상세유형
         sort: str, optional
-            정렬, {접수일자: date, 회사명: crp, 고서명: rpt}
+            정렬방법: '접수일자' date, '회사명' crp, '보고서명' rpt
         sort_mth: str, optional
-            오름차순(asc), 내림차순(desc), default : desc
+            '오름차순' asc, '내림차순' desc, default : desc
         page_no: int, optional
             페이지 번호(1~n) default : 1
         page_count: int, optional
