@@ -16,6 +16,13 @@ class CorpList(object, metaclass=Singleton):
         self._profile = profile
 
     def load(self, profile=False):
+        """ 회사 정보 로딩
+
+        Parameters
+        ----------
+        profile: bool, optional
+            상세정보 로딩 여부
+        """
         spinner = Spinner('Loading CorpList')
         spinner.start()
         self._corps = [Corp(**x, profile=profile) for x in get_corp_code()]
@@ -34,11 +41,37 @@ class CorpList(object, metaclass=Singleton):
         return self._corps
 
     def find_by_corp_code(self, corp_code):
+        """ DART에서 사용하는 회사 코드를 이용한 찾기
+
+        Parameters
+        ----------
+        corp_code: str
+            공시대상회사의 고유번호(8자리)
+
+        Returns
+        -------
+        Corp
+            회사 정보를 담고 있는 클래스
+        """
         corps = self.corps
         idx = self._corp_codes.get(corp_code)
         return corps[idx] if idx is not None else None
 
     def find_by_corp_name(self, corp_name, exactly=False):
+        """ 회사 명칭을 이용한 검색
+
+        Parameters
+        ----------
+        corp_name: str
+            공시대상회사의 고유번호(8자리)
+        exactly: bool, optional
+            corp_name과 정확히 일치 여부(default: False)
+
+        Returns
+        -------
+        Corp
+            회사 정보를 담고 있는 클래스
+        """
         corps = self.corps
         res = []
         if exactly is True:
@@ -50,6 +83,18 @@ class CorpList(object, metaclass=Singleton):
         return res if len(res) > 0 else None
 
     def find_by_stock_code(self, stock_code):
+        """ 주식 종목 코드를 이용한 찾기
+
+        Parameters
+        ----------
+        stock_code: str
+            주식 종목 코드(6자리)
+
+        Returns
+        -------
+        Corp
+            회사 정보를 담고 있는 클래스
+        """
         corps = self.corps
         idx = self._stock_codes.get(stock_code)
         return corps[idx] if idx is not None else None
