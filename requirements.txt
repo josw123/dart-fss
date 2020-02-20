@@ -27,3 +27,4 @@ html5lib
 openpyxl
 halo
 xmltodict
+appdirs
