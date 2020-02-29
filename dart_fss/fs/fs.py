@@ -127,7 +127,7 @@ class FinancialStatement(object):
         Parameters
         ----------
         filename: str
-            저장할 파일명(default: {crp_cd}_{report_tp}.xlsx)
+            저장할 파일명(default: {corp_code}_{report_tp}.xlsx)
         path: str
             저장할 폴더(default: 실행폴더/fsdata)
         """
@@ -138,7 +138,7 @@ class FinancialStatement(object):
             create_folder(path)
 
         if filename is None:
-            filename = '{}_{}.xlsx'.format(self.info.get('crp_cd'), self.info.get('report_tp'))
+            filename = '{}_{}.xlsx'.format(self.info.get('corp_code'), self.info.get('report_tp'))
 
         file_path = os.path.join(path, filename)
         with pd.ExcelWriter(file_path) as writer:

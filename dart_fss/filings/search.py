@@ -28,9 +28,9 @@ def search(corp_code: str = None,
     last_reprt_at: str, optional
         최종보고서만 검색여부(Y or N), default : N
     pblntf_ty: str, optional
-        공시유형
+        공시유형 / Open DART  공시정보 -> 공시검색 -> 상세유형 참고
     pblntf_detail_ty: str, optional
-        공시상세유형
+        공시상세유형 / Open DART  공시정보 -> 공시검색 -> 상세유형 참고
     sort: str, optional
         정렬, {접수일자: date, 회사명: crp, 고서명: rpt}
     sort_mth: str, optional

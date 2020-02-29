@@ -6,9 +6,27 @@ from dart_fss.api.filings import get_corp_code
 from dart_fss.corp.corp import Corp
 
 
+def get_corp_list():
+    """ DART 공시된 회사 리스트 반환
+
+    Returns
+    -------
+    CorpList
+        회사 리스트
+    """
+    return CorpList()
+
+
 class CorpList(object, metaclass=Singleton):
 
     def __init__(self, profile=False):
+        """ CorpList 초기화
+
+        Parameters
+        ----------
+        profile: bool
+            Corp Class 반환시 Profile 자동 로딩 여부
+        """
         self._corps = None
         self._corp_codes = dict()
         self._corp_names = []
