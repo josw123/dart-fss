@@ -17,6 +17,7 @@
     dart_search
     dart_fs
     dart_xbrl
+    dart_request
     dart_types
     dart_errors
 

@@ -1,4 +1,4 @@
-DART_FSS 라이브러리 Errors
+Errors
 ==================================
 
 ..  autoclass:: dart_fss.errors.APIKeyError
