@@ -1,12 +1,12 @@
 import pytest
 
-from ..search import search_report_with_cache
+from dart_fss.filings import search
 
 
 @pytest.fixture(scope='module')
 def last_report():
-    crp_cd = '005930'
-    return search_report_with_cache(crp_cd=crp_cd, start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
+    corp_code = '00126380'
+    return search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
 
 
 def test_reports(last_report):
@@ -24,7 +24,7 @@ def test_reports_pages(last_report):
 
 def test_reports_to_dict(last_report):
     results = last_report.to_dict()
-    actual = results['crp_nm']
+    actual = results['corp_name']
     expected = '삼성전자'
     assert actual == expected
 
@@ -45,32 +45,8 @@ def test_reports_find_all(last_report):
     assert actual == expected
 
 
-def test_reports_to_dict(last_report):
+def test_reports_to_dict_summary_false(last_report):
     info = last_report.to_dict(summary=False)
     actual = info.get('xbrl')
     expected = 'IFRS(원문XBRL)(20180402005019_ifrs.zip)'
     assert actual == expected
-
-
-def test_reports_replated_reports():
-    crp_cd='000660'
-    report = search_report_with_cache(crp_cd=crp_cd, start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
-    report.load()
-    related_reports = report.related_reports
-    actual = len(related_reports)
-    expected = 1
-    assert actual == expected
-
-
-def test_reports_find_all():
-    crp_cd='000660'
-    report = search_report_with_cache(crp_cd=crp_cd, start_dt='20180101', end_dt='20190101', bsn_tp='a001')[0]
-    query = {
-        'includes': '전문가 AND 확인',
-        'excludes': '1'
-    }
-    page = report.find_all(**query)['pages'][0]
-    actual = page.dcm_no
-    expected = '6217166'
-    assert actual == expected
-

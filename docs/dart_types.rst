@@ -3,7 +3,7 @@ REPORT TYPES
 
 .. code-block:: python
 
-    DSP_TYPES = {
+    pblntf_ty = {
         "A": "정기공시",
         "B": "주요사항보고",
         "C": "발행공시",
@@ -16,7 +16,7 @@ REPORT TYPES
         "J": "공정위공시"
     }
 
-    BSN_TYPES = {
+    pblntf_detail_ty = {
         "A001": "사업보고서",
         "A002": "반기보고서",
         "A003": "분기보고서",
@@ -76,15 +76,14 @@ REPORT TYPES
         "J006": "기타공정위공시"
     }
 
-    CRP_TYPES = {
-        "A": "all",
-        "Y": "stock",
-        "K": "kosdaq",
-        "N": "konex",
+    corp_cls = {
+        "Y": "유가증권",
+        "K": "코스",
+        "N": "코넥스",
         "E": "etc"
     }
 
-    RMK_TYPES = {
+    rm = {
         "유": "본 공시사항은 한국거래소 유가증권시장본부 소관임",
         "코": "본 공시사항은 한국거래소 코스닥시장본부 소관임",
         "채": "본 문서는 한국거래소 채권상장법인 공시사항임",

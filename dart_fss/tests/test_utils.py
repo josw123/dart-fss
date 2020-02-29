@@ -1,4 +1,4 @@
-from .._utils import dict_to_html, check_datetime
+from dart_fss.utils import dict_to_html, check_datetime
 
 
 def test_dict_to_html():

@@ -1,6 +1,6 @@
 import os
 import pytest
-from ..auth import DartAuth
+from dart_fss.auth import get_api_key
 
 DART_API_KEY = os.getenv("DART_API_KEY")
 
@@ -11,8 +11,7 @@ def dart_api_key():
     if api_key is None:
         pytest.exit('DART_API_KEY not set')
     else:
-        auth = DartAuth()
-        return auth.api_key
+        return get_api_key()
 
 
 def test_auth(dart_api_key):
