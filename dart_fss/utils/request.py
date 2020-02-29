@@ -22,6 +22,7 @@ def get_user_agent():
 
 def query_to_regex(query):
     """ query to regular expression
+
     Parameters
     ----------
     query: str or list of str
