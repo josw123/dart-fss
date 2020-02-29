@@ -5,7 +5,7 @@
 [![Coverage](https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg)](https://codecov.io/gh/josw123/dart-fss)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde)](https://www.codacy.com/app/josw123/dart-fss?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josw123/dart-fss&amp;utm_campaign=Badge_Grade)
 
-대한민국 금융감독원에서 운영하는 다트(`DART <https://dart.fss.or.kr>`_) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
+대한민국 금융감독원에서 운영하는 다트([DART](https://dart.fss.or.kr)) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
 
 - Documentation: https://dart-fss.readthedocs.io
 - Source code: https://github.com/josw123/dart-fss

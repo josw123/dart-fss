@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +22,7 @@ copyright = '2019, Sungwoo Jo'
 author = 'Sungwoo Jo'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.2.2'
+release = 'v0.3.0a'
 
 # Removing the view page source link
 html_show_sourcelink = False
