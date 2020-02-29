@@ -5,7 +5,9 @@
 ----------------------------------
 DART에 공시된 회사리스트를 반환하는 클래스.
 
-.. autoclass:: dart_fss.CorpList
+.. autofunction:: dart_fss.corp.get_corp_list
+
+.. autoclass:: dart_fss.corp.CorpList
     :members:
 
 Example
@@ -13,10 +15,10 @@ Example
 
 ..  code-block:: python
 
-    from dart_fss import CorpList
+    from dart_fss import get_corp_list
 
     # 모든 상장된 기업 리스트 불러오기
-    crp_list = CorpList()
+    crp_list = get_corp_list()
 
     # 삼성전자를 이름으로 찾기 ( 리스트 반환 )
     samsung = corp_list.find_by_name('삼성전자', exactly=True)[0]

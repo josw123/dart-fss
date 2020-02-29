@@ -11,10 +11,12 @@
     :maxdepth: 1
     :hidden:
 
-    dart_crp
+    dart_auth
+    dart_api
+    dart_corp
     dart_search
-    dart_xbrl
     dart_fs
+    dart_xbrl
     dart_types
     dart_errors
 
