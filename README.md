@@ -18,16 +18,20 @@
 ## Installation
 
 ### Stable Version
+
+- Open DART 미지원 / 기존 DART 오픈 API Key 이용
+
 ```bash
 pip install dart-fss
 ```
 
 ### Latest Version
+- Open DART 지원 / 신규 Open DART API Key 필요
+- Documentation: https://dart-fss.readthedocs.io/en/latest/
 
 ``` bash
 pip install dart-fss==0.3.0a0
 ```
-- Documentation: https://dart-fss.readthedocs.io/en/latest/
 
 ## Plugins
 -   [Dart-Fss-Classifier](https://github.com/josw123/dart-fss-classifier): 재무제표 추출 성능 향상
