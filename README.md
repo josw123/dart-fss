@@ -17,9 +17,17 @@
 
 ## Installation
 
+### Stable Version
 ```bash
 pip install dart-fss
 ```
+
+### Latest Version
+
+``` bash
+pip install dart-fss==0.3.0a0
+```
+- Documentation: https://dart-fss.readthedocs.io/en/latest/
 
 ## Plugins
 -   [Dart-Fss-Classifier](https://github.com/josw123/dart-fss-classifier): 재무제표 추출 성능 향상
