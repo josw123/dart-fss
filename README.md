@@ -17,8 +17,8 @@
 ## Installation
 
 ### Stable Version
-- Documentation: https://dart-fss.readthedocs.io
 - Open DART 미지원 / 기존 DART 오픈 API Key 이용
+- Documentation: https://dart-fss.readthedocs.io
 
 ```bash
 pip install dart-fss
