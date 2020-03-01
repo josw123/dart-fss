@@ -7,7 +7,6 @@
 
 대한민국 금융감독원에서 운영하는 다트([DART](https://dart.fss.or.kr)) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
 
-- Documentation: https://dart-fss.readthedocs.io
 - Source code: https://github.com/josw123/dart-fss
 
 ## Features
@@ -18,7 +17,7 @@
 ## Installation
 
 ### Stable Version
-
+- Documentation: https://dart-fss.readthedocs.io
 - Open DART 미지원 / 기존 DART 오픈 API Key 이용
 
 ```bash
