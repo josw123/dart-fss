@@ -3,6 +3,7 @@ import pytest
 from dart_fss.errors import *
 from .test_corp import corp_list
 
+
 def test_check_status():
     ret_code = {
         'status': '000',

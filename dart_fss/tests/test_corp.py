@@ -30,9 +30,42 @@ def test_find_by_stock_code(corp_list):
     assert actual == expected
 
 
-def test_crp_to_dict(corp_list):
+def test_corp_to_dict(corp_list):
     se = corp_list.find_by_corp_name('삼성전자', exactly=True)[0]
     samsung_dict = se.to_dict()
     actual = samsung_dict['stock_code']
     expected = '005930'
     assert actual == expected
+
+
+def test_corp_load(corp_list):
+    se = corp_list.find_by_corp_name('삼성전자', exactly=True)[0]
+    se.load()
+    actual = se.jurir_no
+    expected = '1301110006246'
+    assert actual == expected
+
+
+def test_corp_get_major_shareholder(corp_list):
+    se = corp_list.find_by_corp_name('삼성전자', exactly=True)[0]
+    sh = se.get_major_shareholder()
+    actual = sh.columns
+    expected = 'stkqy_irds'
+    assert expected in actual
+
+
+def test_corp_get_executive_shareholder(corp_list):
+    se = corp_list.find_by_corp_name('삼성전자', exactly=True)[0]
+    sh = se.get_executive_shareholder()
+    actual = sh.columns
+    expected = 'sp_stock_lmp_cnt'
+    assert expected in actual
+
+
+def test_corp_search_filings(corp_list):
+    se = corp_list.find_by_corp_name('삼성전자', exactly=True)[0]
+    filings = se.search_filings(bgn_de='20190101', end_de='20190103')
+    actual = filings.total_count
+    expected = 1
+    assert actual == expected
+
