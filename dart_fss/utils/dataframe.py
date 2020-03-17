@@ -20,7 +20,7 @@ def dataframe_astype(df: DataFrame, columns: List[Tuple[str, type]]):
     """
     for column, tp in columns:
         if tp == int or tp == float:
-            df[column] = df[column].str.replace(',', '').astype(tp)
+            df[column] = df[column].str.replace(',|-', '').astype(tp, errors='ignore')
         else:
-            df[column] = df[column].astype(tp)
+            df[column] = df[column].astype(tp, errors='ignore')
     return df
