@@ -20,7 +20,7 @@
 - Documentation: https://dart-fss.readthedocs.io/
 
 ``` bash
-pip install dart-fss==0.3.0a0
+pip install dart-fss
 ```
 
 ## Plugins
