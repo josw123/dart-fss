@@ -16,17 +16,8 @@
 
 ## Installation
 
-### Stable Version
-- Open DART 미지원 / 기존 DART 오픈 API Key 이용
-- Documentation: https://dart-fss.readthedocs.io
-
-```bash
-pip install dart-fss
-```
-
-### Latest Version
 - Open DART 지원 / 신규 Open DART API Key 필요
-- Documentation: https://dart-fss.readthedocs.io/en/latest/
+- Documentation: https://dart-fss.readthedocs.io/
 
 ``` bash
 pip install dart-fss==0.3.0a0
