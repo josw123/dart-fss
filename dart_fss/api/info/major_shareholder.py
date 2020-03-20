@@ -23,7 +23,7 @@ def get_major_shareholder(corp_code: str, bsns_year: str, reprt_code: str):
     return api_request(path=path, corp_code=corp_code, bsns_year=bsns_year, reprt_code=reprt_code)
 
 
-def change_of_major_shareholder():
+def change_of_major_shareholder(corp_code: str, bsns_year: str, reprt_code: str):
     """ 최대주주 변동 현황
 
     Parameters
