@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import re
 import copy
 
@@ -280,9 +279,7 @@ class Report(object):
         for docs in attached_list:
             rpt_nm = re.sub(r'\s+', ' ', docs.text).strip()
             docs_url = docs.attrs.get('value')
-            if str_compare(docs_url, 'null'):
-                pass
-            else:
+            if not str_compare(docs_url, 'null'):
                 info = dict()
                 parsed = parse_qs(docs_url)
                 info['rcp_no'] = parsed.get('rcpNo')[0]
@@ -379,8 +376,6 @@ class Report(object):
                             self._xbrl = get_xbrl_from_file(file[0])
                     else:
                         self._xbrl = None
-                finally:
-                    return self._xbrl
         return self._xbrl
 
     def _get_xbrl(self):
@@ -517,7 +512,7 @@ class RelatedReport(Report):
             det1 = str_to_regex(includes).search(value) if includes else True
             det2 = not str_to_regex(excludes).search(value) if excludes else True
             return det1 and det2
-        
+
         return [
             x for x in self.pages if determinant(x.title)
         ]
