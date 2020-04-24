@@ -171,7 +171,7 @@ class Report(object):
         if self.html is None:
             self._get_report()
         results = []
-        raw_data = re.findall(r'TreeNode\({(.*?)}\)', self.html.text, re.S)
+        raw_data = re.findall(r'TreeNode\({(.*?)}\)', str(self.html), re.S)
         for raw in raw_data:
             template = ['rcp_no', 'dcm_no', 'ele_id', 'offset', 'length', 'dtd']
 
