@@ -709,6 +709,57 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
 additional_comparison_function = [compare_df_and_ndf_label]
 
 
+def init_label(fs_df: Dict[str, DataFrame], fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf')):
+    """ 각각의 타입에 따라 추출된 Label들을 담고 있는 Dataframe 초기화
+
+    Parameters
+    ----------
+    fs_df: dict of {str: DataFrame}
+        추출된 재무제
+    fs_tp: tuple of str, optional
+        'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
+
+    Returns
+    -------
+    dict of {str : DataFrame}
+        초기화된 label_df
+    """
+    label_df = {tp: None for tp in fs_tp}
+
+    for tp in fs_df:
+        if tp in fs_tp:
+            # 추가될 재무제표의 DataFrame
+            df = fs_df[tp]
+            if df is None:
+                continue
+            # label_df가 없을시 초기화
+            if label_df.get(tp) is None:
+                concept_column = find_all_columns(df, r'concept_id')
+                ko_column = find_all_columns(df, r'label_ko')
+                # Label_ko 가 없을시 Table 오류 이므로 None 처리
+                if len(ko_column) == 0:
+                    fs_df[tp] = None
+                    continue
+                else:
+                    ko_column = ko_column[0]
+                date_columns = find_all_columns(df, r'\d{8}')
+
+                label_columns = []
+                if len(concept_column) == 1:
+                    label_columns.append(('default', 'concept_id',))
+                for column in date_columns:
+                    label_columns.append(column)
+                nlabel_columns = pd.MultiIndex.from_tuples(label_columns)
+                label_df[tp] = pd.DataFrame(columns=nlabel_columns)
+
+                if len(concept_column) == 1:
+                    label_df[tp][label_columns[0]] = [extract_account_title(x) for x in list(df[concept_column[0]])]
+
+                for column in date_columns:
+                    label_df[tp][column] = list(df[ko_column])
+    return label_df
+
+
 def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
              report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
              lang: str = 'ko', separate: bool = False):
@@ -762,32 +813,6 @@ def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
                 # 검색된 재무제표가 없을시 추가 검색 X
                 if ndf is None:
                     continue
-
-                # label_df가 없을시 초기화
-                if label_df.get(tp) is None:
-                    concept_column = find_all_columns(df, r'concept_id')
-                    ko_column = find_all_columns(df, r'label_ko')
-                    # Label_ko 가 없을시 Table 오류 이므로 None 처리
-                    if len(ko_column) == 0:
-                        fs_df[tp] = None
-                        continue
-                    else:
-                        ko_column = ko_column[0]
-                    date_columns = find_all_columns(df, r'\d{8}')
-
-                    label_columns = []
-                    if len(concept_column) == 1:
-                        label_columns.append(('default', 'concept_id',))
-                    for column in date_columns:
-                        label_columns.append(column)
-                    nlabel_columns = pd.MultiIndex.from_tuples(label_columns)
-                    label_df[tp] = pd.DataFrame(columns=nlabel_columns)
-
-                    if len(concept_column) == 1:
-                        label_df[tp][label_columns[0]] = [extract_account_title(x) for x in list(df[concept_column[0]])]
-
-                    for column in date_columns:
-                        label_df[tp][column] = list(df[ko_column])
 
                 df_columns = set(df.columns.tolist())
                 ndf_columns = set(ndf.columns.tolist())
@@ -1042,7 +1067,9 @@ def extract(corp_code: str,
         if separate is False and all([statements[tp] is None for tp in statements]):
             raise NotFoundConsolidated('Could not find consolidated financial statements')
 
-        label_df = None
+        # initialize label dictionary
+        label_df = init_label(statements, fs_tp=fs_tp)
+
         for report in tqdm(reports[next_index:], desc='Annual reports', unit='report'):
             statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
 
