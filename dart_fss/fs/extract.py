@@ -709,22 +709,27 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
 additional_comparison_function = [compare_df_and_ndf_label]
 
 
-def init_label(fs_df: Dict[str, DataFrame], fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf')):
+def init_label(fs_df: Dict[str, DataFrame],
+               fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
+               label_df: Dict[str, DataFrame] = None):
     """ 각각의 타입에 따라 추출된 Label들을 담고 있는 Dataframe 초기화
 
     Parameters
     ----------
     fs_df: dict of {str: DataFrame}
-        추출된 재무제
+        추출된 재무제표
     fs_tp: tuple of str, optional
         'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
+    label_df: dict of {str: DataFrame}
+        초기화할 label_df
 
     Returns
     -------
     dict of {str : DataFrame}
         초기화된 label_df
     """
-    label_df = {tp: None for tp in fs_tp}
+    if label_df is None:
+        label_df = {tp: None for tp in fs_tp}
 
     for tp in fs_df:
         if tp in fs_tp:
@@ -791,9 +796,6 @@ def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
         # 보고서의 웹페이지에서 재무제표 추출
         nfs_df = analyze_html(report=report, fs_tp=fs_tp, lang=lang, separate=separate)
 
-        if label_df is None:
-            label_df = {tp: None for tp in fs_tp}
-
         for tp in fs_df:
             if tp in fs_tp:
                 # 추가될 재무제표의 DataFrame
@@ -813,6 +815,10 @@ def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
                 # 검색된 재무제표가 없을시 추가 검색 X
                 if ndf is None:
                     continue
+
+                # label_df가 없을시 초기화
+                if label_df.get(tp) is None:
+                    label_df = init_label(fs_df=fs_df, fs_tp=fs_tp, label_df=label_df)
 
                 df_columns = set(df.columns.tolist())
                 ndf_columns = set(ndf.columns.tolist())
