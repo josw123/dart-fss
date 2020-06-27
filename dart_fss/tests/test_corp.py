@@ -14,6 +14,27 @@ def test_find_by_corp_name(corp_list):
     assert actual == expected
 
 
+def test_find_by_corp_name_with_market_type(corp_list):
+    res = corp_list.find_by_corp_name('삼성', market='K')
+    actual = len(res)
+    expected = 2
+    assert actual == expected
+
+
+def test_find_by_product(corp_list):
+    res = corp_list.find_by_product('휴대폰')
+    actual = len(res)
+    expected = 25
+    assert actual == expected
+
+
+def test_find_by_sector(corp_list):
+    res = corp_list.find_by_sector(corp_list.sectors[0])
+    actual = len(res)
+    expected = 19
+    assert actual == expected
+
+
 def test_find_by_corp_code(corp_list):
     se_corp_code = '00126380'
     se = corp_list.find_by_corp_code(se_corp_code)
