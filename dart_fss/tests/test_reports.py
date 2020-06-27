@@ -48,5 +48,5 @@ def test_reports_find_all(last_report):
 def test_reports_to_dict_summary_false(last_report):
     info = last_report.to_dict(summary=False)
     actual = info.get('xbrl')
-    expected = 'IFRS(원문XBRL)(20180402005019_ifrs.zip)'
+    expected = '[삼성전자]사업보고서_IFRS(원문XBRL)(2018.04.02).zip'
     assert actual == expected

@@ -31,13 +31,13 @@ Example
     corp_code = '00126380'
 
     # 모든 상장된 기업 리스트 불러오기
-    crp_list = get_corp_list()
+    corp_list = dart.get_corp_list()
 
     # 삼성전자
     samsung = corp_list.find_by_corp_name(corp_code=corp_code)
 
     # 사업보고서 검색
-    reports = samsung.search_filings(start_dt='20190101', pblntf_detail_ty='a001')
+    reports = samsung.search_filings(bgn_de='20190101', pblntf_detail_ty='a001')
 
     # 첫번째 리포트 선택
     report = reports[0]

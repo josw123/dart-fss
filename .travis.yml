@@ -4,10 +4,11 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
 install:
   - pip install -r requirements.txt
-  - pip install codecov
-  - pip install pytest pytest-cov
+  - pip install -U codecov
+  - pip install -U pytest pytest-cov
 # command to run tests
 script:
   - pytest --cov-report=term-missing --cov=./dart_fss

@@ -98,6 +98,11 @@ class Corp(object):
             self.load()
         return self._info
 
+    def update(self, info) -> Dict[str, str]:
+        """ Update information"""
+        self._info.update(info)
+        return self._info
+
     def to_dict(self) -> Dict[str, str]:
         """ 종목에 관한 모든 정보를 Dictionary 형태로 반환
 
