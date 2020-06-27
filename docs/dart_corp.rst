@@ -23,14 +23,30 @@ Example
     # 삼성전자를 이름으로 찾기 ( 리스트 반환 )
     samsung = corp_list.find_by_name('삼성전자', exactly=True)[0]
 
-    # "삼성"을 포함한 모든 공시 대상 찾기
-    corps = corp_list.find_by_name('삼성')
-
     # 증권 코드를 이용한 찾기
     samsung = corp_list.find_by_stock_code('005930')
 
     # 다트에서 사용하는 회사코드를 이용한 찾기
     samsung = corp_list.find_by_corp_code('00126380')
+
+    # "삼성"을 포함한 모든 공시 대상 찾기
+    corps = corp_list.find_by_name('삼성')
+
+    # "삼성"을 포함한 모든 공시 대상중 코스피 및 코스닥 시장에 상장된 공시 대상 검색(Y: 코스피, K: 코스닥, N:코넥스, E:기타)
+    # corps = corp_list.find_by_name('삼성', market=['Y','K']) # 아래와 동일
+    corps = corp_list.find_by_name('삼성', market='YK')
+
+    # "휴대폰" 생산품과 연관된 공시 대상
+    corps = corp_list.find_by_product('휴대폰')
+
+    # "휴대폰" 생산품과 연관된 공시 대상 중 코스피 시장에 상장된 대상만 검색
+    corps = corp_list.find_by_product('휴대폰', market='Y')
+
+    # 섹터 리스트 확인
+    corp_list.sectors
+
+    # "텔레비전 방송업" 섹터 검색
+    corps = corp_list.find_by_sector('텔레비전 방송업')
 
 기업정보(Crp)
 ----------------------------------
