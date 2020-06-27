@@ -113,7 +113,7 @@ class CorpList(object, metaclass=Singleton):
             self._corp_cls_list.append(corp_cls)
             self._corp_product.append(product)
             self._corp_sector.append(sector)
-        self._sectors = list(sectors)
+        self._sectors = sorted(list(sectors))
         spinner.stop()
 
     @property
