@@ -22,7 +22,7 @@ copyright = '2019, Sungwoo Jo'
 author = 'Sungwoo Jo'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.3.0a'
+release = 'v0.3.2'
 
 # Removing the view page source link
 html_show_sourcelink = False
