@@ -65,10 +65,20 @@ class CorpList(object, metaclass=Singleton):
         self._stock_market = dict()
         self._profile = profile
 
-        if self._corps is None:
-            self.load(profile=self._profile)
+        self.load(profile=self._profile)
 
     def load(self, profile=False):
+        """ 회사 정보가 없을시 회사 정보 로딩
+
+        Parameters
+        ----------
+        profile: bool, optional
+            상세정보 로딩 여부
+        """
+        if self._corps is None:
+            self._load(profile=profile)
+
+    def _load(self, profile=False):
         """ 회사 정보 로딩
 
         Parameters
@@ -119,8 +129,7 @@ class CorpList(object, metaclass=Singleton):
     @property
     def corps(self):
         """ 모든 상장된 종목(회사)를 반환한다 """
-        if self._corps is None:
-            self.load(profile=self._profile)
+        self.load(profile=self._profile)
         return self._corps
 
     def find_by_corp_code(self, corp_code):
