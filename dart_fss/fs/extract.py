@@ -2,6 +2,7 @@
 import re
 import math
 import copy
+import numpy as np
 import pandas as pd
 
 from typing import Union, List, Dict, Tuple, Pattern
@@ -963,6 +964,8 @@ def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         date_columns = [x[0] for x in date_columns]
 
         ncolumns = concept_columns + date_columns
+        # convert list to numpy array
+        ncolumns = np.array(ncolumns, dtype=object)
         statements[tp] = statements[tp][ncolumns]
     return statements
 
@@ -983,7 +986,8 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
         for key, value in none_columns.items():
             if value is not True:
                 columns.append(key)
-
+        # convert list to numpy array
+        columns = np.array(columns, dtype=object)
         df[tp] = df_tp[columns]
     return df
 
