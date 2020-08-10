@@ -509,7 +509,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     """
     query = {
         'includes': r'재무제표 OR 감사보고서',
-        'excludes': r'주석 OR 결합 OR 의견 OR 수정',
+        'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
         'scope': ['attached_reports', 'pages'],
         'options': {'title': True} # 첨부보고서 및 연결보고서의 title 까지 검색
     }
@@ -525,7 +525,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     if count == 0:
         query = {
             'includes': r'재무제표 OR 명세서',
-            'excludes': r'주석 OR 결합 OR 의견 OR 수정',
+            'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
             'scope': ['attached_reports', 'pages']
         }
         _, fs_table = report_find_all(report, query, fs_tp, separate)
