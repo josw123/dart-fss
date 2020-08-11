@@ -31,4 +31,7 @@ sjgroup.add_test_value('bs', '20191231', 'label_ko', '유동자산', 70665507683
 sds = TestCrp(corp_code='00126186', bgn_de='20130813', end_de='20150807', separate=False, report_tp='quarter')
 sds.add_test_value('bs', '20130630', 'label_ko', '유동자산', 2602291807082)
 
+jtc = TestCrp(corp_code='01041828', bgn_de='20190101', end_de='20200811', separate=False, report_tp='annual')
+jtc.add_test_value('cf', '20200229', 'concept_id', 'ifrs-full_CashFlowsFromUsedInOperatingActivities', 4810599061)
+
 test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds]
