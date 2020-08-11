@@ -17,7 +17,7 @@ from dart_fss.filings.reports import Report
 from dart_fss.filings import search as search_filings
 from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
-from dart_fss.utils.regex import str_to_regex
+from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
 
 
@@ -154,10 +154,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     }
 
     str_unit = extract_unit_from_header(fs_table['header'])
-    str_unit = str_to_regex('원 OR USD').search(str_unit)
+    str_unit = get_currency_str(str_unit)
     if str_unit:
-        str_unit = str_unit.group(0)
-        str_unit = 'KRW' if str_compare('원', str_unit) else 'USD'
         for key in fs_string:
             fs_string[key] = fs_string[key] + '(Unit: {})'.format(str_unit)
 

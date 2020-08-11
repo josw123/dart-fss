@@ -1,4 +1,14 @@
 import re
+from typing import Union
+from dart_fss.utils.cache import cache
+from dart_fss.utils.regex import str_to_regex
+
+
+CURRENCY = {
+    '원': 'KWR',
+    '달러': 'USD',
+    '엔': 'JPY',
+}
 
 
 def str_compare(str1: str, str2: str) -> bool:
@@ -21,6 +31,7 @@ def str_compare(str1: str, str2: str) -> bool:
     return str1 == str2
 
 
+@cache()
 def str_unit_to_number_unit(str_unit: str) -> int:
     """ 통화 단위를 숫자로 변화
 
@@ -35,6 +46,7 @@ def str_unit_to_number_unit(str_unit: str) -> int:
         환산값
     """
     str_unit = re.sub(r'\s+', '', str_unit)
+
     str_unit_to_unit = {
         '억원': 100000000,
         '천만원': 10000000,
@@ -44,10 +56,29 @@ def str_unit_to_number_unit(str_unit: str) -> int:
         '천원': 1000,
         '백원': 100,
         '십원': 10,
-        '원': 1,
-        'USD': 1
     }
+
+    for k, v in CURRENCY.items():
+        str_unit_to_unit[k] = 1
+        str_unit_to_unit[v] = 1
+
     return str_unit_to_unit[str_unit]
+
+
+@cache()
+def get_currency_str(unit: str) -> Union[str, None]:
+    regex_str = ' OR '.join(CURRENCY.keys())
+    str_unit = str_to_regex(regex_str).search(unit)
+    if str_unit:
+        str_unit = str_unit.group(0)
+        return CURRENCY[str_unit]
+
+    regex_str = ' OR '.join([v for _, v in CURRENCY.items()])
+    str_unit = str_to_regex(regex_str).search(unit)
+    if str_unit:
+        return str_unit.group(0)
+
+    return None
 
 
 def str_insert_whitespace(word):
