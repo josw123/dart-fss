@@ -322,7 +322,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
 def seek_table(tables: List, includes: Pattern,
                excludes: Union[Pattern, None] = None) -> Tuple[Union[str, None], Union[str, None], Union[str, None]]:
     """ Table 검색 """
-    regex = re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}')
+    regex = re.compile(r'\d{4}(.*?)\d{1,2}(.*?)\d{1,2}')
     for table in tables:
         for tag in table.previous_siblings:
             if tag in tables:
@@ -350,7 +350,7 @@ def seek_table(tables: List, includes: Pattern,
                                 tr_cnt += 1
 
                         if tr_cnt == 0:
-                            found = table.find_previous(text=re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}'))
+                            found = table.find_previous(text=regex)
                             if found is None:
                                 continue
                             header = found.parent
