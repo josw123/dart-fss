@@ -21,7 +21,7 @@ dexter.add_test_value('bs', '20161231', 'concept_id', 'ifrs-full_Equity', 781818
 
 # 이십일스토어 (구: 두원석재)
 stone = TestCrp(corp_code='01183407', bgn_de='20120101', separate=True, report_tp='annual')
-stone.add_test_value('bs', '20161231', 'label_ko', '유동자산', 5531436227)
+stone.add_test_value('bs', '20161231', 'label_ko', 'I.유동자산', 5531436227)
 
 # 에스제이그룹
 sjgroup = TestCrp(corp_code='01222432', bgn_de='20190101', separate=False, report_tp='annual')
