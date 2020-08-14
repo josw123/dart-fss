@@ -1,12 +1,10 @@
 import pytest
 
-from dart_fss.filings import search
-
 
 @pytest.fixture(scope='module')
-def last_report():
+def last_report(dart):
     corp_code = '00126380'
-    return search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
+    return dart.search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
 
 
 def test_reports(last_report):

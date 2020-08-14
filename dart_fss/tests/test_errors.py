@@ -1,36 +1,33 @@
 import pytest
-
-from dart_fss.errors import *
 from .test_corp import corp_list
 
-
-def test_check_status():
+def test_check_status(dart):
     ret_code = {
         'status': '000',
         'message': '정상'
     }
-    check_status(**ret_code)
+    dart.errors.check_status(**ret_code)
 
 
-def test_errors():
+def test_errors(dart):
     errors = [
-        ('010', APIKeyError),
-        ('011', TemporaryLocked),
-        ('013', NoDataReceived),
-        ('020', OverQueryLimit),
-        ('100', InvalidField),
-        ('800', ServiceClose),
-        ('900', UnknownError),
+        ('010', dart.errors.APIKeyError),
+        ('011', dart.errors.TemporaryLocked),
+        ('013', dart.errors.NoDataReceived),
+        ('020', dart.errors.OverQueryLimit),
+        ('100', dart.errors.InvalidField),
+        ('800', dart.errors.ServiceClose),
+        ('900', dart.errors.UnknownError),
     ]
     for status, err in errors:
         with pytest.raises(err):
             err_code = {
                 'status': status,
             }
-            check_status(**err_code)
+            dart.errors.check_status(**err_code)
 
 
-def test_not_found_consolidated(corp_list):
-    with pytest.raises(NotFoundConsolidated):
+def test_not_found_consolidated(dart, corp_list):
+    with pytest.raises(dart.errors.NotFoundConsolidated):
         crp = corp_list.find_by_corp_name('모두투어리츠')[0]
         crp.extract_fs(bgn_de='20180101')

@@ -1,12 +1,10 @@
 import pytest
 
-from dart_fss.filings import search
-
 
 @pytest.fixture(scope='module')
-def annual_reports():
+def annual_reports(dart):
     corp_code = '00126380'
-    return search(corp_code=corp_code, bgn_de='20140101', end_de='20190101', pblntf_detail_ty='a001')
+    return dart.search(corp_code=corp_code, bgn_de='20140101', end_de='20190101', pblntf_detail_ty='a001')
 
 
 def test_search_report_get_page_no(annual_reports):

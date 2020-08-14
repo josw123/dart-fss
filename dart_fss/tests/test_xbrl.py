@@ -1,13 +1,11 @@
 import pytest
-
 from dart_fss.fs.extract import find_all_columns
-from dart_fss.filings import search
 
 
 @pytest.fixture(scope='module')
-def samsung_xbrl():
+def samsung_xbrl(dart):
     corp_code = '00126380'
-    report = search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
+    report = dart.search(corp_code=corp_code, bgn_de='20180101', end_de='20190101', pblntf_detail_ty='a001')[0]
     return report.xbrl
 
 

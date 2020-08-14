@@ -6,7 +6,8 @@ from .test_corp import corp_list
 
 
 @pytest.mark.parametrize("corp", test_crp_list)
-def test_crp_financial_statement(corp):
+def test_crp_financial_statement(corp, corp_list):
+    corp.set_corp_list(corp_list)
     corp.run_test()
 
 

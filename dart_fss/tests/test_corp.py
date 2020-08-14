@@ -1,10 +1,9 @@
 import pytest
-from dart_fss.corp import CorpList
 
 
 @pytest.fixture(scope='session')
-def corp_list():
-    return CorpList()
+def corp_list(dart):
+    return dart.get_corp_list()
 
 
 def test_find_by_corp_name(corp_list):
