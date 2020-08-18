@@ -2,6 +2,7 @@
 import re
 import math
 import copy
+import numpy as np
 import pandas as pd
 
 from typing import Union, List, Dict, Tuple, Pattern
@@ -16,7 +17,7 @@ from dart_fss.filings.reports import Report
 from dart_fss.filings import search as search_filings
 from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
-from dart_fss.utils.regex import str_to_regex
+from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
 
 
@@ -153,10 +154,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     }
 
     str_unit = extract_unit_from_header(fs_table['header'])
-    str_unit = str_to_regex('원 OR USD').search(str_unit)
+    str_unit = get_currency_str(str_unit)
     if str_unit:
-        str_unit = str_unit.group(0)
-        str_unit = 'KRW' if str_compare('원', str_unit) else 'USD'
         for key in fs_string:
             fs_string[key] = fs_string[key] + '(Unit: {})'.format(str_unit)
 
@@ -323,7 +322,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
 def seek_table(tables: List, includes: Pattern,
                excludes: Union[Pattern, None] = None) -> Tuple[Union[str, None], Union[str, None], Union[str, None]]:
     """ Table 검색 """
-    regex = re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}')
+    regex = re.compile(r'\d{4}(.*?)\d{1,2}(.*?)\d{1,2}')
     for table in tables:
         for tag in table.previous_siblings:
             if tag in tables:
@@ -351,7 +350,7 @@ def seek_table(tables: List, includes: Pattern,
                                 tr_cnt += 1
 
                         if tr_cnt == 0:
-                            found = table.find_previous(text=re.compile(r'\d{4}(.*?)\d{2}(.*?)\d{2}'))
+                            found = table.find_previous(text=regex)
                             if found is None:
                                 continue
                             header = found.parent
@@ -508,7 +507,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     """
     query = {
         'includes': r'재무제표 OR 감사보고서',
-        'excludes': r'주석 OR 결합 OR 의견 OR 수정',
+        'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
         'scope': ['attached_reports', 'pages'],
         'options': {'title': True} # 첨부보고서 및 연결보고서의 title 까지 검색
     }
@@ -524,7 +523,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     if count == 0:
         query = {
             'includes': r'재무제표 OR 명세서',
-            'excludes': r'주석 OR 결합 OR 의견 OR 수정',
+            'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
             'scope': ['attached_reports', 'pages']
         }
         _, fs_table = report_find_all(report, query, fs_tp, separate)
@@ -963,6 +962,8 @@ def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         date_columns = [x[0] for x in date_columns]
 
         ncolumns = concept_columns + date_columns
+        # convert list to numpy array
+        ncolumns = np.array(ncolumns, dtype=object)
         statements[tp] = statements[tp][ncolumns]
     return statements
 
@@ -983,7 +984,8 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
         for key, value in none_columns.items():
             if value is not True:
                 columns.append(key)
-
+        # convert list to numpy array
+        columns = np.array(columns, dtype=object)
         df[tp] = df_tp[columns]
     return df
 

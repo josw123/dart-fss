@@ -9,7 +9,8 @@ fake-useragent
 idna
 ipython-genutils
 isodate
-numpy >=1.17.0
+numpy==1.18.4;python_version=="3.5"
+numpy>=1.17.0;python_version>="3.6"
 pandas
 pickleshare
 py

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
 import math
-import datetime
 
 import pandas as pd
 
@@ -336,16 +335,21 @@ def cls_merge_type(classification):
     list of cls
         변환된 classification 리스트
     """
-    cls_type = {'instant' if cls.get('instant_datetime') else 'not_instant' for cls in classification }
 
-    if len(cls_type) == 2:
+    cls_datetime = {}
+
+    for cls in classification:
+        end_datetime = cls.get('end_datetime')
+        start_datetime = cls.get('start_datetime')
+        if end_datetime is not None:
+            cls_datetime[end_datetime] = start_datetime
+
+    if len(cls_datetime) > 0:
         for cls in classification:
             instant_datetime = cls.get('instant_datetime')
             if instant_datetime:
-                year = instant_datetime.year
-                start_datetime = datetime.datetime(year, 1, 1) # 해당년도 1월 1일로 설정
-                end_datetime = instant_datetime
                 cls['instant_datetime'] = None
-                cls['start_datetime'] = start_datetime
-                cls['end_datetime'] = end_datetime
+                cls['start_datetime'] = cls_datetime[instant_datetime]
+                cls['end_datetime'] = instant_datetime
+
     return classification

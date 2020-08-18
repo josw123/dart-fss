@@ -1,23 +1,25 @@
 import pytest
-from dart_fss.corp import CorpList
 from dart_fss.fs.extract import find_all_columns
 from dart_fss.utils import str_compare
 
 
 class TestCrp(object):
-    corp_list = CorpList()
-
-    def __init__(self, corp_code, bgn_de, separate, report_tp):
-        corp = None
+    def __init__(self, corp_code, bgn_de, separate, report_tp, end_de=None):
+        self.corp = None
         if corp_code:
-            corp = self.corp_list.find_by_corp_code(corp_code)
+            self.corp_code = corp_code
         else:
-            pytest.fail('The parameter should be initialized: crp_cd or crp_nm')
-        self.corp = corp
+            pytest.fail('The parameter should be initialized: corp_code')
+
         self.bgn_de = bgn_de
+        self.end_de = end_de
         self.separate = separate
         self.report_tp = report_tp
         self.test_set = []
+
+    def set_corp_list(self, corp_list):
+        if self.corp_code:
+            self.corp = corp_list.find_by_corp_code(self.corp_code)
 
     def add_test_value(self, fs_tp, date, column, item, expected):
         test_set = {
@@ -30,7 +32,11 @@ class TestCrp(object):
         self.test_set.append(test_set)
 
     def run_test(self):
-        fs = self.corp.extract_fs(bgn_de=self.bgn_de, separate=self.separate, report_tp=self.report_tp)
+        if self.corp is None:
+            pytest.fail('The corp_list should be initialized')
+
+        fs = self.corp.extract_fs(bgn_de=self.bgn_de, end_de=self.end_de,
+                                  separate=self.separate, report_tp=self.report_tp)
         for test in self.test_set:
             tp = test['fs_tp']
             date = test['date']
