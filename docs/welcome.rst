@@ -3,7 +3,7 @@ DART-FSS
 
 ..  image:: https://img.shields.io/pypi/v/dart-fss.svg
 ..  image:: https://img.shields.io/pypi/pyversions/dart-fss.svg
-..  image:: https://travis-ci.com/josw123/dart-fss.svg?branch=master
+..  image:: https://bit.ly/313BAwe
 ..  image:: https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg
 ..  image:: https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde
 
