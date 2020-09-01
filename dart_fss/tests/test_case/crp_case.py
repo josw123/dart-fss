@@ -6,6 +6,7 @@ samsung.add_test_value('bs', '20091231', 'concept_id', 'ifrs-full_Equity', 73045
 samsung.add_test_value('is', '20091231', 'label_ko', '영업이익(손실)', 10925259000000)
 samsung.add_test_value('cis', '20091231', 'label_ko', '총포괄손익', 9098844000000)
 samsung.add_test_value('cf', '20091231', 'concept_id', 'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 10149930000000)
+samsung.add_test_value('cf', '20151231', 'concept_id', 'ifrs-full_InterestPaidClassifiedAsOperatingActivities', 748256000000)
 
 # 현대자동차
 hyundai = TestCrp(corp_code='00164742', bgn_de='20120101', separate=False, report_tp='annual')
@@ -34,4 +35,4 @@ sds.add_test_value('bs', '20130630', 'label_ko', '유동자산', 2602291807082)
 jtc = TestCrp(corp_code='01041828', bgn_de='20190101', end_de='20200811', separate=False, report_tp='annual')
 jtc.add_test_value('cf', '20200229', 'concept_id', 'ifrs-full_CashFlowsFromUsedInOperatingActivities', 4810599061)
 
-test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds]
+test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds, jtc]
