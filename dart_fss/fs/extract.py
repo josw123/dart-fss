@@ -585,10 +585,10 @@ def extract_account_title(title):
     return title
 
 
-def compare_df_and_ndf_label(column: Tuple[Union[str, Tuple[str]]],
-                             df: DataFrame, ndf: DataFrame, ldf: DataFrame,
-                             ndata: List[Union[float, str, None]],
-                             nlabels: List[str]) -> Tuple[List[Union[float, str]], List[str]]:
+def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
+                                         df: DataFrame, ndf: DataFrame, ldf: DataFrame,
+                                         ndata: List[Union[float, str, None]],
+                                         nlabels: List[str]) -> Tuple[List[Union[float, str]], List[str]]:
     """
     Labels 을 시용하여 데이터를 검색하는 함수
 
@@ -616,42 +616,82 @@ def compare_df_and_ndf_label(column: Tuple[Union[str, Tuple[str]]],
     df_label_column = find_all_columns(df, 'label_ko')[0]
     ndf_label_column = find_all_columns(ndf, 'label_ko')[0]
 
+    concept_none_data = {}
+    df_concept_column = find_all_columns(df, 'concept_id')
+    ndf_concept_column = find_all_columns(ndf, 'concept_id')
+
+    # concept_id 컬럼이 존재하는지 여부 조사
+    concept_exist = len(df_concept_column) * len(ndf_concept_column) != 0
+    if concept_exist:
+        df_concept_column = df_concept_column[0]
+        ndf_concept_column = ndf_concept_column[0]
+
     for idx, value in enumerate(ndata):
         if isinstance(value, str):
+            # 이전에 검색된 데이터가 문자인 경우 pass
             pass
         elif value is None:
+            # 이전에 검색된 데이터가 없는 경우 pass
             pass
         elif math.isnan(value):
+            # 이전에 검색된 데이터가 유효한 값이 아닌 경우 pass
             pass
         else:
+            # 올바른 값이 경우 검색 X
             continue
 
+        # label 추출
         label = df[df_label_column].iloc[idx]
         label = re.sub(r'\s+', '', label)
         label = extract_account_title(label)
         label_set = set(ldf.iloc[idx])
         label_set.add(label)
+        # (index, label_set) 리스트 생성
         label_none_data.append((idx, label_set))
 
+        # concept_id가 존재하는 경우 concept_id도 추가로 검색
+        if concept_exist:
+            concept = df[df_concept_column].iloc[idx]
+            concept_none_data[concept] = idx
+
+    # 추가될 Dataframe index 중 사용된 결과 값 리스트
     matched = []
+    # 기존 Dataframe index 중 사용된 결과 값 리스트
     used = []
+
     for idx in range(len(ndf)):
-        if idx in matched:
-            continue
+        # 검색된 값
+        value_found = None
+        # 검색된 기존 Dataframe 의 index
+        index_found = None
+
+        # 검색할 label 명
         label = extract_account_title(ndf[ndf_label_column].iloc[idx])
 
-        for index, label_set in label_none_data:
-            if index in used:
+        if concept_exist:
+            # 추가할 Dataframe 의 concept_id
+            concept = ndf[ndf_concept_column].iloc[idx]
+            index_found = concept_none_data.get(concept)
+            if index_found in used:
                 continue
-            if label in label_set:
-                value = ndf[column].iloc[idx]
-                if isinstance(value, str):
-                    pass
-                else:
-                    used.append(index)
-                    matched.append(idx)
-                    ndata[index] = value
-                    nlabels[index] = label
+            elif index_found is not None:
+                value_found = ndf[column].iloc[idx]
+
+        if index_found is None:
+            for index, label_set in label_none_data:
+                if index in used:
+                    continue
+                if label in label_set:
+                    value_found = ndf[column].iloc[idx]
+                    index_found = index
+                    break
+
+        if index_found is None:
+            pass
+        elif isinstance(index_found, int):
+            used.append(index_found)
+            ndata[index_found] = value_found
+            nlabels[index_found] = label
 
     return ndata, nlabels
 
@@ -717,7 +757,7 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     return ndata, nlabels
 
 
-additional_comparison_function = [compare_df_and_ndf_label]
+additional_comparison_function = [compare_df_and_ndf_label_and_concept]
 
 
 def init_label(fs_df: Dict[str, DataFrame],
