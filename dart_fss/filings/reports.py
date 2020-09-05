@@ -359,13 +359,18 @@ class Report(object):
 
     @property
     def xbrl(self):
+        if self._xbrl is None:
+            self.load_xbrl()
+        return self._xbrl
+
+    def load_xbrl(self, loading_indicator=True):
         """ XBRL 데이터 반환"""
         import tempfile
         if self._xbrl is None:
             with tempfile.TemporaryDirectory() as path:
                 try:
                     file_path = download_xbrl(path=path, rcept_no=self.rcept_no)
-                    self._xbrl = get_xbrl_from_file(file_path)
+                    self._xbrl = get_xbrl_from_file(file_path, loading_indicator=loading_indicator)
                 except FileNotFoundError:
                     xbrl_attached = self._get_xbrl()
                     if xbrl_attached is not None:
@@ -373,7 +378,7 @@ class Report(object):
                         folder_path = unzip(zip_path['full_path'])
                         file = search_file(folder_path)
                         if len(file) > 0:
-                            self._xbrl = get_xbrl_from_file(file[0])
+                            self._xbrl = get_xbrl_from_file(file[0], loading_indicator=loading_indicator)
                     else:
                         self._xbrl = None
         return self._xbrl
