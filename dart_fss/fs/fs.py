@@ -1,7 +1,7 @@
 import pandas as pd
 
 from pandas import DataFrame
-from typing import Dict
+from typing import Dict, Optional
 
 from dart_fss.utils import dict_to_html, create_folder
 
@@ -42,7 +42,7 @@ class FinancialStatement(object):
             pd.options.display.float_format = '{:}'.format
         self.info['separator'] = separator
 
-    def show(self, tp, show_class: bool = True, show_depth: int = 10, show_concept: bool = True) -> DataFrame:
+    def show(self, tp, show_class: bool = True, show_depth: int = 10, show_concept: bool = True) -> Optional[DataFrame]:
         """
         재무제표 정보를 표시해주는 Method
 
@@ -75,6 +75,8 @@ class FinancialStatement(object):
             for column in columns:
                 if column not in class_columns:
                     ncolumns.append(column)
+            if len(ncolumns) > 0:
+                ncolumns = pd.MultiIndex.from_tuples(ncolumns)
             df = df[ncolumns]
         else:
             drop_rows = []
@@ -88,7 +90,8 @@ class FinancialStatement(object):
             for column in columns:
                 if column not in class_columns[show_depth + 1:]:
                     ncolumns.append(column)
-
+            if len(ncolumns) > 0:
+                ncolumns = pd.MultiIndex.from_tuples(ncolumns)
             df = df[ncolumns].drop(drop_rows)
 
         if show_concept is False:
@@ -99,6 +102,8 @@ class FinancialStatement(object):
                 for column in columns:
                     if column not in concept_colmuns:
                         ncolumns.append(column)
+                if len(ncolumns) > 0:
+                    ncolumns = pd.MultiIndex.from_tuples(ncolumns)
                 df = df[ncolumns]
         return df
 
