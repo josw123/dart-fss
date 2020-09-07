@@ -359,6 +359,11 @@ class Report(object):
 
     @property
     def xbrl(self):
+        if self._xbrl is None:
+            self.load_xbrl()
+        return self._xbrl
+
+    def load_xbrl(self):
         """ XBRL 데이터 반환"""
         import tempfile
         if self._xbrl is None:

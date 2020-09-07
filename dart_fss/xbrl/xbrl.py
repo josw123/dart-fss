@@ -15,17 +15,16 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
     ----------
     file_path: str
         XBRL 파일 경로
-
     Returns
     -------
     DartXbrl
         DartXbrl 클래스
     """
-    # PyPI를 통해 설치된 Arelle 라이브러리 사용시 발생하는 오류 수정을 위한코드
     from dart_fss.utils.spinner import Spinner
     spinner = Spinner('XBRL Loading')
     spinner.start()
 
+    # PyPI를 통해 설치된 Arelle 라이브러리 사용시 발생하는 오류 수정을 위한코드
     if sys.platform == 'win32':
         pass
     elif sys.platform == 'darwin':
@@ -39,5 +38,6 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
     model_xbrl = Cntlr.Cntlr().modelManager.load(file_path)
     filename = file_path.split('\\')[-1]
     xbrl = DartXbrl(filename, model_xbrl)
+
     spinner.stop()
     return xbrl

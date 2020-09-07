@@ -57,6 +57,10 @@ class SearchResults(object):
             'report_list': [x.to_dict() for x in self.report_list]
         }
 
+    def pop(self, index=-1):
+        """ 주어진 index 의 리포트를 반환하며, 리스트에서 삭제하는 함수"""
+        return self._report_list.pop(index)
+
     def __repr__(self):
         from pprint import pformat
         return pformat(self.to_dict())

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import pandas as pd
 from typing import List, Union
 
 from pandas import DataFrame
@@ -124,6 +125,7 @@ class DartXbrl(object):
         data = df[df.columns[2:]].iloc[3]
         data_set = [(key, data[key]) for key in data.keys()]
         new_columns = list(df.columns[:2]) + [data[0] for data in sorted(data_set, key=lambda x: x[1], reverse=True)]
+        new_columns = pd.MultiIndex.from_tuples(new_columns)
         return df[new_columns]
 
     def get_audit_information(self, lang: str = 'ko') -> DataFrame:
