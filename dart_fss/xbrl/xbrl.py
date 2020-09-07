@@ -6,7 +6,7 @@ from arelle import Cntlr
 from dart_fss.xbrl.dart_xbrl import DartXbrl
 
 
-def get_xbrl_from_file(file_path: str, loading_indicator: bool = True) -> DartXbrl:
+def get_xbrl_from_file(file_path: str) -> DartXbrl:
     """ XBRL 파일 로드 함수
 
     XBRL 파일을 로드하기 위한 함수로 로딩완료 후 DartXbrl 클래스를 반환한다
@@ -15,18 +15,14 @@ def get_xbrl_from_file(file_path: str, loading_indicator: bool = True) -> DartXb
     ----------
     file_path: str
         XBRL 파일 경로
-    loading_indicator: bool
-        XBRL 로딩시 Spinner 표시 여부(default: True)
     Returns
     -------
     DartXbrl
         DartXbrl 클래스
     """
-    spinner = None
-    if loading_indicator:
-        from dart_fss.utils.spinner import Spinner
-        spinner = Spinner('XBRL Loading')
-        spinner.start()
+    from dart_fss.utils.spinner import Spinner
+    spinner = Spinner('XBRL Loading')
+    spinner.start()
 
     # PyPI를 통해 설치된 Arelle 라이브러리 사용시 발생하는 오류 수정을 위한코드
     if sys.platform == 'win32':
@@ -43,6 +39,5 @@ def get_xbrl_from_file(file_path: str, loading_indicator: bool = True) -> DartXb
     filename = file_path.split('\\')[-1]
     xbrl = DartXbrl(filename, model_xbrl)
 
-    if loading_indicator:
-        spinner.stop()
+    spinner.stop()
     return xbrl
