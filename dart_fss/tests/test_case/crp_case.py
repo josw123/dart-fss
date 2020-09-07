@@ -11,7 +11,7 @@ samsung.add_test_value('cf', '20151231', 'concept_id', 'ifrs-full_InterestPaidCl
 # 현대자동차
 hyundai = TestCrp(corp_code='00164742', bgn_de='20120101', separate=False, report_tp='annual')
 hyundai.add_test_value('bs', '20101231', 'label_ko', '유동자산', 43520154000000)
-hyundai.add_test_value('is', '20101231', 'label_ko', '영업이익', 5918492000000)
+hyundai.add_test_value('is', '20101231', 'label_ko', '영업이익', 5885960000000)
 hyundai.add_test_value('cis', '20101231', 'concept_id', 'ifrs-full_ComprehensiveIncome', 6223342000000)
 hyundai.add_test_value('cf', '20101231', 'concept_id', 'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 6215815000000)
 
@@ -32,7 +32,19 @@ sjgroup.add_test_value('bs', '20191231', 'label_ko', '유동자산', 70665507683
 sds = TestCrp(corp_code='00126186', bgn_de='20130813', end_de='20150807', separate=False, report_tp='quarter')
 sds.add_test_value('bs', '20130630', 'label_ko', '유동자산', 2602291807082)
 
+# JTC
 jtc = TestCrp(corp_code='01041828', bgn_de='20190101', end_de='20200811', separate=False, report_tp='annual')
 jtc.add_test_value('cf', '20200229', 'concept_id', 'ifrs-full_CashFlowsFromUsedInOperatingActivities', 4810599061)
 
-test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds, jtc]
+# GS리테일
+gs_retail = TestCrp(corp_code='00140177', bgn_de='20110101', separate=False, report_tp='annual')
+gs_retail.add_test_value('cis', '20161231', 'label_ko', '매출원가', 6015117323057)
+gs_retail.add_test_value('cis', '20161231', 'label_ko', '기타손실', 60931373946)
+gs_retail.add_test_value('cis', '20161231', 'label_ko', '판매비와관리비', 1168120874437)
+gs_retail.add_test_value('cis', '20161231', 'label_ko', '금융원가', 48502482146)
+
+# LG화학
+lg_chemical = TestCrp(corp_code='00356361', bgn_de='20180101', end_de='20201231', separate=False, report_tp='quarter')
+lg_chemical.add_test_value('cis', '20180701-20180930', 'concept_id', 'ifrs-full_ProfitLoss',   346600000000 )
+
+test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds, jtc, gs_retail, lg_chemical]
