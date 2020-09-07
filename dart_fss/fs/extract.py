@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
 import math
-import copy
 import numpy as np
 import pandas as pd
 
-from typing import Union, List, Dict, Tuple, Pattern
+from typing import Union, List, Dict, Tuple, Pattern, Optional
 from collections import OrderedDict
 from pandas import DataFrame
 from datetime import datetime
@@ -542,7 +541,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     return extract_results
 
 
-def find_all_columns(df: DataFrame, query: str) -> list:
+def find_all_columns(df: DataFrame, query: str) -> pd.Index:
     """
     DataFrame의 column을 검색어를 통해 검색하는 함수
 
@@ -571,6 +570,8 @@ def find_all_columns(df: DataFrame, query: str) -> list:
             else:
                 if regex.search(' '.join(item)):
                     results.append(column)
+    if len(results) > 0:
+        results = pd.MultiIndex.from_tuples(results)
     return results
 
 
@@ -580,7 +581,7 @@ def extract_account_title(title):
         title = title[0]
     elif len(title) > 1:
         title = ''.join(title[1:])
-    title = re.sub(r'\[.*?\]|\(.*?\)|<.*?>', '', title)
+    title = re.sub(r'\[.*?\]|\(.*?\)|<.*?>|[^가-힣|a-z|A-Z]', '', title)
     title = re.sub(r'\s+', '', title)
     return title
 
@@ -626,6 +627,16 @@ def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
         df_concept_column = df_concept_column[0]
         ndf_concept_column = ndf_concept_column[0]
 
+    en_none_data = {}
+    df_en_column = find_all_columns(df, 'label_en')
+    ndf_en_column = find_all_columns(ndf, 'label_en')
+
+    # label_en 컬럼이 존재하는지 여부 조사
+    en_exist = len(df_en_column) * len(ndf_en_column) != 0
+    if en_exist:
+        df_en_column = df_en_column[0]
+        ndf_en_column = ndf_en_column[0]
+
     for idx, value in enumerate(ndata):
         if isinstance(value, str):
             # 이전에 검색된 데이터가 문자인 경우 pass
@@ -654,8 +665,11 @@ def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
             concept = df[df_concept_column].iloc[idx]
             concept_none_data[concept] = idx
 
-    # 추가될 Dataframe index 중 사용된 결과 값 리스트
-    matched = []
+        # label_en가 존재하는 경우 label_en도 추가로 검색
+        if en_exist:
+            en = df[df_en_column].iloc[idx]
+            en_none_data[en] = idx
+
     # 기존 Dataframe index 중 사용된 결과 값 리스트
     used = []
 
@@ -678,6 +692,15 @@ def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
                 value_found = ndf[column].iloc[idx]
 
         if index_found is None:
+            if en_exist:
+                en = ndf[ndf_en_column].iloc[idx]
+                index_found = en_none_data.get(en)
+                if index_found in used:
+                    continue
+                elif index_found is not None:
+                    value_found = ndf[column].iloc[idx]
+
+        if index_found is None:
             for index, label_set in label_none_data:
                 if index in used:
                     continue
@@ -696,7 +719,7 @@ def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
     return ndata, nlabels
 
 
-def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
+def compare_df_and_ndf_value(column: pd.Index,
                              df: DataFrame, ndf: DataFrame,
                              ndata: List[Union[float, str, None]],
                              nlabels: List[str]) -> Tuple[List[Union[float, str]], List[str]]:
@@ -721,34 +744,45 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     tuple of list
         추가할 column의 데이터 리스트, 추가할 column의 label 리스트
     """
-    df_columns = set(df.columns.tolist())
-    ndf_columns = set(ndf.columns.tolist())
-    overlap = df_columns.intersection(ndf_columns)
+    _, df_columns = split_columns_concept_data(df.columns)
+    _, ndf_columns = split_columns_concept_data(ndf.columns)
 
+    overlap = set(df_columns).intersection(set(ndf_columns))
     nko_column = find_all_columns(ndf, r'label_ko')
 
     index_used = []
     for idx in range(len(df)):
+        nvalue = None
+        nlabel = ''
         for col in overlap:
-            nvalue = None
-            nlabel = ''
             value = df[col].iloc[idx]
             if isinstance(value, str):
                 pass
             elif value is None:
                 pass
-            elif value and math.isnan(value):
+            elif math.isnan(value):
                 pass
             else:
+                sign = 1
+                # Ref와 일치하는 값을 가지는 row index 찾기
                 w = ndf[ndf[col] == value].dropna(axis=1, how='all').dropna(how='all')
+                # 만약 찾지 못하는 경우 Ref의 값의 음수와 동일한 값을 가지는 row index 찾기
+                if len(w) == 0:
+                    sign = -1
+                    w = ndf[ndf[col] == -value].dropna(axis=1, how='all').dropna(how='all')
+
+                found = False
                 if len(w) > 0:
                     for index in w.index.values:
                         if index not in index_used:
-                            nvalue = ndf[column].iloc[index]
+                            nvalue = sign * ndf[column].iloc[index]
                             nlabel = ndf[nko_column].iloc[index][0]
                             nlabel = extract_account_title(nlabel)
                             index_used.append(index)
+                            found = True
                             break
+                if found:
+                    break
         if nvalue and math.isnan(nvalue):
             nvalue = None
 
@@ -809,96 +843,92 @@ def init_label(fs_df: Dict[str, DataFrame],
                 label_df[tp] = pd.DataFrame(columns=nlabel_columns)
 
                 if len(concept_column) == 1:
-                    label_df[tp][label_columns[0]] = [extract_account_title(x) for x in list(df[concept_column[0]])]
+                    label_df[tp][nlabel_columns[0]] = [extract_account_title(x) for x in list(df[concept_column[0]])]
 
                 for column in date_columns:
                     label_df[tp][column] = list(df[ko_column])
     return label_df
 
 
-def merge_fs(fs_df: Dict[str, DataFrame], label_df: Dict[str, DataFrame],
-             report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
-             lang: str = 'ko', separate: bool = False):
+def merge_fs(fs_df: Dict[str, DataFrame],
+             nfs_df: Dict[str, DataFrame],
+             label_df: Dict[str, DataFrame],
+             fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf')):
     """
     재무제표 DataFrame과 Report의 데이터를 합쳐주는 Method
 
     Parameters
     ----------
     fs_df: dict of {str: DataFrame}
-        재무제표
+        데이터를 추가할 DataFrame
+    nfs_df: dict of {str: DataFrame}
+        새로운 데이터를 검색할 DataFrame
     label_df: dict of {str: DataFrame}
         재무제표 검색결과시 추출된 값의 Label
-    report: Report
-        Report
     fs_tp: tuple of str, optional
         'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
-    lang: str, optional
-        'ko' 한글, 'en' 영문
-    separate: bool, optional
-        개별재무제표 여부
-
     Returns
     -------
     tuple of dict of {str: DataFrame}
         재무제표, 추출된 Label 리스트
     """
-    try:
-        global additional_comparison_function
-        # 보고서의 웹페이지에서 재무제표 추출
-        nfs_df = analyze_html(report=report, fs_tp=fs_tp, lang=lang, separate=separate)
+    global additional_comparison_function
 
-        for tp in fs_df:
-            if tp in fs_tp:
-                # 추가될 재무제표의 DataFrame
-                df = fs_df[tp]
+    for tp in fs_df:
+        if tp in fs_tp:
+            # 추가될 재무제표의 DataFrame
+            df = fs_df[tp]
 
-                # 새로 추가할 재무제표
-                ndf = nfs_df[tp]
+            # 새로 추가할 재무제표
+            ndf = nfs_df[tp]
 
-                # 재무제표가 없을시 추가 검색 X
-                if df is None:
-                    if ndf is None:
-                        continue
-                    else:
-                        fs_df[tp] = ndf.copy(deep=True)
-                        df = fs_df[tp]
-
-                # 검색된 재무제표가 없을시 추가 검색 X
+            # 재무제표가 없을시 추가 검색 X
+            if df is None:
                 if ndf is None:
                     continue
+                else:
+                    fs_df[tp] = ndf.copy(deep=True)
+                    df = fs_df[tp]
 
-                # label_df가 없을시 초기화
-                if label_df.get(tp) is None:
-                    label_df = init_label(fs_df=fs_df, fs_tp=fs_tp, label_df=label_df)
+            # 검색된 재무제표가 없을시 추가 검색 X
+            if ndf is None:
+                continue
 
-                df_columns = set(df.columns.tolist())
-                ndf_columns = set(ndf.columns.tolist())
+            # label_df가 없을시 초기화
+            if label_df.get(tp) is None:
+                label_df = init_label(fs_df=fs_df, fs_tp=fs_tp, label_df=label_df)
 
-                overlap = df_columns.intersection(ndf_columns)
+            _, df_columns = split_columns_concept_data(df.columns)
+            _, ndf_columns =  split_columns_concept_data(ndf.columns)
+            df_columns = set(df_columns.tolist())
+            ndf_columns = set(ndf_columns.tolist())
 
-                date_regex = re.compile(r'\d{8}')
-                diff = [x for x in (ndf_columns - overlap) if date_regex.search(x[0])]
-                diff.sort(key=lambda x: date_regex.findall(x[0])[0], reverse=True)
+            overlap = df_columns.intersection(ndf_columns)
 
-                # Data가 동일할 경우 Continue
-                if len(diff) == 0:
-                    continue
+            date_regex = re.compile(r'\d{8}')
+            diff = [x for x in (ndf_columns - overlap) if date_regex.search(x[0])]
+            diff.sort(key=lambda x: date_regex.findall(x[0])[0], reverse=True)
 
-                for column in diff:
-                    ndata = [None for _ in range(len(df))]
-                    nlabels = ['' for _ in range(len(df))]
-                    if len(overlap) > 0:
-                        ndata, nlabels = compare_df_and_ndf_value(column, df, ndf, ndata, nlabels)
+            # Data가 동일할 경우 Continue
+            if len(diff) == 0:
+                continue
 
-                    for compare_func in additional_comparison_function:
-                        ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
+            diff = pd.MultiIndex.from_tuples(diff)
+            overlap = list(overlap)
 
-                    label_df[tp][column] = nlabels
-                    fs_df[tp][column] = ndata
-        return fs_df, label_df
-    except Exception:
-        msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
-        raise RuntimeError(msg)
+            for column in diff:
+                ndata = [None for _ in range(len(df))]
+                nlabels = ['' for _ in range(len(df))]
+                if len(overlap) > 0:
+                    ndata, nlabels = compare_df_and_ndf_value(column, df, ndf, ndata, nlabels)
+
+                for compare_func in additional_comparison_function:
+                    ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
+
+                label_df[tp][column] = nlabels
+                fs_df[tp][column] = ndata
+
+    return fs_df, label_df
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
@@ -985,7 +1015,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
     return statements
 
 
-def split_columns_concept_data(columns):
+def split_columns_concept_data(columns: pd.Index) -> Tuple[Optional[pd.Index], Optional[pd.Index]]:
     regex = re.compile(r'\d{8}')
 
     concept_columns = []
@@ -996,10 +1026,18 @@ def split_columns_concept_data(columns):
             concept_columns.append(column)
         else:
             data_columns.append(column)
+    if len(concept_columns) > 0:
+        concept_columns = pd.MultiIndex.from_tuples(concept_columns)
+    else:
+        concept_columns = None
+    if len(data_columns) > 0:
+        data_columns = pd.MultiIndex.from_tuples(data_columns)
+    else:
+        data_columns = None
     return concept_columns, data_columns
 
 
-def sorting_data_columns(columns):
+def sorting_data_columns(columns: pd.Index) -> pd.Index:
     def sorting(value):
         if isinstance(value, str):
             return value
@@ -1015,6 +1053,7 @@ def sorting_data_columns(columns):
 
     data_columns.sort(key=lambda x: sorting(x[1]), reverse=True)
     data_columns = [x[0] for x in data_columns]
+    data_columns = pd.MultiIndex.from_tuples(data_columns)
     return data_columns
 
 
@@ -1025,11 +1064,15 @@ def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         if df is None:
             continue
         concept_columns, data_columns = split_columns_concept_data(df.columns)
-        data_columns = sorting_data_columns(data_columns)
+        if data_columns is not None:
+            data_columns = sorting_data_columns(data_columns)
 
-        ncolumns = concept_columns + data_columns
-        # convert list to numpy array
-        ncolumns = np.array(ncolumns, dtype=object)
+        if concept_columns is not None and data_columns is not None:
+            ncolumns = concept_columns.tolist() + data_columns.tolist()
+            ncolumns = pd.MultiIndex.from_tuples(ncolumns)
+        else:
+            ncolumns = df.columns
+
         statements[tp] = statements[tp][ncolumns]
     return statements
 
@@ -1056,73 +1099,54 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
     return df
 
 
-def account_sign(xbrl_df, html_df):
-    if html_df is None:
-        raise RuntimeError('The data extracted from xbrl file exists but data extracted from the web page was not found')
 
-    sign_table = {}
-    for tp in xbrl_df:
-        # Select DataFrame
-        xbrl_df_tp = xbrl_df[tp]
-        if xbrl_df_tp is None:
-            sign_table[tp] = None
-            continue
+def analyze_report(report: Report,
+                   fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
+                   separate: bool = False,
+                   lang: str = 'ko',
+                   separator: bool = True) -> Dict[str, Optional[DataFrame]]:
+    # 2012년 이후 데이터만 XBRL 데이터 추출
+    year = int(report.rcept_dt[:4])
+    if year > 2011:
+        xbrl = report.xbrl
+    else:
+        xbrl = None
 
-        html_df_tp = html_df[tp]
+    # XBRL File check
+    if xbrl is not None:
+        if separate is False and not xbrl.exist_consolidated():
+            raise NotFoundConsolidated('Could not find consolidated financial statements')
+        fs_df = analyze_xbrl(report, fs_tp=fs_tp, separate=separate, lang=lang,
+                             show_abstract=False, show_class=True, show_depth=10,
+                             show_concept=True, separator=separator)
+    else:
+        fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
-        # label_ko 컬럼명 추출
-        xbrl_column = find_all_columns(xbrl_df_tp, 'label_ko')
-        html_column = find_all_columns(html_df_tp, 'label_ko')
-
-        # 비교를 위한 데이터 컬럼명 추출
-        xbrl_column_title_list = set(xbrl_df_tp.columns.tolist())
-        html_column_title_list = set(html_df_tp.columns.tolist())
-        overlap = xbrl_column_title_list.intersection(html_column_title_list)
-        column_for_comparison = overlap.pop()
-
-        # 비교를 위한 column 리스트에 추가
-        xbrl_column.append(column_for_comparison)
-        html_column.append(column_for_comparison)
-
-        # HTML 공시 내용 기반 Ref Value 저장
-        html_ref = {}
-        for _, row in html_df_tp[html_column].iterrows():
-            # account 추출
-            account = extract_account_title(row[0])
-            # 참고할 값 추출
-            value = row[1]
-            if isinstance(value, float) and not pd.isna(value):
-                k = '{}'.format(value)
-                html_ref[k] = account
-
-        sign = []
-        for idx, row in xbrl_df_tp[xbrl_column].iterrows():
-            value = row[1]
-            if not pd.isna(value):
-                k = '{}'.format(value)
-                kk = '{}'.format(-value)
-                if html_ref.get(k) is None and html_ref.get(kk) is not None:
-                    sign.append(-1)
-                else:
-                    sign.append(1)
-            else:
-                sign.append(1)
-
-        sign_table[tp] = sign
-    return sign_table
-
-
-def mul_fs_to_sign_table(fs_df, sign_table):
-    if sign_table is None:
-        return fs_df
-    for tp in fs_df:
-        fs_df_tp = fs_df[tp]
-        if fs_df_tp is not None:
-            sign_tp = sign_table[tp]
-            columns = fs_df_tp.columns
-            concept_columns, data_columns = split_columns_concept_data(columns)
-            fs_df_tp[data_columns] = fs_df_tp[data_columns].multiply(sign_tp, axis=0)
     return fs_df
+
+
+def search_annual_report(corp_code: str,
+                         bgn_de: str,
+                         end_de: str = None,
+                         separate: bool = False):
+
+    reports = []
+    try:
+        # 사업보고서 검색(최종보고서)
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
+    except NoDataReceived:
+        # 감사보고서 검색
+        if separate:
+            pblntf_detail_ty = 'F001'
+        else:
+            pblntf_detail_ty = 'F002'
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+    finally:
+        if len(reports) == 0:
+            raise RuntimeError('Could not find an annual report')
+        return reports
 
 
 def extract(corp_code: str,
@@ -1166,83 +1190,65 @@ def extract(corp_code: str,
     else:
         from tqdm import tqdm
 
-    # 재무제표 검색 결과
-    statements = None
-    statements_from_html = None
-    sign_table = None
+    import dart_fss as dart
+    dart.utils.spinner.spinner_enable = False
 
-    reports = []
+    reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
     try:
-        # 사업보고서 검색(최종보고서)
-        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
-    except NoDataReceived:
-        # 감사보고서 검색
-        if separate:
-            pblntf_detail_ty = 'F001'
-        else:
-            pblntf_detail_ty = 'F002'
-        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
-    finally:
-        if len(reports) == 0:
-            raise RuntimeError('Could not find an annual report')
+        length = len(reports)
+        statements = None
+        label_df = None
+        # Spinner disable
 
-        next_index = 0
-        for idx, _ in enumerate(reports):
-            # 가장 최근 보고서의 경우 XBRL 파일을 이용하여 재무제표 검색
-            latest_report = reports[idx]
-            latest_xbrl = latest_report.xbrl
-            # XBRL 파일이 존재할 때
-            if latest_xbrl is not None:
-                if separate is False and not latest_xbrl.exist_consolidated():
-                    raise NotFoundConsolidated('Could not find consolidated financial statements')
-
-                # XBRL 정보를 이용하여 재무제표 정보 초기화
-                analyzed_results = analyze_xbrl(latest_report, fs_tp=fs_tp, separate=separate, lang=lang,
-                                                show_abstract=False, show_class=True,
-                                                show_depth=10, show_concept=True, separator=separator)
-                statements = copy.deepcopy(analyzed_results)
-
-            statements_from_html = analyze_html(latest_report, fs_tp=fs_tp, separate=separate, lang=lang)
-
-            # XBRL 데이터가 없을시 html 에서 추출된 데이터를 이용하여 처리
+        for _ in tqdm(range(length), desc='Annual reports', unit='report'):
+            report = reports.pop(0)
             if statements is None:
-                statements = statements_from_html
+                statements = analyze_report(report=report,
+                                            fs_tp=fs_tp,
+                                            separate=separate,
+                                            lang=lang,
+                                            separator=separator)
+                if separate is False and all([statements[tp] is None for tp in statements]):
+                    raise NotFoundConsolidated('Could not find consolidated financial statements')
+                # initialize label dictionary
+                label_df = init_label(statements, fs_tp=fs_tp)
+
             else:
-                sign_table = account_sign(statements, statements_from_html)
-
-            statements = mul_fs_to_sign_table(statements, sign_table)
-            # Report 에 재무제표 정보 없이 수정 사항만 기록된 경우 다음 리포트 검색
-            if statements is not None:
-                next_index = idx + 1
-                break
-
-        if separate is False and all([statements[tp] is None for tp in statements]):
-            raise NotFoundConsolidated('Could not find consolidated financial statements')
-
-        # initialize label dictionary
-        label_df = init_label(statements, fs_tp=fs_tp)
-
-        for report in tqdm(reports[next_index:], desc='Annual reports', unit='report'):
-            statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+                nstatements = analyze_report(report=report,
+                                             fs_tp=fs_tp,
+                                             separate=separate,
+                                             lang=lang,
+                                             separator=separator)
+                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
             half = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                   pblntf_detail_ty='A002', page_count=100, last_reprt_at='Y')
-            for report in tqdm(half, desc='Semiannual reports', unit='report'):
-                statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+            length = len(half)
+            for _ in tqdm(range(length), desc='Semiannual reports', unit='report'):
+                report = half.pop(0)
+                nstatements = analyze_report(report=report,
+                                             fs_tp=fs_tp,
+                                             separate=separate,
+                                             lang=lang,
+                                             separator=separator)
+                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         if str_compare(report_tp, 'quarter'):
             quarter = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                      pblntf_detail_ty='A003', page_count=100, last_reprt_at='Y')
-            for report in tqdm(quarter, desc='Quarterly report', unit='report'):
-                statements, label_df = merge_fs(statements, label_df, report, fs_tp=fs_tp, separate=separate, lang=lang)
+            length = len(quarter)
+            for _ in tqdm(range(length), desc='Quarterly report', unit='report'):
+                report = quarter.pop(0)
+                nstatements = analyze_report(report=report,
+                                            fs_tp=fs_tp,
+                                            separate=separate,
+                                            lang=lang,
+                                            separator=separator)
+                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         statements = drop_empty_columns(statements)
         label_df = drop_empty_columns(label_df)
-
-        statements = mul_fs_to_sign_table(statements, sign_table)
 
         statements = sorting_columns(statements)
         label_df = sorting_columns(label_df)
@@ -1256,4 +1262,12 @@ def extract(corp_code: str,
             'lang': lang,
             'separator': separator
         }
+        # Spinner enable
+        dart.utils.spinner.spinner_enable = True
         return FinancialStatement(statements, label_df, info)
+    except Exception as e:
+        msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
+        e.args = (*e.args, msg, )
+        raise e
+    finally:
+        dart.utils.spinner.spinner_enable = True
