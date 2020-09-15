@@ -45,6 +45,10 @@ gs_retail.add_test_value('cis', '20161231', 'label_ko', '금융원가', 48502482
 
 # LG화학
 lg_chemical = TestCrp(corp_code='00356361', bgn_de='20180101', end_de='20201231', separate=False, report_tp='quarter')
-lg_chemical.add_test_value('cis', '20180701-20180930', 'concept_id', 'ifrs-full_ProfitLoss',   346600000000 )
+lg_chemical.add_test_value('cis', '20180701-20180930', 'concept_id', 'ifrs-full_ProfitLoss', 346600000000)
 
-test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds, jtc, gs_retail, lg_chemical]
+# LG화학
+lg_chemical2 = TestCrp(corp_code='00356361', bgn_de='20120101', end_de='20201231', separate=False, report_tp='annual')
+lg_chemical2.add_test_value('is', '20120101-20121231', 'label_ko', '보통주기본주당이익', 20318)
+
+test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds, jtc, gs_retail, lg_chemical, lg_chemical2]

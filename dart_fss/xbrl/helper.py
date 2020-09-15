@@ -4,7 +4,7 @@ import math
 
 import pandas as pd
 
-from dart_fss.utils import check_datetime, str_compare,  get_datetime
+from dart_fss.utils import check_datetime, str_compare,  get_datetime, get_currency_str, str_unit_to_number_unit
 from dart_fss.utils.regex import str_to_regex
 
 
@@ -117,7 +117,7 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
     """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val):
         try:
@@ -128,6 +128,17 @@ def get_value_from_dataset(classification, dataset, concept_id):
     if isinstance(classification, dict):
         classification = [classification]
 
+    # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
+    currency_unit = None
+    if label_ko is not None:
+        regex = re.compile(r'\(단위:(.*)\)')
+        unit = regex.search(label_ko)
+        if unit is not None:
+            unit = unit.group(0)
+            currency = get_currency_str(unit)
+            if currency is not None:
+                currency_unit = str_unit_to_number_unit(currency)
+
     results = list()
     added_title = list()
     for cls in classification:
@@ -135,7 +146,13 @@ def get_value_from_dataset(classification, dataset, concept_id):
         for data in dataset[cls['cls_id']]:
             if str_compare(data.concept.id, concept_id):
                 value = str_to_float(data.value)
+                # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
+                if currency_unit is not None:
+                    decimals = str_to_float(data.decimals)
+                    value = value * pow(10, decimals)
+                    value = value * currency_unit
                 break
+
         title = get_title(cls, 'en')
         if title in added_title:
             index = added_title.index(title)
@@ -195,7 +212,7 @@ def generate_df_rows(labels, classification, dataset, max_depth,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id']))
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko']))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:
