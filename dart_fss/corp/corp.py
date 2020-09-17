@@ -197,7 +197,8 @@ class Corp(object):
                    separate: bool = False,
                    report_tp: str = 'annual',
                    lang: str = 'ko',
-                   separator: bool = True) -> FinancialStatement:
+                   separator: bool = True,
+                   dataset:str = 'xbrl') -> FinancialStatement:
         """
          재무제표 검색
 
@@ -217,11 +218,12 @@ class Corp(object):
              'ko' 한글, 'en' 영문
          separator: bool, optional
              1000단위 구분자 표시 여부
-
+        dataset: str, optional
+            'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
          Returns
          -------
          FinancialStatement
              제무제표 검색 결과
 
          """
-        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator)
+        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator, dataset)

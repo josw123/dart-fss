@@ -1104,10 +1104,11 @@ def analyze_report(report: Report,
                    fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
                    separate: bool = False,
                    lang: str = 'ko',
-                   separator: bool = True) -> Dict[str, Optional[DataFrame]]:
+                   separator: bool = True,
+                   dataset: str = 'xbrl') -> Dict[str, Optional[DataFrame]]:
     # 2012년 이후 데이터만 XBRL 데이터 추출
     year = int(report.rcept_dt[:4])
-    if year > 2011:
+    if year > 2011 and dataset == 'xbrl':
         xbrl = report.xbrl
     else:
         xbrl = None
@@ -1156,7 +1157,8 @@ def extract(corp_code: str,
             separate: bool = False,
             report_tp: str = 'annual',
             lang: str = 'ko',
-            separator: bool = True) -> FinancialStatement:
+            separator: bool = True,
+            dataset:str = 'xbrl') -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1178,7 +1180,8 @@ def extract(corp_code: str,
         'ko' 한글, 'en' 영문
     separator: bool, optional
         1000단위 구분자 표시 여부
-
+    dataset: str, optional
+        'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
     Returns
     -------
     FinancialStatement
@@ -1189,6 +1192,9 @@ def extract(corp_code: str,
         from tqdm import tqdm_notebook as tqdm
     else:
         from tqdm import tqdm
+
+    if dataset not in ['xbrl', 'web']:
+        raise ValueError('invalid dataset type: only xbrl or web are allowed')
 
     import dart_fss as dart
     dart.utils.spinner.spinner_enable = False
@@ -1218,7 +1224,8 @@ def extract(corp_code: str,
                                              fs_tp=fs_tp,
                                              separate=separate,
                                              lang=lang,
-                                             separator=separator)
+                                             separator=separator,
+                                             dataset=dataset)
                 statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
@@ -1231,7 +1238,8 @@ def extract(corp_code: str,
                                              fs_tp=fs_tp,
                                              separate=separate,
                                              lang=lang,
-                                             separator=separator)
+                                             separator=separator,
+                                             dataset=dataset)
                 statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         if str_compare(report_tp, 'quarter'):
@@ -1241,10 +1249,11 @@ def extract(corp_code: str,
             for _ in tqdm(range(length), desc='Quarterly report', unit='report'):
                 report = quarter.pop(0)
                 nstatements = analyze_report(report=report,
-                                            fs_tp=fs_tp,
-                                            separate=separate,
-                                            lang=lang,
-                                            separator=separator)
+                                             fs_tp=fs_tp,
+                                             separate=separate,
+                                             lang=lang,
+                                             separator=separator,
+                                             dataset=dataset)
                 statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         statements = drop_empty_columns(statements)
