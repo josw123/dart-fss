@@ -1202,14 +1202,14 @@ def extract(corp_code: str,
     all_report_name = ('Annual', 'Semiannual', 'Quarterly')
     all_pblntf_detail_ty = ('A001', 'A002', 'A003')
 
-    def check_report_tp(report_tp, tp):
-        if isinstance(report_tp, str):
-            idx = all_report_tp.index(report_tp) + 1
-            if report_tp in all_report_tp[:idx]:
+    def check_report_tp(req_tp, tp):
+        if isinstance(req_tp, str):
+            index = all_report_tp.index(req_tp) + 1
+            if tp in all_report_tp[:index]:
                 return True
             else:
                 return False
-        elif isinstance(report_tp, list) and tp in report_tp:
+        elif isinstance(req_tp, list) and tp in req_tp:
             return True
         else:
             return False
