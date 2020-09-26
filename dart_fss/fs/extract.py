@@ -1155,10 +1155,10 @@ def extract(corp_code: str,
             end_de: str = None,
             fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
             separate: bool = False,
-            report_tp: str = 'annual',
+            report_tp: Union[str, List[str]] = 'annual',
             lang: str = 'ko',
             separator: bool = True,
-            dataset:str = 'xbrl') -> FinancialStatement:
+            dataset: str = 'xbrl') -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1174,8 +1174,10 @@ def extract(corp_code: str,
         'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
     separate: bool, optional
         개별재무제표 여부
-    report_tp: str, optional
-        'annual' 1년, 'half' 반기, 'quarter' 분기
+    report_tp: str or list, optional
+        str: 'annual' 연간, 'half' 연간 + 반기, 'quarter' 연간 + 반기 + 분기
+        list: ['annual'] : 연간, ['half']: 반기, ['quarter'] 분기, ['annual', 'half']: 연간 + 반기
+              ['annual', 'quarter']: 연간 + 분기, ['half', 'quarter']:  반기 + 분기, ['annual', 'half', 'quarter']: 연간 + 반기 + 분기
     lang: str, optional
         'ko' 한글, 'en' 영문
     separator: bool, optional
@@ -1196,65 +1198,58 @@ def extract(corp_code: str,
     if dataset not in ['xbrl', 'web']:
         raise ValueError('invalid dataset type: only xbrl or web are allowed')
 
+    all_report_tp = ('annual', 'half', 'quarter')
+    all_report_name = ('Annual', 'Semiannual', 'Quarterly')
+    all_pblntf_detail_ty = ('A001', 'A002', 'A003')
+
+    def check_report_tp(report_tp, tp):
+        if isinstance(report_tp, str):
+            idx = all_report_tp.index(report_tp) + 1
+            if report_tp in all_report_tp[:idx]:
+                return True
+            else:
+                return False
+        elif isinstance(report_tp, list) and tp in report_tp:
+            return True
+        else:
+            return False
+
+    # Spinner disable
     import dart_fss as dart
     dart.utils.spinner.spinner_enable = False
-
-    reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
+    statements = None
+    label_df = None
+    report = None
     try:
-        length = len(reports)
-        statements = None
-        label_df = None
-        # Spinner disable
+        for idx, tp in enumerate(all_report_tp):
+            if check_report_tp(report_tp, tp):
+                if tp == 'annual':
+                    reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
+                else:
+                    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                             pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
+                length = len(reports)
+                for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
+                    report = reports.pop(0)
+                    if statements is None:
+                        statements = analyze_report(report=report,
+                                                    fs_tp=fs_tp,
+                                                    separate=separate,
+                                                    lang=lang,
+                                                    separator=separator)
+                        if separate is False and all([statements[tp] is None for tp in statements]):
+                            raise NotFoundConsolidated('Could not find consolidated financial statements')
+                        # initialize label dictionary
+                        label_df = init_label(statements, fs_tp=fs_tp)
 
-        for _ in tqdm(range(length), desc='Annual reports', unit='report'):
-            report = reports.pop(0)
-            if statements is None:
-                statements = analyze_report(report=report,
-                                            fs_tp=fs_tp,
-                                            separate=separate,
-                                            lang=lang,
-                                            separator=separator)
-                if separate is False and all([statements[tp] is None for tp in statements]):
-                    raise NotFoundConsolidated('Could not find consolidated financial statements')
-                # initialize label dictionary
-                label_df = init_label(statements, fs_tp=fs_tp)
-
-            else:
-                nstatements = analyze_report(report=report,
-                                             fs_tp=fs_tp,
-                                             separate=separate,
-                                             lang=lang,
-                                             separator=separator,
-                                             dataset=dataset)
-                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
-
-        if str_compare(report_tp, 'half') or str_compare(report_tp, 'quarter'):
-            half = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                  pblntf_detail_ty='A002', page_count=100, last_reprt_at='Y')
-            length = len(half)
-            for _ in tqdm(range(length), desc='Semiannual reports', unit='report'):
-                report = half.pop(0)
-                nstatements = analyze_report(report=report,
-                                             fs_tp=fs_tp,
-                                             separate=separate,
-                                             lang=lang,
-                                             separator=separator,
-                                             dataset=dataset)
-                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
-
-        if str_compare(report_tp, 'quarter'):
-            quarter = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                     pblntf_detail_ty='A003', page_count=100, last_reprt_at='Y')
-            length = len(quarter)
-            for _ in tqdm(range(length), desc='Quarterly report', unit='report'):
-                report = quarter.pop(0)
-                nstatements = analyze_report(report=report,
-                                             fs_tp=fs_tp,
-                                             separate=separate,
-                                             lang=lang,
-                                             separator=separator,
-                                             dataset=dataset)
-                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
+                    else:
+                        nstatements = analyze_report(report=report,
+                                                     fs_tp=fs_tp,
+                                                     separate=separate,
+                                                     lang=lang,
+                                                     separator=separator,
+                                                     dataset=dataset)
+                        statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         statements = drop_empty_columns(statements)
         label_df = drop_empty_columns(label_df)
@@ -1275,7 +1270,10 @@ def extract(corp_code: str,
         dart.utils.spinner.spinner_enable = True
         return FinancialStatement(statements, label_df, info)
     except Exception as e:
-        msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
+        if report is not None:
+            msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
+        else:
+            msg = 'Unexpected Error'
         e.args = (*e.args, msg, )
         raise e
     finally:
