@@ -147,6 +147,7 @@ class Corp(object):
                        last_reprt_at: str = 'N',
                        pblntf_ty: Union[str, List[str], None] = None,
                        pblntf_detail_ty: Union[str, List[str], None] = None,
+                       corp_cls: str = None,
                        sort: str = 'date',
                        sort_mth: str = 'desc',
                        page_no: int = 1,
@@ -165,6 +166,8 @@ class Corp(object):
             공시유형
         pblntf_detail_ty: str, optional
             공시상세유형
+        corp_cls: str, optional
+            법인구분 : Y(유가), K(코스닥), N(코넥스), E(기타), 없으면 전체조회
         sort: str, optional
             정렬방법: '접수일자' date, '회사명' crp, '보고서명' rpt
         sort_mth: str, optional
@@ -185,6 +188,7 @@ class Corp(object):
                   last_reprt_at=last_reprt_at,
                   pblntf_ty=pblntf_ty,
                   pblntf_detail_ty=pblntf_detail_ty,
+                  corp_cls=corp_cls,
                   sort=sort,
                   sort_mth=sort_mth,
                   page_no=page_no,
@@ -198,7 +202,7 @@ class Corp(object):
                    report_tp: str = 'annual',
                    lang: str = 'ko',
                    separator: bool = True,
-                   dataset:str = 'xbrl') -> FinancialStatement:
+                   dataset: str = 'xbrl') -> FinancialStatement:
         """
          재무제표 검색
 
@@ -218,7 +222,7 @@ class Corp(object):
              'ko' 한글, 'en' 영문
          separator: bool, optional
              1000단위 구분자 표시 여부
-        dataset: str, optional
+         dataset: str, optional
             'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
          Returns
          -------

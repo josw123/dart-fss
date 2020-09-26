@@ -11,6 +11,7 @@ def search(corp_code: str = None,
            last_reprt_at: str = 'N',
            pblntf_ty: str_or_list = None,
            pblntf_detail_ty: str_or_list = None,
+           corp_cls: str = None,
            sort: str = 'date',
            sort_mth: str = 'desc', # 현재 sort_mth 설정시 오류 발생
            page_no: int = 1,
@@ -31,6 +32,8 @@ def search(corp_code: str = None,
         공시유형 / Open DART  공시정보 -> 공시검색 -> 상세유형 참고
     pblntf_detail_ty: str, optional
         공시상세유형 / Open DART  공시정보 -> 공시검색 -> 상세유형 참고
+    corp_cls: str, optional
+        법인구분 : Y(유가), K(코스닥), N(코넥스), E(기타), 없으면 전체조회
     sort: str, optional
         정렬, {접수일자: date, 회사명: crp, 고서명: rpt}
     sort_mth: str, optional
