@@ -45,25 +45,28 @@ def dict_to_html(dict_data: dict, exclude=None, header=None) -> str:
         if isinstance(value, list):
             table += '<tr><th>{}</th><td>'.format(key)
             if len(value) > 0:
-                labels = list(value[0].keys())
+                if isinstance(value[0], dict):
+                    labels = list(value[0].keys())
 
-                if exclude:
-                    labels = [x for x in labels if x not in exclude]
+                    if exclude:
+                        labels = [x for x in labels if x not in exclude]
 
-                table += '<table style="width:100%"><thead><tr><th width="20">No.</th>'
-                for label in labels:
-                    table += '<th>{}</th>'.format(label)
-                table += '</tr></thead>'
-                table += '<tbody>'
-                for idx, v in enumerate(value):
-                    table += '<tr><th width="20">{}</th>'.format(idx)
-                    for l in labels:
-                        table += '<td>{}</td>'.format(v.get(l))
-                    table += '</tr>'
-                table += '</tbody></table>'
+                    table += '<table style="width:100%"><thead><tr><th width="20">No.</th>'
+                    for label in labels:
+                        table += '<th>{}</th>'.format(label)
+                    table += '</tr></thead>'
+                    table += '<tbody>'
+                    for idx, v in enumerate(value):
+                        table += '<tr><th width="20">{}</th>'.format(idx)
+                        for l in labels:
+                            table += '<td>{}</td>'.format(v.get(l))
+                        table += '</tr>'
+                    table += '</tbody></table>'
+                else:
+                    table += '[{}]'.format(', '.join(value))
             table += '</td></tr>'
         else:
-            table += '<tr><th>{}</th><td>{}<td></tr>'.format(key, value)
+            table += '<tr><th>{}</th><td>{}</td></tr>'.format(key, value)
     table += '</tbody></table>'
 
     return style + table

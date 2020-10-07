@@ -14,6 +14,7 @@ def search_filings(corp_code: str = None,
                    last_reprt_at: str = 'N',
                    pblntf_ty: str_or_list = None,
                    pblntf_detail_ty: str_or_list = None,
+                   corp_cls: str = None,
                    sort: str = 'date',
                    sort_mth: str = 'desc',
                    page_no: int = 1,
@@ -34,6 +35,8 @@ def search_filings(corp_code: str = None,
         공시유형
     pblntf_detail_ty: str, optional
         공시상세유형
+    corp_cls: str, optional
+        법인구분 : Y(유가), K(코스닥), N(코넥스), E(기타), 없으면 전체조회
     sort: str, optional
         정렬, {접수일자: date, 회사명: crp, 고서명: rpt}
     sort_mth: str, optional
@@ -64,6 +67,7 @@ def search_filings(corp_code: str = None,
         'last_reprt_at': last_reprt_at,
         'pblntf_ty': pblntf_ty,
         'pblntf_detail_ty': pblntf_detail_ty,
+        'corp_cls': corp_cls,
         'sort': sort,
         'sort_mth': sort_mth,
         'page_no': page_no,
