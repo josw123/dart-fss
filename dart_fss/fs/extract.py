@@ -72,6 +72,10 @@ def extract_date_from_header(header):
     date_info = []
     td_list = header.find_all('td')
     for td in td_list:
+        # Remove white text in tag
+        for tag in td.find_all(style=re.compile(r'color:#ffffff', re.IGNORECASE)):
+            tag.decompose()
+
         searched = regex.findall(td.text)
         searched2 = regex2.findall(td.text)
         if len(searched) > 0:
