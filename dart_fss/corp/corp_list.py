@@ -62,6 +62,7 @@ class CorpList(object, metaclass=Singleton):
         self._sectors = []
 
         self._stock_codes = dict()
+        self._delisting = dict()
         self._stock_market = dict()
         self._profile = profile
 
@@ -119,6 +120,7 @@ class CorpList(object, metaclass=Singleton):
                     # Update information
                     x.update(info)
                 except KeyError:
+                    self._delisting[stock_code] = idx
                     pass
             self._corp_cls_list.append(corp_cls)
             self._corp_product.append(product)
@@ -244,14 +246,15 @@ class CorpList(object, metaclass=Singleton):
     def sectors(self):
         return self._sectors
 
-    def find_by_stock_code(self, stock_code):
+    def find_by_stock_code(self, stock_code, include_delisting=False):
         """ 주식 종목 코드를 이용한 찾기
 
         Parameters
         ----------
         stock_code: str
             주식 종목 코드(6자리)
-
+        include_delisting: bool, optional
+            상장폐지 주식 포함 검색 default: False
         Returns
         -------
         Corp
@@ -259,6 +262,8 @@ class CorpList(object, metaclass=Singleton):
         """
         corps = self.corps
         idx = self._stock_codes.get(stock_code)
+        if include_delisting:
+            idx = self._delisting.get(stock_code)
         return corps[idx] if idx is not None else None
 
     def __repr__(self):
