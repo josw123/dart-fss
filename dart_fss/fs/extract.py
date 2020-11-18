@@ -283,8 +283,21 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     unit = str_unit_to_number_unit(str_unit)
     unit_regex = re.compile(r'\(단위\s*?:\s*([a-zA-Zㄱ-힣])\)')
 
+    # br 태그에 의해 구분되는 경우 처리하기 위한 함수
+    def get_text_before_newline(tag):
+        br = tag.find('br')
+        if br is None:
+            # br 태그가 없을시 단순 반환
+            return tag.text
+        else:
+            text = ''
+            for x in br.previous_siblings:
+                text += str(x)
+            # br 태그로 구분되는 경우 첫번째 라인 텍스트만 반환
+            return BeautifulSoup(text, 'html.parser').text
+
     for idx, tr in enumerate(tbody.find_all('tr')):
-        extracted = [re.sub(r'\s+|=+', '', td.text) for td in tr.find_all('td')]
+        extracted = [re.sub(r'\s+|=+', '', get_text_before_newline(td)) for td in tr.find_all('td')]
         row = {key: 0 for key in deduplicated}
         for key, index_list in column_matrix.items():
             for index in index_list:
@@ -1101,7 +1114,6 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
         columns = np.array(columns, dtype=object)
         df[tp] = df_tp[columns]
     return df
-
 
 
 def analyze_report(report: Report,
