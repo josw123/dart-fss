@@ -30,7 +30,7 @@ def test_find_by_product(corp_list):
 def test_find_by_sector(corp_list):
     res = corp_list.find_by_sector(corp_list.sectors[0])
     actual = len(res)
-    expected = 19
+    expected = 18
     assert actual == expected
 
 
