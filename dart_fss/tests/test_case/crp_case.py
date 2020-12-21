@@ -12,6 +12,7 @@ samsung.add_test_value('cf', '20091231', 'concept_id',
                        'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 10149930000000)
 samsung.add_test_value('cf', '20151231', 'concept_id',
                        'ifrs-full_InterestPaidClassifiedAsOperatingActivities', 748256000000)
+samsung.add_test_value('is', '20151231', 'concept_id', 'ifrs-full_BasicEarningsLossPerShare', 126305)
 
 # 현대자동차
 hyundai = TestCrp(corp_code='00164742', bgn_de='20120101',
