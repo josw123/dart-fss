@@ -149,6 +149,9 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
                 if currency_unit is not None:
                     decimals = str_to_float(data.decimals)
+                    # decimals이 없을 경우 0으로 처리
+                    if math.isinf(decimals) or math.isnan(decimals):
+                        decimals = 0
                     value = value * pow(10, decimals)
                     value = value * currency_unit
                 break
