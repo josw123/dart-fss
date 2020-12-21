@@ -26,6 +26,8 @@ def str_compare(str1: str, str2: str) -> bool:
     bool
         문자열이 동일하다면 True
     """
+    if not isinstance(str1, str) or not isinstance(str2, str):
+        return False
     str1 = str1.strip().lower()
     str2 = str2.strip().lower()
     return str1 == str2
