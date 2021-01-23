@@ -16,7 +16,7 @@ def test_find_by_corp_name(corp_list):
 def test_find_by_corp_name_with_market_type(corp_list):
     res = corp_list.find_by_corp_name('삼성', market='K')
     actual = len(res)
-    expected = 2
+    expected = 1
     assert actual == expected
 
 

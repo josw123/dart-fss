@@ -117,7 +117,7 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, lang='ko',):
     """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val):
         try:
@@ -156,7 +156,7 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
                     value = value * currency_unit
                 break
 
-        title = get_title(cls, 'en')
+        title = get_title(cls, lang)
         if title in added_title:
             index = added_title.index(title)
             if not math.isnan(value):
@@ -215,7 +215,7 @@ def generate_df_rows(labels, classification, dataset, max_depth,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko']))
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], lang=lang))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:
