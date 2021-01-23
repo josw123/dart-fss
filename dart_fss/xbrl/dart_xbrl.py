@@ -247,6 +247,8 @@ class DartXbrl(object):
 
         """
         table = self.get_table_by_code('d999007')
+        if table is None:
+            return None
         table_dict = table.get_value_by_concept_id(concept_id)
         compare_name = 'Separate' if separate else 'Consolidated'
         for keys, value in table_dict.items():
