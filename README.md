@@ -58,7 +58,7 @@ fs.save()
 ## 주의사항
 
 -   Open DART 및 DART 홈페이지의 경우 분당 100회 이상 요청시 서비스가 제한될 수 있음
--   [관련 공지사항](https://bit.ly/2wcnz2y>)
+-   [관련 공지사항](https://bit.ly/3cjF3Np): [FAQ]->[오픈API 이용한도는 어떻게 되나요?]
 
 ## License
 This project is licensed under the MIT License
