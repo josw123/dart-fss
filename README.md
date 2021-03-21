@@ -4,6 +4,7 @@
 ![Build Status](https://bit.ly/313BAwe)
 [![Coverage](https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg)](https://codecov.io/gh/josw123/dart-fss)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde)](https://www.codacy.com/app/josw123/dart-fss?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josw123/dart-fss&amp;utm_campaign=Badge_Grade)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjosw123%2Fdart-fss.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjosw123%2Fdart-fss?ref=badge_shield)
 
 대한민국 금융감독원에서 운영하는 다트([DART](https://dart.fss.or.kr)) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
 
@@ -62,3 +63,6 @@ fs.save()
 
 ## License
 This project is licensed under the MIT License
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjosw123%2Fdart-fss.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjosw123%2Fdart-fss?ref=badge_large)
