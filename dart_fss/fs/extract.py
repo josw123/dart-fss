@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import math
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -199,7 +200,6 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                     if len(date_info) > 0:
                         date_list = date_info.pop(0)
                     else:
-                        import warnings
                         date = '-'.join([date.strftime('%Y%m%d') for date in date_list])
                         warnings_text = "Date data length does not match table header."\
                                 + "So last date was set using last data({}). ".format(date)
@@ -511,7 +511,7 @@ def report_find_all(report: Report, query: dict, fs_tp: Tuple[str], separate: bo
 
 
 def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
-                 lang: str = 'ko', separate: bool = False) -> Dict[str, DataFrame]:
+                 lang: str = 'ko', separate: bool = False) -> Union[Dict[str, DataFrame], None]:
     """
     보고서의 HTML을 이용하여 재무제표를 추출하는 Method
 
@@ -552,7 +552,11 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
             'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
             'scope': ['attached_reports', 'pages']
         }
-        _, fs_table = report_find_all(report, query, fs_tp, separate)
+        count, fs_table = report_find_all(report, query, fs_tp, separate)
+
+    # 수정된 검색어의 경우에도 검색결과가 없을시, None 반환
+    if count == 0:
+        return None
 
     extract_results = extract_fs_table(fs_table=fs_table, fs_tp=fs_tp, separate=separate, lang=lang)
     return extract_results
@@ -1121,7 +1125,7 @@ def analyze_report(report: Report,
                    separate: bool = False,
                    lang: str = 'ko',
                    separator: bool = True,
-                   dataset: str = 'xbrl') -> Dict[str, Optional[DataFrame]]:
+                   dataset: str = 'xbrl') -> Union[Dict[str, Optional[DataFrame]], None]:
     # 2012년 이후 데이터만 XBRL 데이터 추출
     year = int(report.rcept_dt[:4])
     if year > 2011 and dataset == 'xbrl':
@@ -1253,10 +1257,14 @@ def extract(corp_code: str,
                                                     separate=separate,
                                                     lang=lang,
                                                     separator=separator)
-                        if separate is False and all([statements[tp] is None for tp in statements]):
-                            raise NotFoundConsolidated('Could not find consolidated financial statements')
-                        # initialize label dictionary
-                        label_df = init_label(statements, fs_tp=fs_tp)
+                        if statements is None:
+                            warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                            warnings.warn(warnings_text, RuntimeWarning)
+                        else:
+                            if separate is False and all([statements[tp] is None for tp in statements]):
+                                raise NotFoundConsolidated('Could not find consolidated financial statements')
+                            # initialize label dictionary
+                            label_df = init_label(statements, fs_tp=fs_tp)
 
                     else:
                         nstatements = analyze_report(report=report,
@@ -1265,7 +1273,16 @@ def extract(corp_code: str,
                                                      lang=lang,
                                                      separator=separator,
                                                      dataset=dataset)
-                        statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
+                        if nstatements is None:
+                            warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                            warnings.warn(warnings_text, RuntimeWarning)
+                        else:
+                            statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
+
+        # Spinner enable
+        dart.utils.spinner.spinner_enable = True
+        if separate is False and (statements is None or all([statements[tp] is None for tp in statements])):
+            raise NotFoundConsolidated('Could not find consolidated financial statements')
 
         statements = drop_empty_columns(statements)
         label_df = drop_empty_columns(label_df)
@@ -1282,8 +1299,6 @@ def extract(corp_code: str,
             'lang': lang,
             'separator': separator
         }
-        # Spinner enable
-        dart.utils.spinner.spinner_enable = True
         return FinancialStatement(statements, label_df, info)
     except Exception as e:
         if report is not None:
