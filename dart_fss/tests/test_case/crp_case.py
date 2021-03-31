@@ -5,8 +5,8 @@ samsung = TestCrp(corp_code='00126380', bgn_de='20110101',
                   separate=False, report_tp='annual')
 samsung.add_test_value('bs', '20091231', 'concept_id',
                        'ifrs-full_Equity', 73045202000000)
-samsung.add_test_value('is', '20091231', 'label_ko',
-                       '영업이익(손실)', 10925259000000)
+samsung.add_test_value('is', '20091231', 'concept_id',
+                       'dart_OperatingIncomeLoss', 10925259000000)
 samsung.add_test_value('cis', '20091231', 'label_ko', '총포괄손익', 9098844000000)
 samsung.add_test_value('cf', '20091231', 'concept_id',
                        'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 10149930000000)
@@ -85,6 +85,9 @@ hana_fn = TestCrp(corp_code='00547583', bgn_de='20120101',
                   end_de='20121231', separate=False, report_tp='annual')
 hana_fn.add_test_value('bs', '20100101', 'label_ko', '부채총계', 139823866000000)
 
+# 아세아 제지 (#63)
+asia_paper = TestCrp(corp_code='00138729', bgn_de='20180101', end_de='20200331', separate=False, report_tp='annual')
+asia_paper.add_test_value('bs', '20181231', 'label_ko', '유동자산', 280262148456)
 
 test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds,
-                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn]
+                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper]
