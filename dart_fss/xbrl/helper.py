@@ -117,7 +117,7 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, lang='ko',):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
     """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val):
         try:
@@ -156,7 +156,7 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, l
                     value = value * currency_unit
                 break
 
-        title = get_title(cls, lang)
+        title = get_title(cls, 'en')
         if title in added_title:
             index = added_title.index(title)
             if not math.isnan(value):
@@ -182,9 +182,10 @@ def generate_df_columns(definition, classification, max_depth, lang='ko', show_c
     added_title = list()
     for cls in classification:
         title = get_title(cls, lang)
-        if title not in added_title:
+        key = get_title(cls, 'en')
+        if key not in added_title:
             columns.append(title)
-            added_title.append(title)
+            added_title.append(key)
     return pd.MultiIndex.from_tuples(columns)
 
 
@@ -215,7 +216,7 @@ def generate_df_rows(labels, classification, dataset, max_depth,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], lang=lang))
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko']))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:
@@ -282,7 +283,6 @@ def consolidated_code_to_role_number(code, separate=False):
         'D4002': ['D520005'],
     }
     return separated_code[code] if separate else consolidated_code[code]
-
 
 
 def cls_datetime_check(cls, start_dt, end_dt):
