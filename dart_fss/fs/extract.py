@@ -371,7 +371,8 @@ def seek_table(tables: List, includes: Pattern,
                             continue
 
                         # 타이틀이 너무 길때 Pass
-                        if len(title) > 12:
+                        # len(title) > 12 일때 일부 회사(메리츠화재)에서 연결포괄손익계산서 검색이 안되는 문제가 발생
+                        if len(title) > 13:
                             not_headers.append(tag)
                             continue
 
