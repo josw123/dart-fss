@@ -360,7 +360,10 @@ def seek_table(tables: List, includes: Pattern,
             # tag 가 Tag Object 인 경우에만 검색 진행
             if isinstance(tag, Tag):
                 # title 검색
-                children = tag.findChildren(text=includes)
+                children = tag.find_all(text=includes)
+                if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
+                    if includes.search(tag.text) is not None:
+                        children = [tag.text]
                 for child in children:
                     title = child
                     if title:
