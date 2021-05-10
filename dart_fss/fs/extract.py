@@ -360,7 +360,10 @@ def seek_table(tables: List, includes: Pattern,
             # tag 가 Tag Object 인 경우에만 검색 진행
             if isinstance(tag, Tag):
                 # title 검색
-                children = tag.findChildren(text=includes)
+                children = tag.find_all(text=includes)
+                if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
+                    if includes.search(tag.text) is not None:
+                        children = [tag.text]
                 for child in children:
                     title = child
                     if title:
@@ -371,7 +374,8 @@ def seek_table(tables: List, includes: Pattern,
                             continue
 
                         # 타이틀이 너무 길때 Pass
-                        if len(title) > 12:
+                        # len(title) > 12 일때 일부 회사(메리츠화재)에서 연결포괄손익계산서 검색이 안되는 문제가 발생
+                        if len(title) > 13:
                             not_headers.append(tag)
                             continue
 

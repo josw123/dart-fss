@@ -82,6 +82,7 @@ meritz_fire.add_test_value('cis', '20130401-20131231',
 
 # 하나 금융 투자 (#54)
 hana_fn = TestCrp(corp_code='00547583', bgn_de='20120101',
+
                   end_de='20121231', separate=False, report_tp='annual')
 hana_fn.add_test_value('bs', '20100101', 'label_ko', '부채총계', 139823866000000)
 
@@ -89,5 +90,9 @@ hana_fn.add_test_value('bs', '20100101', 'label_ko', '부채총계', 13982386600
 asia_paper = TestCrp(corp_code='00138729', bgn_de='20180101', end_de='20200331', separate=False, report_tp='annual')
 asia_paper.add_test_value('bs', '20181231', 'label_ko', '유동자산', 280262148456)
 
+# 부국증권 (#66)
+bookook = TestCrp(corp_code='00123772', bgn_de='20200101', end_de='20210503', separate=False, report_tp='annual')
+bookook.add_test_value('bs', '20201231', 'label_ko', '부채및자본총계', 1608864797228)
+
 test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds,
-                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper]
+                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper, bookook]
