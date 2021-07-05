@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 import math
+import warnings
+from datetime import datetime
 
 import pandas as pd
 
@@ -368,8 +370,15 @@ def cls_merge_type(classification):
         for cls in classification:
             instant_datetime = cls.get('instant_datetime')
             if instant_datetime:
+                start_datetime = cls_datetime.get(instant_datetime)
+                if start_datetime is None:
+                    warnings_text = "start_datetime could not be found. " \
+                                    "Therefore, start_datetime is set to January 01, 1900"
+                    warnings.warn(warnings_text, RuntimeWarning)
+                    start_datetime = datetime(year=1900, month=1, day=1)
                 cls['instant_datetime'] = None
-                cls['start_datetime'] = cls_datetime[instant_datetime]
+                cls['start_datetime'] = start_datetime
+
                 cls['end_datetime'] = instant_datetime
 
     return classification
