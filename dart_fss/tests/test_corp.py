@@ -14,16 +14,18 @@ def test_find_by_corp_name(corp_list):
 
 
 def test_find_by_corp_name_with_market_type(corp_list):
-    res = corp_list.find_by_corp_name('삼성', market='K')
+    # Change test case from samsung to studio dragon
+    res = corp_list.find_by_corp_name('스튜디오드래곤', market='K')
     actual = len(res)
     expected = 1
     assert actual == expected
 
 
 def test_find_by_product(corp_list):
-    res = corp_list.find_by_product('휴대폰')
+    # Change test case from cell phone to mine
+    res = corp_list.find_by_product('광산')
     actual = len(res)
-    expected = 25
+    expected = 1
     assert actual == expected
 
 

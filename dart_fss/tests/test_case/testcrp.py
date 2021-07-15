@@ -45,15 +45,20 @@ class TestCrp(object):
             expected = test['expected']
 
             df = fs[tp]
-            date_column = find_all_columns(df=df, query=date)[0]
-            label_column = find_all_columns(df=df, query=column)[0]
-
+            date_column = find_all_columns(df=df, query=date)
+            label_column = find_all_columns(df=df, query=column)
             actual = None
 
-            for idx in range(len(df)):
-                text = df[label_column].iloc[idx].replace(' ', '')
-                if str_compare(text, item):
-                    actual = df[date_column].iloc[idx]
+            if len(date_column) != 0 and len(label_column) != 0:
+                label_column = label_column[0]
+                date_column = date_column[0]
+
+                actual = None
+
+                for idx in range(len(df)):
+                    text = df[label_column].iloc[idx].replace(' ', '')
+                    if str_compare(text, item):
+                        actual = df[date_column].iloc[idx]
 
             if actual != expected:
                 pytest.fail("Test failed: corp_code='{}', ".format(self.corp.corp_code) +
@@ -61,4 +66,3 @@ class TestCrp(object):
                             "start_dt='{}', report_tp='{}', ".format(self.bgn_de, fs.info['report_tp']) +
                             "date='{}', column='{}',".format(date, column) +
                             "item='{}', actual='{}', expected='{}'".format(item, actual, expected))
-
