@@ -49,12 +49,22 @@ class TestCrp(object):
             label_column = find_all_columns(df=df, query=column)
             actual = None
 
-            if len(date_column) != 0 and len(label_column) != 0:
-                label_column = label_column[0]
+            if isinstance(date_column, list) and len(date_column) > 0:
                 date_column = date_column[0]
+            elif len(date_column) > 0:
+                date_column = date_column[0]
+            else:
+                date_column = None
 
-                actual = None
+            if isinstance(label_column, list) and len(label_column) > 0:
+                label_column = label_column[0]
+            elif len(label_column) > 0:
+                label_column = label_column[0]
+            else:
+                label_column = None
 
+
+            if label_column is not None and date_column is not None:
                 for idx in range(len(df)):
                     text = df[label_column].iloc[idx].replace(' ', '')
                     if str_compare(text, item):
