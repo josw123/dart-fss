@@ -60,7 +60,8 @@ class Request(object, metaclass=Singleton):
     def __init__(self):
         self.s = requests.Session()
         self.update_user_agent()
-        self.delay = 1
+        # 분당 1000회 이상 자체적으로 24시간 IP차단
+        self.delay = 0.1
 
     def update_user_agent(self, force: bool = False):
         """ Update User-Agent
