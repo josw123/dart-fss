@@ -5,11 +5,8 @@ import versioneer
 
 NAME = 'dart-fss'
 
-INSTALL_REQUIRES = (
-    ['numpy>=1.17.0', 'pandas', 'requests', 'lxml', 'html5lib', 'tqdm', 'beautifulsoup4',
-     'isodate', 'arelle', 'fake-useragent', 'openpyxl', 'halo', 'xmltodict', 'appdirs']
-)
-
+with open('requirements.txt') as f:
+    INSTALL_REQUIRES = f.read().splitlines()
 
 with open(path.join('./', 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
