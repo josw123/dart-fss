@@ -65,16 +65,8 @@ def str_to_float(text: str, unit: float) -> float:
 
 
 def text_split_by_br(tag) -> list:
-    res = []
-    text = ''
-    for x in tag:
-        if getattr(x, 'name', None) != 'br':
-            text += str(x)
-        else:
-            res.append(text)
-            text = ''
-    res.append(text)
-    return res
+    text = tag.get_text()
+    return text.split('\n')
 
 
 def extract_date_from_header(header):
