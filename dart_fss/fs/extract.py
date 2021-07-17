@@ -64,20 +64,13 @@ def str_to_float(text: str, unit: float) -> float:
         raise ValueError('Invalid Value: {}'.format(text))
 
 
-def text_split_by_br(tag) -> list:
-    res = []
-    text = ''
-    for x in tag:
-        if getattr(x, 'name', None) != 'br':
-            if type(x) is Tag:
-                text += x.get_text()
-            else:
-                text += x
-        else:
-            res.append(text)
-            text = ''
+regex_br = re.compile(r'<br\s*?\/?\s*?>')
 
-    res.append(text)
+def text_split_by_br(tag) -> list:
+    s = regex_br.sub('\n', str(tag),  re.MULTILINE)
+    t = BeautifulSoup(s, 'html.parser')
+    s = t.get_text()
+    res = [x for x in s.split('\n') if len(x) > 0]
     return res
 
 
@@ -93,7 +86,6 @@ def extract_date_from_header(header):
         # Remove white text in tag
         for tag in td.find_all(style=re.compile(r'color:#ffffff', re.IGNORECASE)):
             tag.decompose()
-
         texts = text_split_by_br(td)
         for text in texts:
             searched = regex.findall(text)
@@ -381,7 +373,7 @@ def seek_table(tables: List, includes: Pattern,
                 # title 검색
                 children = tag.find_all(text=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
-                    texts = text_split_by_br(tag.getText())
+                    texts = text_split_by_br(tag)
                     children = [text for text in texts if includes.search(text)]
                     
                 for child in children:
