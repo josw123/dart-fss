@@ -65,8 +65,20 @@ def str_to_float(text: str, unit: float) -> float:
 
 
 def text_split_by_br(tag) -> list:
-    text = tag.get_text()
-    return text.split('\n')
+    res = []
+    text = ''
+    for x in tag:
+        if getattr(x, 'name', None) != 'br':
+            if type(x) is Tag:
+                text += x.get_text()
+            else:
+                text += x
+        else:
+            res.append(text)
+            text = ''
+
+    res.append(text)
+    return res
 
 
 def extract_date_from_header(header):
@@ -369,8 +381,9 @@ def seek_table(tables: List, includes: Pattern,
                 # title 검색
                 children = tag.find_all(text=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
-                    if includes.search(tag.text) is not None:
-                        children = [tag.text]
+                    texts = text_split_by_br(tag.getText())
+                    children = [text for text in texts if includes.search(text)]
+                    
                 for child in children:
                     title = child
                     if title:
