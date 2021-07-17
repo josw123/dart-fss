@@ -64,6 +64,23 @@ def str_to_float(text: str, unit: float) -> float:
         raise ValueError('Invalid Value: {}'.format(text))
 
 
+def text_split_by_br(tag) -> list:
+    res = []
+    text = ''
+    for x in tag:
+        if getattr(x, 'name', None) != 'br':
+            if type(x) is Tag:
+                text += x.get_text()
+            else:
+                text += x
+        else:
+            res.append(text)
+            text = ''
+
+    res.append(text)
+    return res
+
+
 def extract_date_from_header(header):
     """ 재무제표 기간 추출을 위해 사용하는 method"""
     # YYYY년 MM월 DD일 형태 검색
@@ -77,39 +94,41 @@ def extract_date_from_header(header):
         for tag in td.find_all(style=re.compile(r'color:#ffffff', re.IGNORECASE)):
             tag.decompose()
 
-        searched = regex.findall(td.text)
-        searched2 = regex2.findall(td.text)
-        if len(searched) > 0:
-            f = searched[0]
-            if len(searched2) == 0:
-                # 오류 방지를 위해 Dummy 값 삽입
-                searched2 = [[9999, 99, 99, 99, 99]]
-            s = searched2[0]
-            # 만약 regex와 regex2의 첫번째 결과 값이 동일할때 regex2로 검색처리
-            # 제21(당)기 2018년 01월 01일부터 12월 31일 까지 형태 처리
-            if f[1] == s[1] and f[2] == s[2] and int(s[3]) < 13 and int(s[4]) < 32:
-                date = []
+        texts = text_split_by_br(td)
+        for text in texts:
+            searched = regex.findall(text)
+            searched2 = regex2.findall(text)
+            if len(searched) > 0:
+                f = searched[0]
+                if len(searched2) == 0:
+                    # 오류 방지를 위해 Dummy 값 삽입
+                    searched2 = [[9999, 99, 99, 99, 99]]
+                s = searched2[0]
+                # 만약 regex와 regex2의 첫번째 결과 값이 동일할때 regex2로 검색처리
+                # 제21(당)기 2018년 01월 01일부터 12월 31일 까지 형태 처리
+                if f[1] == s[1] and f[2] == s[2] and int(s[3]) < 13 and int(s[4]) < 32:
+                    date = []
 
-                year = int(s[0])
-                month = int(s[1])
-                day = int(s[2])
-                date.append(datetime(year, month, day))
-
-                month = int(s[3])
-                day = int(s[4])
-                date.append(datetime(year, month, day))
-
-                if len(date) > 0:
-                    date_info.append(tuple(date))
-            else:
-                date = []
-                for d in searched:
-                    year = int(d[0])
-                    month = int(d[1])
-                    day = int(d[2])
+                    year = int(s[0])
+                    month = int(s[1])
+                    day = int(s[2])
                     date.append(datetime(year, month, day))
-                if len(date) > 0:
-                    date_info.append(tuple(date))
+
+                    month = int(s[3])
+                    day = int(s[4])
+                    date.append(datetime(year, month, day))
+
+                    if len(date) > 0:
+                        date_info.append(tuple(date))
+                else:
+                    date = []
+                    for d in searched:
+                        year = int(d[0])
+                        month = int(d[1])
+                        day = int(d[2])
+                        date.append(datetime(year, month, day))
+                    if len(date) > 0:
+                        date_info.append(tuple(date))
 
     return date_info
 
@@ -362,8 +381,9 @@ def seek_table(tables: List, includes: Pattern,
                 # title 검색
                 children = tag.find_all(text=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
-                    if includes.search(tag.text) is not None:
-                        children = [tag.text]
+                    texts = text_split_by_br(tag.getText())
+                    children = [text for text in texts if includes.search(text)]
+                    
                 for child in children:
                     title = child
                     if title:

@@ -24,7 +24,8 @@ class FinancialStatement(object):
         else:
             pd.options.display.float_format = '{:}'.format
         self._statements = statements
-        self._order = [tp for tp in self._statements]
+        # Fix order
+        self._order = [tp for tp in ('bs', 'is', 'cis', 'cf') if tp in self._statements]
         self._labels = label_df
         self.info = info
 
