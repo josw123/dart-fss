@@ -333,7 +333,13 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
         for column in df_columns.tolist():
             ordered_list.append(row.get(column, None))
 
-        row_unit = unit_regex.search(ordered_list[0])
+        try:
+            row_unit = unit_regex.search(ordered_list[0])
+        except TypeError as ex :
+            warnings_text = '{} : {}'.format(repr(ex), ordered_list[0])
+            warnings.warn(warnings_text, RuntimeWarning)
+            row_unit = False
+
         if row_unit:
             row_unit = str_unit_to_number_unit(row_unit.group(1))
             for jdx, value in enumerate(ordered_list):
