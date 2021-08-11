@@ -820,7 +820,7 @@ def compare_df_and_ndf_value(column: pd.Index,
                 found = False
                 if len(w) > 0:
                     for index in w.index.values:
-                        if index not in index_used:
+                        if index not in index_used and ndf[column].iloc[index] is not None :
                             nvalue = sign * ndf[column].iloc[index]
                             nlabel = ndf[nko_column].iloc[index][0]
                             nlabel = extract_account_title(nlabel)
