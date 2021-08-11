@@ -784,7 +784,10 @@ def compare_df_and_ndf_value(column: pd.Index,
     _, df_columns = split_columns_concept_data(df.columns)
     _, ndf_columns = split_columns_concept_data(ndf.columns)
 
-    overlap = set(df_columns).intersection(set(ndf_columns))
+    df_columns_set = convert_multiindex_to_set(df_columns)
+    ndf_columns_set = convert_multiindex_to_set(ndf_columns)
+
+    overlap = df_columns_set.intersection(ndf_columns_set)
     nko_column = find_all_columns(ndf, r'label_ko')
 
     index_used = []
@@ -937,8 +940,8 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             _, df_columns = split_columns_concept_data(df.columns)
             _, ndf_columns =  split_columns_concept_data(ndf.columns)
-            df_columns = set(df_columns.tolist())
-            ndf_columns = set(ndf_columns.tolist())
+            df_columns = convert_multiindex_to_set(df_columns)
+            ndf_columns = convert_multiindex_to_set(ndf_columns)
 
             overlap = df_columns.intersection(ndf_columns)
 
@@ -966,6 +969,12 @@ def merge_fs(fs_df: Dict[str, DataFrame],
                 fs_df[tp][column] = ndata
 
     return fs_df, label_df
+
+def convert_multiindex_to_set(multiindex) :
+    if multiindex is None :
+        return set()
+    return set(multiindex.tolist())
+
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
