@@ -1312,7 +1312,11 @@ def extract(corp_code: str,
 
         # Spinner enable
         dart.utils.spinner.spinner_enable = True
-        if separate is False and (statements is None or all([statements[tp] is None for tp in statements])):
+
+        if statements is None :
+            raise NotFoundConsolidated('Could not find consolidated financial statements')
+
+        if separate is False and (all([statements[tp] is None for tp in statements])):
             raise NotFoundConsolidated('Could not find consolidated financial statements')
 
         statements = drop_empty_columns(statements)
