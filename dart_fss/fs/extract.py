@@ -91,39 +91,51 @@ def extract_date_from_header(header):
             searched = regex.findall(text)
             searched2 = regex2.findall(text)
             if len(searched) > 0:
-                f = searched[0]
                 if len(searched2) == 0:
                     # 오류 방지를 위해 Dummy 값 삽입
                     searched2 = [[9999, 99, 99, 99, 99]]
-                s = searched2[0]
-                # 만약 regex와 regex2의 첫번째 결과 값이 동일할때 regex2로 검색처리
-                # 제21(당)기 2018년 01월 01일부터 12월 31일 까지 형태 처리
-                if f[1] == s[1] and f[2] == s[2] and int(s[3]) < 13 and int(s[4]) < 32:
-                    date = []
-
-                    year = int(s[0])
-                    month = int(s[1])
-                    day = int(s[2])
-                    date.append(datetime(year, month, day))
-
-                    month = int(s[3])
-                    day = int(s[4])
-                    date.append(datetime(year, month, day))
-
+                try:
+                    date = extract_date_from_searched_result(searched, searched2)
                     if len(date) > 0:
                         date_info.append(tuple(date))
-                else:
-                    date = []
-                    for d in searched:
-                        year = int(d[0])
-                        month = int(d[1])
-                        day = int(d[2])
-                        date.append(datetime(year, month, day))
-                    if len(date) > 0:
-                        date_info.append(tuple(date))
+                except Exception as ex:
+                    warnings_text = "Maybe found wrong date data - searched : {}, searched2 : {}".format(searched, searched2)
+                    warnings.warn(warnings_text, RuntimeWarning)
 
     return date_info
 
+def extract_date_from_searched_result(searched, searched2) :
+    f = searched[0]
+    s = searched2[0]
+    # 만약 regex와 regex2의 첫번째 결과 값이 동일할때 regex2로 검색처리
+    # 제21(당)기 2018년 01월 01일부터 12월 31일 까지 형태 처리
+    if f[1] == s[1] and f[2] == s[2] and int(s[3]) < 13 and int(s[4]) < 32:
+        date = []
+        year = int(s[0])
+        month = int(s[1])
+        day = int(s[2])
+        date.append(datetime(year, month, day))
+
+        month = int(s[3])
+        day = int(s[4])
+        date.append(datetime(year, month, day))
+        return date
+
+    date = []
+    for d in searched:
+        try:
+            year = int(d[0])
+            month = int(d[1])
+            day = int(d[2])
+            date.append(datetime(year, month, day))
+        except Exception as ex :
+            warnings_text = "Maybe found wrong date data : {} of searched( {} )".format(d, searched)
+            warnings.warn(warnings_text, RuntimeWarning)
+
+    if len(date) % 2 == 1 :
+        return []
+
+    return date
 
 def extract_unit_from_header(header):
     """ html에서 unit을 추출하는 함수 """
