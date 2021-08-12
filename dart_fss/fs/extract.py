@@ -885,6 +885,13 @@ def init_label(fs_df: Dict[str, DataFrame],
                     label_columns.append(('default', 'concept_id',))
                 for column in date_columns:
                     label_columns.append(column)
+
+                # label_columns 을 하나도 찾지 못했을 때는 None 처리
+                # TODO date_columns 찾는 정규식에 맞지 않는 보고서에 대한 처리 방안 고민 필요
+                if len(label_columns) == 0 :
+                    fs_df[tp] = None
+                    continue
+
                 nlabel_columns = pd.MultiIndex.from_tuples(label_columns)
                 label_df[tp] = pd.DataFrame(columns=nlabel_columns)
 
