@@ -333,7 +333,13 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
         for column in df_columns.tolist():
             ordered_list.append(row.get(column, None))
 
-        row_unit = unit_regex.search(ordered_list[0])
+        try:
+            row_unit = unit_regex.search(ordered_list[0])
+        except TypeError as ex :
+            warnings_text = '{} : {}'.format(repr(ex), ordered_list[0])
+            warnings.warn(warnings_text, RuntimeWarning)
+            row_unit = False
+
         if row_unit:
             row_unit = str_unit_to_number_unit(row_unit.group(1))
             for jdx, value in enumerate(ordered_list):
@@ -784,7 +790,10 @@ def compare_df_and_ndf_value(column: pd.Index,
     _, df_columns = split_columns_concept_data(df.columns)
     _, ndf_columns = split_columns_concept_data(ndf.columns)
 
-    overlap = set(df_columns).intersection(set(ndf_columns))
+    df_columns_set = convert_multiindex_to_set(df_columns)
+    ndf_columns_set = convert_multiindex_to_set(ndf_columns)
+
+    overlap = df_columns_set.intersection(ndf_columns_set)
     nko_column = find_all_columns(ndf, r'label_ko')
 
     index_used = []
@@ -811,7 +820,7 @@ def compare_df_and_ndf_value(column: pd.Index,
                 found = False
                 if len(w) > 0:
                     for index in w.index.values:
-                        if index not in index_used:
+                        if index not in index_used and ndf[column].iloc[index] is not None :
                             nvalue = sign * ndf[column].iloc[index]
                             nlabel = ndf[nko_column].iloc[index][0]
                             nlabel = extract_account_title(nlabel)
@@ -937,8 +946,8 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             _, df_columns = split_columns_concept_data(df.columns)
             _, ndf_columns =  split_columns_concept_data(ndf.columns)
-            df_columns = set(df_columns.tolist())
-            ndf_columns = set(ndf_columns.tolist())
+            df_columns = convert_multiindex_to_set(df_columns)
+            ndf_columns = convert_multiindex_to_set(ndf_columns)
 
             overlap = df_columns.intersection(ndf_columns)
 
@@ -966,6 +975,12 @@ def merge_fs(fs_df: Dict[str, DataFrame],
                 fs_df[tp][column] = ndata
 
     return fs_df, label_df
+
+def convert_multiindex_to_set(multiindex) :
+    if multiindex is None :
+        return set()
+    return set(multiindex.tolist())
+
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
