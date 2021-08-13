@@ -4,6 +4,7 @@ import math
 import warnings
 import numpy as np
 import pandas as pd
+import traceback
 
 from typing import Union, List, Dict, Tuple, Pattern, Optional
 from collections import OrderedDict
@@ -490,15 +491,22 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     return fs_table
 
 
-def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko'):
+def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko', report = None):
     results = OrderedDict()
     for tp, table in fs_table.items():
         if tp in fs_tp:
+            df = None
             if table['table']:
-                columns = convert_thead_into_columns(fs_tp=tp, fs_table=table, separate=separate, lang=lang)
-                df = convert_tbody_to_dataframe(columns=columns, fs_table=table)
-            else:
-                df = None
+                try:
+                    columns = convert_thead_into_columns(fs_tp=tp, fs_table=table, separate=separate, lang=lang)
+                    df = convert_tbody_to_dataframe(columns=columns, fs_table=table)
+                except Exception as ex :
+                    traceback.print_exc()
+                    report_dict = None
+                    if report is not None :
+                        report_dict = report.to_dict()
+                    warnings_text = 'Unable to extract a {} type financial statement. : {}'.format(tp, report_dict)
+                    warnings.warn(warnings_text, RuntimeWarning)
             results[tp] = df
     return results
 
@@ -592,7 +600,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     if count == 0:
         return None
 
-    extract_results = extract_fs_table(fs_table=fs_table, fs_tp=fs_tp, separate=separate, lang=lang)
+    extract_results = extract_fs_table(fs_table=fs_table, fs_tp=fs_tp, separate=separate, lang=lang, report=report)
     return extract_results
 
 
@@ -1302,32 +1310,42 @@ def extract(corp_code: str,
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
                     report = reports.pop(0)
                     if statements is None:
-                        statements = analyze_report(report=report,
-                                                    fs_tp=fs_tp,
-                                                    separate=separate,
-                                                    lang=lang,
-                                                    separator=separator)
-                        if statements is None:
+                        try :
+                            statements = analyze_report(report=report,
+                                                        fs_tp=fs_tp,
+                                                        separate=separate,
+                                                        lang=lang,
+                                                        separator=separator)
+                            if statements is None:
+                                warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                                warnings.warn(warnings_text, RuntimeWarning)
+                            else:
+                                if separate is False and all([statements[tp] is None for tp in statements]):
+                                    raise NotFoundConsolidated('Could not find consolidated financial statements')
+                                # initialize label dictionary
+                                label_df = init_label(statements, fs_tp=fs_tp)
+                        except Exception as ex :
+                            traceback.print_exc()
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
-                        else:
-                            if separate is False and all([statements[tp] is None for tp in statements]):
-                                raise NotFoundConsolidated('Could not find consolidated financial statements')
-                            # initialize label dictionary
-                            label_df = init_label(statements, fs_tp=fs_tp)
 
                     else:
-                        nstatements = analyze_report(report=report,
-                                                     fs_tp=fs_tp,
-                                                     separate=separate,
-                                                     lang=lang,
-                                                     separator=separator,
-                                                     dataset=dataset)
-                        if nstatements is None:
+                        try :
+                            nstatements = analyze_report(report=report,
+                                                         fs_tp=fs_tp,
+                                                         separate=separate,
+                                                         lang=lang,
+                                                         separator=separator,
+                                                         dataset=dataset)
+                            if nstatements is None:
+                                warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                                warnings.warn(warnings_text, RuntimeWarning)
+                            else:
+                                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
+                        except Exception as ex :
+                            traceback.print_exc()
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
-                        else:
-                            statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
 
         # Spinner enable
         dart.utils.spinner.spinner_enable = True
