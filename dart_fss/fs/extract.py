@@ -1226,7 +1226,7 @@ def search_annual_report(corp_code: str,
         return reports
 
 
-# 잉카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
+# 인카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
 def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
     try:
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
