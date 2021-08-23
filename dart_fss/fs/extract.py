@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import re
 import math
 import warnings
@@ -74,6 +75,13 @@ def text_split_by_br(tag) -> list:
     res = [x for x in s.split('\n') if len(x) > 0]
     return res
 
+def get_datetime(year, month, day):
+    try:
+        return datetime(year, month, day)
+    except ValueError:
+        return None
+
+
 
 def extract_date_from_header(header):
     """ 재무제표 기간 추출을 위해 사용하는 method"""
@@ -105,11 +113,16 @@ def extract_date_from_header(header):
                     year = int(s[0])
                     month = int(s[1])
                     day = int(s[2])
-                    date.append(datetime(year, month, day))
 
+                    dt = get_datetime(year, month, day)
+                    if dt is not None:
+                        date.append(dt)
+                
                     month = int(s[3])
                     day = int(s[4])
-                    date.append(datetime(year, month, day))
+                    dt = get_datetime(year, month, day)
+                    if dt is not None:
+                        date.append(dt)
 
                     if len(date) > 0:
                         date_info.append(tuple(date))
@@ -119,7 +132,11 @@ def extract_date_from_header(header):
                         year = int(d[0])
                         month = int(d[1])
                         day = int(d[2])
-                        date.append(datetime(year, month, day))
+
+                        dt = get_datetime(year, month, day)
+                        if dt is not None:
+                            date.append(dt)
+
                     if len(date) > 0:
                         date_info.append(tuple(date))
 
