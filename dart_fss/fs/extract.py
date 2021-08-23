@@ -20,7 +20,7 @@ from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whit
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
-
+from dart_fss.filings.search_result import SearchResults
 
 def str_to_float(text: str, unit: float) -> float:
     """ 문자를 float 데이터로 변환
@@ -1209,6 +1209,24 @@ def search_annual_report(corp_code: str,
         return reports
 
 
+# 잉카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
+def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
+    try:
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+    except NoDataReceived:
+        resp = {
+            'page_no': 1,
+            'page_count': 100,
+            'total_count': 0,
+            'total_page': 0,
+            'list': [],
+        }
+        reports = SearchResults(resp)
+    finally:
+        return reports
+
+
 def extract(corp_code: str,
             bgn_de: str,
             end_de: str = None,
@@ -1285,8 +1303,8 @@ def extract(corp_code: str,
                 if tp == 'annual':
                     reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
                 else:
-                    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                             pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
+                    reports = search_other_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                             pblntf_detail_ty=all_pblntf_detail_ty[idx])
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
                     report = reports.pop(0)
