@@ -352,7 +352,10 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
             ordered_list.append(row.get(column, None))
 
         try:
-            row_unit = unit_regex.search(ordered_list[0])
+            if len(ordered_list) > 0 and ordered_list[0] is not None:
+                row_unit = unit_regex.search(ordered_list[0])
+            else:
+                row_unit = False
         except TypeError as ex :
             warnings_text = '{} : {}'.format(repr(ex), ordered_list[0])
             warnings.warn(warnings_text, RuntimeWarning)
