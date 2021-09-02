@@ -262,7 +262,7 @@ class CorpList(object, metaclass=Singleton):
         """
         corps = self.corps
         idx = self._stock_codes.get(stock_code)
-        if include_delisting:
+        if include_delisting and idx is None:
             idx = self._delisting.get(stock_code)
         return corps[idx] if idx is not None else None
 
