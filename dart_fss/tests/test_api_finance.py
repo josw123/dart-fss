@@ -8,7 +8,7 @@ def test_get_single_corp(dart):
 def test_get_multi_corp(dart):
     res = dart.api.finance.get_multi_corp(['00356370', '00334624'], '2018', '11011')
     actual = len(res['list'])
-    expected = 52
+    expected = 26
     assert actual == expected
 
 

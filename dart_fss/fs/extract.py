@@ -1323,8 +1323,8 @@ def extract(corp_code: str,
                 if tp == 'annual':
                     reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
                 else:
-                    reports = search_other_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                             pblntf_detail_ty=all_pblntf_detail_ty[idx])
+                    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                             pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
                     report = reports.pop(0)

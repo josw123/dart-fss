@@ -16,7 +16,7 @@ def test_reports(last_report):
 def test_reports_pages(last_report):
     first_page = last_report[0]
     actual = first_page.ele_id
-    expected = 0
+    expected = 1
     assert actual == expected
 
 
