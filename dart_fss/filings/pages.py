@@ -29,7 +29,7 @@ class Page(object):
 
     _BASE_URL_ = 'http://dart.fss.or.kr/report/viewer.do'
 
-    def __init__(self, title: str, rcp_no: str, dcm_no: str, ele_id: str,
+    def __init__(self, title: str, rcp_no: str, dcm_no: str, ele_id: int,
                  offset: str, length: str, dtd: str, lazy_loading=True):
         self.title = title
         self.rcp_no = rcp_no

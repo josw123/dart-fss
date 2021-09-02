@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import re
 import math
 import warnings
@@ -20,7 +21,7 @@ from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whit
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
-
+from dart_fss.filings.search_result import SearchResults
 
 def str_to_float(text: str, unit: float) -> float:
     """ 문자를 float 데이터로 변환
@@ -74,6 +75,13 @@ def text_split_by_br(tag) -> list:
     res = [x for x in s.split('\n') if len(x) > 0]
     return res
 
+def get_datetime(year, month, day):
+    try:
+        return datetime(year, month, day)
+    except ValueError:
+        return None
+
+
 
 def extract_date_from_header(header):
     """ 재무제표 기간 추출을 위해 사용하는 method"""
@@ -105,11 +113,16 @@ def extract_date_from_header(header):
                     year = int(s[0])
                     month = int(s[1])
                     day = int(s[2])
-                    date.append(datetime(year, month, day))
 
+                    dt = get_datetime(year, month, day)
+                    if dt is not None:
+                        date.append(dt)
+                
                     month = int(s[3])
                     day = int(s[4])
-                    date.append(datetime(year, month, day))
+                    dt = get_datetime(year, month, day)
+                    if dt is not None:
+                        date.append(dt)
 
                     if len(date) > 0:
                         date_info.append(tuple(date))
@@ -119,7 +132,11 @@ def extract_date_from_header(header):
                         year = int(d[0])
                         month = int(d[1])
                         day = int(d[2])
-                        date.append(datetime(year, month, day))
+
+                        dt = get_datetime(year, month, day)
+                        if dt is not None:
+                            date.append(dt)
+
                     if len(date) > 0:
                         date_info.append(tuple(date))
 
@@ -335,7 +352,10 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
             ordered_list.append(row.get(column, None))
 
         try:
-            row_unit = unit_regex.search(ordered_list[0])
+            if len(ordered_list) > 0 and ordered_list[0] is not None:
+                row_unit = unit_regex.search(ordered_list[0])
+            else:
+                row_unit = False
         except TypeError as ex :
             warnings_text = '{} : {}'.format(repr(ex), ordered_list[0])
             warnings.warn(warnings_text, RuntimeWarning)
@@ -1206,6 +1226,24 @@ def search_annual_report(corp_code: str,
     finally:
         if len(reports) == 0:
             raise RuntimeError('Could not find an annual report')
+        return reports
+
+
+# 인카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
+def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
+    try:
+        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+                                pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+    except NoDataReceived:
+        resp = {
+            'page_no': 1,
+            'page_count': 100,
+            'total_count': 0,
+            'total_page': 0,
+            'list': [],
+        }
+        reports = SearchResults(resp)
+    finally:
         return reports
 
 

@@ -170,22 +170,27 @@ class Report(object):
         """
         if self.html is None:
             self._get_report()
-        results = []
-        raw_data = re.findall(r'TreeNode\({(.*?)}\)', str(self.html), re.S)
-        for raw in raw_data:
-            template = ['rcp_no', 'dcm_no', 'ele_id', 'offset', 'length', 'dtd']
 
-            leaf = {
-                'title': re.findall(r'text:\s\"(.*?)\"', raw)[0].replace(' ', '')
-            }
+        # Javascript was changed in newdart
+        regex_title = re.compile(r"node.*\'text\'.*\"(.+)\"")
+        regex_rcp_no = re.compile(r"node.*\'rcpNo\'.*\"(.+)\"")
+        regex_dcm_no = re.compile(r"node.*\'dcmNo\'.*\"(.+)\"")
+        regex_ele_id = re.compile(r"node.*\'eleId\'.*\"(.+)\"")
+        regex_offset = re.compile(r"node.*\'offset\'.*\"(.+)\"")
+        regex_length = re.compile(r"node.*\'length\'.*\"(.+)\"")
+        regex_dtd = re.compile(r"node.*\'dtd\'.*\"(.+)\"")
+        s = str(self.html)
+        titles = regex_title.findall(s)
+        rcp_nos = regex_rcp_no.findall(s)
+        dcm_nos = regex_dcm_no.findall(s)
+        ele_ids = regex_ele_id.findall(s)
+        offsets = regex_offset.findall(s)
+        lengths = regex_length.findall(s)
+        dtds = regex_dtd.findall(s)
 
-            view_doc = re.findall(r'viewDoc\((.*?)\)', raw)
-            data = [x.strip() for x in view_doc[0].replace("'", "").split(',')]
-            data = [0 if x == 'null' else x for x in data]
-            for idx, _ in enumerate(template):
-                leaf[template[idx]] = data[idx]
-            results.append(Page(**leaf))
-        self._pages = results
+        self._pages = [Page(title, rcp_no, dcm_no, int(ele_id), offset, length, dtd)
+                       for title, rcp_no, dcm_no, ele_id, offset, length, dtd
+                       in zip(titles, rcp_nos, dcm_nos, ele_ids, offsets, lengths, dtds)]
         return self._pages
 
     @property
@@ -214,7 +219,8 @@ class Report(object):
         if self.html is None:
             self._get_report()
         results = []
-        a_href = self.html.find('a', href='#download')
+        # tag 및 class 변경
+        a_href = self.html.find('button', class_='btnDown')
         a_onclick = a_href.attrs.get('onclick', '')
         raw_data = re.search(r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
         if raw_data is None:
@@ -272,7 +278,8 @@ class Report(object):
         if self.html is None:
             self._get_report()
         soup = self.html
-        attached = soup.find('p', class_='f_none')
+        # Tag id was changed
+        attached = soup.find('select', id='att')
         attached_list = attached.find_all('option')
         attached_reports = []
 
@@ -615,5 +622,5 @@ class AttachedFile(object):
             다운받은 첨부파일 경로
 
         """
-        file_path = request.download(url=self.url, path=path, referer=self.referer)
+        file_path = request.download(url=self.url, path=path, filename=self.filename, referer=self.referer)
         return file_path
