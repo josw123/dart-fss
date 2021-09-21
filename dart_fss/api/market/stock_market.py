@@ -9,7 +9,7 @@ def get_stock_market_list(corp_cls: str, include_corp_name=True) -> dict:
     Parameters
     ----------
     corp_cls: str
-        Y: stock market(코스피), K: kosdaq market(코스피), N: konex Market(코넥스)
+        Y: stock market(코스피), K: kosdaq market(코스닥), N: konex Market(코넥스)
     include_corp_name: bool, optional
         if True, returning dictionary includes corp_name(default: True)
     Returns
