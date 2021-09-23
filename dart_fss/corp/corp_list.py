@@ -218,7 +218,7 @@ class CorpList(object, metaclass=Singleton):
         Parameters
         ----------
         sector: str
-            산업 섹
+            산업 섹터
         market: str or list of str, optional
             'Y': 코스피, 'K': 코스닥, 'N': 코넥스, 'E': 기타
         Returns
