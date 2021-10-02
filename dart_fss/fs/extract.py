@@ -17,7 +17,8 @@ from bs4.element import Tag
 
 from dart_fss.filings.reports import Report
 from dart_fss.filings import search as search_filings
-from dart_fss.utils import str_compare, str_unit_to_number_unit, str_insert_whitespace, is_notebook
+from dart_fss.utils import str_compare, str_unit_to_number_unit, is_notebook
+from dart_fss.utils import str_insert_whitespace as ws
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
@@ -467,10 +468,10 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
 
     # 순서대로 검색 (순서 변경 금지)
     queryset = {
-        'bs': str_insert_whitespace('재무상태표') + ' OR ' + str_insert_whitespace('대차대조표'),
-        'is': str_insert_whitespace('손익계산서'),
-        'cis': str_insert_whitespace('포괄손익계산서'),
-        'cf': str_insert_whitespace('현금흐름표'),
+        'bs': ws('재무상태표') + ' OR ' + ws('대차대조표'),
+        'is': ws('손익계산서'),
+        'cis': ws('포괄손익계산서'),
+        'cf': ws('현금흐름표'),
     }
 
     for key, query in queryset.items():
@@ -480,15 +481,15 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
         # 연결재무제표 검색시 사용할 query 구문
         excludes = None
         if not separate:
-            query = query + ' AND ' + str_insert_whitespace('연결')
+            query = query + ' AND ' + ws('연결')
         else:
-            excludes = str_insert_whitespace('연결')
+            excludes = ws('연결')
 
         if key == 'is':
             if excludes:
-                excludes += ' OR ' + str_insert_whitespace('포괄')
+                excludes += ' OR ' + ws('포괄')
             else:
-                excludes = str_insert_whitespace('포괄')
+                excludes = ws('포괄')
 
         if excludes:
             excludes = str_to_regex(excludes)
@@ -581,17 +582,24 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     dict of {str: DataFrame}
         재무제표
     """
+
+    inc = ['재무제표', '감사보고서']
+    exc = ['주석', '결합', '의견', '수정', '검토보고서']
+
+    includes = ' OR '.join([ws(x) for x in inc])
+    excludes = ' OR '.join([ws(x) for x in exc])
+
     query = {
-        'includes': r'재무제표 OR 감사보고서',
-        'excludes': r'주석 OR 결합 OR 의견 OR 수정 OR 검토보고서',
+        'includes': includes,
+        'excludes':excludes,
         'scope': ['attached_reports', 'pages'],
         'options': {'title': True}  # 첨부보고서 및 연결보고서의 title 까지 검색
     }
 
     if separate:
-        query['excludes'] += ' OR 연결'
+        query['excludes'] += ' OR ' + ws('연결')
     else:
-        query['includes'] += ' AND 연결'
+        query['includes'] += ' AND ' + ws('연결')
 
     count, fs_table = report_find_all(report, query, fs_tp, separate)
 
