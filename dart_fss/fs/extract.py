@@ -100,7 +100,12 @@ def extract_date_from_header(header):
         for text in texts:
             searched = regex.findall(text)
             searched2 = regex2.findall(text)
-            if len(searched) > 0:
+
+            # 잘못된 Table Header 검색시 필터링
+            searched_length = len(searched)
+            if len(text) > searched_length * 80:
+                continue
+            elif searched_length > 0:
                 f = searched[0]
                 if len(searched2) == 0:
                     # 오류 방지를 위해 Dummy 값 삽입
@@ -177,6 +182,9 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
             td.name = 'th'
     th_colspan_list = [int(th.attrs.get('colspan', 1)) for th in thead.tr.find_all('th')]
     date_info = extract_date_from_header(fs_table['header'])
+    # 검색된 날짜가 없을경우 Empty array return
+    if len(date_info) == 0:
+        return []
     # Regular Expression for title
     regex = str_to_regex('과목 OR 주석')
 
@@ -508,7 +516,9 @@ def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko', 
             if table['table']:
                 try:
                     columns = convert_thead_into_columns(fs_tp=tp, fs_table=table, separate=separate, lang=lang)
-                    df = convert_tbody_to_dataframe(columns=columns, fs_table=table)
+                    # Table Header 가 추출된 경우에만 Table Body 추출
+                    if len(columns) > 0:
+                        df = convert_tbody_to_dataframe(columns=columns, fs_table=table)
                 except Exception as ex :
                     traceback.print_exc()
                     report_dict = None
