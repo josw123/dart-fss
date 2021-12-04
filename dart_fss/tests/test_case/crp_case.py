@@ -94,5 +94,10 @@ asia_paper.add_test_value('bs', '20181231', 'label_ko', '유동자산', 28026214
 bookook = TestCrp(corp_code='00123772', bgn_de='20200101', end_de='20210503', separate=False, report_tp='annual')
 bookook.add_test_value('bs', '20201231', 'label_ko', '부채및자본총계', 1608864797228)
 
+# 바이온 (# 79)
+byon = TestCrp(corp_code='00232089', bgn_de='20100101', end_de='20100701', separate=True, report_tp=['quarter'])
+byon.add_test_value('bs', '20100331', 'label_ko', '유동자산', 2722479385)
+
+
 test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds,
-                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper, bookook]
+                 jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper, bookook, byon]
