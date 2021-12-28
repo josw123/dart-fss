@@ -13,8 +13,18 @@ bsns_year_checker = re.compile(r'^[0-9]{4}$')
 # reprt_code check regular expression
 reptr_code_checker = re.compile(r'^1101[1-4]$')
 
+# date check regular expression
+date_checker = re.compile(r'^[0-9]{8}$')
 
-def api_request(path: str, corp_code: str, bsns_year: str = None, reprt_code: str = None) -> dict:
+
+def api_request(
+        path: str,
+        corp_code: str,
+        bsns_year: str = None,
+        reprt_code: str = None,
+        bgn_de: str = None,
+        end_de: str = None
+) -> dict:
     """ API Request Helper
 
     Parameters
@@ -27,7 +37,10 @@ def api_request(path: str, corp_code: str, bsns_year: str = None, reprt_code: st
         Year (4 digits)
     reprt_code: str, optional
         Report code( Q1: 11013, half: 11012, Q3: 11014, Annual: 11011)
-
+    bgn_de: str, optional
+        Searching Start date (YYYYMMDD)
+    end_de: str, optional
+        Searching End date (YYYYMMDD)
     Returns
     -------
     dict
@@ -43,6 +56,12 @@ def api_request(path: str, corp_code: str, bsns_year: str = None, reprt_code: st
     if reprt_code and reptr_code_checker.search(reprt_code) is None:
         raise ValueError('invalid reprt_code')
 
+    if bgn_de and date_checker.search(bgn_de) is None:
+        raise ValueError('invalid bgn_de')
+
+    if end_de and date_checker.search(end_de) is None:
+        raise ValueError('invalid end_de')
+
     # Open DART Base URL
     base = 'https://opendart.fss.or.kr/'
     # Request URL
@@ -57,7 +76,11 @@ def api_request(path: str, corp_code: str, bsns_year: str = None, reprt_code: st
         'corp_code': corp_code,
         'bsns_year': bsns_year,
         'reprt_code': reprt_code,
+        'bgn_de': bgn_de,
+        'end_de': end_de,
     }
+
+    payload = {k: v for k, v in payload.items() if v is not None}
 
     # Request Data
     resp = request.get(url=url, payload=payload)
