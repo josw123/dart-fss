@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Union, List, Dict, Tuple
 from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
-from dart_fss.api.shareholder import get_executive_shareholder, get_major_shareholder
+from dart_fss.api.shareholder import majorstock, elestock
 from dart_fss.filings import search as se
 from dart_fss.fs import extract, FinancialStatement
 
@@ -115,7 +115,7 @@ class Corp(object):
         return self.info
 
     def get_executive_shareholder(self):
-        resp = get_executive_shareholder(corp_code=self.corp_code)
+        resp = elestock(corp_code=self.corp_code)
         df = pd.DataFrame.from_dict(resp['list'])
 
         columns_astype = [
@@ -128,7 +128,7 @@ class Corp(object):
         return df
 
     def get_major_shareholder(self):
-        resp = get_major_shareholder(corp_code=self.corp_code)
+        resp = majorstock(corp_code=self.corp_code)
         df = pd.DataFrame.from_dict(resp['list'])
         columns_astype = [
             ('stkqy', int),

@@ -1,12 +1,26 @@
-def test_get_executive_shareholder(dart):
-    res = dart.api.shareholder.get_executive_shareholder('00126380')
-    actual = res.get('status')
-    expected = '000'
-    assert actual == expected
+# -*- coding: utf-8 -*-
+from dart_fss.errors.errors import NoDataReceived
 
 
-def test_get_major_shareholder(dart):
-    res = dart.api.shareholder.get_major_shareholder('00126380')
-    actual = res.get('status')
-    expected = '000'
-    assert actual == expected
+def test_majorstock(dart):
+    try:
+        _ = dart.api.shareholder.majorstock(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_elestock(dart):
+    try:
+        _ = dart.api.shareholder.elestock(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e

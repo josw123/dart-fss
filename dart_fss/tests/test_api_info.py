@@ -1,86 +1,394 @@
-def test_get_capital_increase(dart):
-    res = dart.api.info.get_capital_increase('00126380', '2018', '11011')
-    data = res['list'][0]
-    actual = data.get('isu_dcrs_de')
-    expected = '-'
-    assert actual == expected
+# -*- coding: utf-8 -*-
+from dart_fss.errors.errors import NoDataReceived
 
 
-def test_get_chairman_individual_pay(dart):
-    res = dart.api.info.get_chairman_individual_pay('00126380', '2018', '11011')
-    actual = set(x.get('nm') for x in res['list'])
-    expected = {'김현석', '고동진', '이상훈', '신종균', '윤부근', '김기남', '권오현'}
-    assert len(actual.difference(expected)) == 0
+def test_cndl_capl_scrits_nrdmp_blce(dart):
+    try:
+        _ = dart.api.info.cndl_capl_scrits_nrdmp_blce(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_chairman_total_pay(dart):
-    res = dart.api.info.get_chairman_total_pay('00126380', '2018', '11011')
-    actual = res['list'][0].get('mendng_totamt')
-    expected = '29,607,000,000'
-    assert actual == expected
+def test_unrst_exctv_mendng_sttus(dart):
+    try:
+        _ = dart.api.info.unrst_exctv_mendng_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="01343735",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_dividend(dart):
-    res = dart.api.info.get_dividend('00126380', '2018', '11011')
-    actual = [x.get('lwfr') for x in res['list'] if x.get('se') == '주당액면가액(원)'][0]
-    expected = '5,000'
-    assert actual == expected
+def test_cprnd_nrdmp_blce(dart):
+    try:
+        _ = dart.api.info.cprnd_nrdmp_blce(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_employee(dart):
-    res = dart.api.info.get_employee('00126380', '2018', '11011')
-    actual = res['list'][0].get('rcept_no')
-    expected = '20190401004781'
-    assert actual == expected
+def test_srtpd_psndbt_nrdmp_blce(dart):
+    try:
+        _ = dart.api.info.srtpd_psndbt_nrdmp_blce(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_highest_salary_employee(dart):
-    res = dart.api.info.get_highest_salary_employee('00126380', '2018', '11011')
-    actual = [x.get('mendng_totamt') for x in res['list'] if x.get('nm') == '권오현'][0]
-    expected = '7,034,000,000'
-    assert actual == expected
+def test_entrprs_bil_scrits_nrdmp_blce(dart):
+    try:
+        _ = dart.api.info.entrprs_bil_scrits_nrdmp_blce(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_executive(dart):
-    res = dart.api.info.get_executive('00126380', '2018', '11011')
-    actual = [x.get('rgist_exctv_at') for x in res['list'] if x.get('nm') == '이상훈'][0]
-    expected = '등기임원'
-    assert actual == expected
+def test_det_scrits_isu_acmslt(dart):
+    try:
+        _ = dart.api.info.det_scrits_isu_acmslt(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_investment(dart):
-    res = dart.api.info.get_investment('00126380', '2018', '11011')
-    actual = [x.get('frst_acqs_de') for x in res['list'] if x.get('inv_prm') == '합계'][0]
-    expected = '-'
-    assert actual == expected
+def test_prvsrp_cptal_use_dtls(dart):
+    try:
+        _ = dart.api.info.prvsrp_cptal_use_dtls(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00382199",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_major_shareholder(dart):
-    res = dart.api.info.get_major_shareholder('00126380', '2018', '11011')
-    actual = [x.get('bsis_posesn_stock_qota_rt') for x in res['list'] if x.get('bsis_posesn_stock_co') == '4,985,464'][0]
-    expected = '3.86'
-    assert actual == expected
+def test_pssrp_cptal_use_dtls(dart):
+    try:
+        _ = dart.api.info.pssrp_cptal_use_dtls(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00382199",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_change_of_major_shareholder(dart):
-    res = dart.api.info.change_of_major_shareholder('00126380', '2018', '11011')
-    actual = res['list'][0].get('rm')
-    expected = '-'
-    assert actual == expected
+def test_drctr_adt_all_mendng_sttus_gmtsck_confm_amount(dart):
+    try:
+        _ = dart.api.info.drctr_adt_all_mendng_sttus_gmtsck_confm_amount(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_minority_shareholder(dart):
-    res = dart.api.info.get_minority_shareholder('00126380', '2018', '11011')
-    actual = res['list'][0].get('se')
-    expected = '소액주주'
-    assert actual == expected
+def test_drctr_adt_all_mendng_sttus_mendng_pymntamt_ty_cl(dart):
+    try:
+        _ = dart.api.info.drctr_adt_all_mendng_sttus_mendng_pymntamt_ty_cl(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
-def test_get_treasury_stock(dart):
-    res = dart.api.info.get_treasury_stock('00126380', '2018', '11011')
-    actual = res['list'][0].get('stock_knd')
-    expected = '-'
-    assert actual == expected
+def test_stock_totqy_sttus(dart):
+    try:
+        _ = dart.api.info.stock_totqy_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
 
+def test_accnut_adtor_nm_nd_adt_opinion(dart):
+    try:
+        _ = dart.api.info.accnut_adtor_nm_nd_adt_opinion(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
 
+
+def test_adt_servc_cncls_sttus(dart):
+    try:
+        _ = dart.api.info.adt_servc_cncls_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_accnut_adtor_non_adt_servc_cncls_sttus(dart):
+    try:
+        _ = dart.api.info.accnut_adtor_non_adt_servc_cncls_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_outcmpny_drctr_nd_change_sttus(dart):
+    try:
+        _ = dart.api.info.outcmpny_drctr_nd_change_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="01343735",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_new_capl_scrits_nrdmp_blce(dart):
+    try:
+        _ = dart.api.info.new_capl_scrits_nrdmp_blce(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2019",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_irds_sttus(dart):
+    try:
+        _ = dart.api.info.irds_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_alot_matter(dart):
+    try:
+        _ = dart.api.info.alot_matter(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_tesstk_acqs_dsps_sttus(dart):
+    try:
+        _ = dart.api.info.tesstk_acqs_dsps_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_hyslr_sttus(dart):
+    try:
+        _ = dart.api.info.hyslr_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_hyslr_chg_sttus(dart):
+    try:
+        _ = dart.api.info.hyslr_chg_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_mrhl_sttus(dart):
+    try:
+        _ = dart.api.info.mrhl_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_exctv_sttus(dart):
+    try:
+        _ = dart.api.info.exctv_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_emp_sttus(dart):
+    try:
+        _ = dart.api.info.emp_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_hmv_audit_indvdl_by_sttus(dart):
+    try:
+        _ = dart.api.info.hmv_audit_indvdl_by_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_hmv_audit_all_sttus(dart):
+    try:
+        _ = dart.api.info.hmv_audit_all_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_indvdl_by_pay(dart):
+    try:
+        _ = dart.api.info.indvdl_by_pay(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
+
+
+def test_otr_cpr_invstmnt_sttus(dart):
+    try:
+        _ = dart.api.info.otr_cpr_invstmnt_sttus(
+            api_key="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            corp_code="00126380",
+            bsns_year="2018",
+            reprt_code="11011",
+        )
+    except NoDataReceived:
+        pass
+    except Exception as e:
+        raise e
