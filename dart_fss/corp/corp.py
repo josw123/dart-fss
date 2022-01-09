@@ -202,7 +202,8 @@ class Corp(object):
                    report_tp: str = 'annual',
                    lang: str = 'ko',
                    separator: bool = True,
-                   dataset: str = 'xbrl') -> FinancialStatement:
+                   dataset: str = 'xbrl',
+                   cumulative: bool = False) -> FinancialStatement:
         """
          재무제표 검색
 
@@ -224,10 +225,12 @@ class Corp(object):
              1000단위 구분자 표시 여부
          dataset: str, optional
             'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
+         cumulative: bool, optional
+            반기 혹은 분기 보고서 추출시 해당분기 값을 제외한 누적값만 추출할지 여부 (default: False)
          Returns
          -------
          FinancialStatement
              제무제표 검색 결과
 
          """
-        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator, dataset)
+        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator, dataset, cumulative)
