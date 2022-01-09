@@ -3,7 +3,7 @@ import re
 import copy
 
 from urllib.parse import parse_qs
-
+from typing import Iterable
 from bs4 import BeautifulSoup
 
 from dart_fss.filings.pages import Page
@@ -93,6 +93,13 @@ class Report(object):
         else:
             error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
             raise AttributeError(error)
+
+    def __dir__(self) -> Iterable[str]:
+        dirs = super(Report, self).__dir__()
+        dirs = list(dirs)
+        keys = self.info.keys()
+        dirs.extend(keys)
+        return dirs
 
     def _get_report(self):
         """ 보고서 html 불러오기"""

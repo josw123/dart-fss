@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Iterable
 from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
 from dart_fss.api.shareholder import majorstock, elestock
@@ -80,6 +80,13 @@ class Corp(object):
 
     def _repr_html_(self) -> str:
         return dict_to_html(self.to_dict(), header=['Label', 'Data'])
+
+    def __dir__(self) -> Iterable[str]:
+        dirs = super(Corp, self).__dir__()
+        dirs = list(dirs)
+        keys = self._info.keys()
+        dirs.extend(keys)
+        return dirs
 
     def load(self):
         """ 종목 정보 로딩 """
