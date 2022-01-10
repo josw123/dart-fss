@@ -27,7 +27,7 @@ class Page(object):
 
     """
 
-    _BASE_URL_ = 'http://dart.fss.or.kr/report/viewer.do'
+    _BASE_URL_ = 'https://dart.fss.or.kr/report/viewer.do'
 
     def __init__(self, title: str, rcp_no: str, dcm_no: str, ele_id: int,
                  offset: str, length: str, dtd: str, lazy_loading=True):
@@ -62,11 +62,11 @@ class Page(object):
             tags = bs.find_all(attrs={tag: re.compile(r'.*')})
             if tags:
                 for t in tags:
-                    t[tag] = "http://dart.fss.or.kr" + t[tag]
+                    t[tag] = "https://dart.fss.or.kr" + t[tag]
             return bs
 
         def add_prefix(match_obj):
-            return r"window.open('http://dart.fss.or.kr" + match_obj.group(1) + r"'"
+            return r"window.open('https://dart.fss.or.kr" + match_obj.group(1) + r"'"
 
         payload = {
             'rcpNo': self.rcp_no,

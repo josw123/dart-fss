@@ -27,8 +27,8 @@ def get_stock_market_list(corp_cls: str, include_corp_name=True) -> dict:
         "N": "konexMkt",
     }
 
-    url = 'http://kind.krx.co.kr/corpgeneral/corpList.do'
-    referer = 'http://kind.krx.co.kr/corpgeneral/corpList.do?method=loadInitPage'
+    url = 'https://kind.krx.co.kr/corpgeneral/corpList.do'
+    referer = 'https://kind.krx.co.kr/corpgeneral/corpList.do?method=loadInitPage'
 
     market_type = corp_cls_to_market[corp_cls.upper()]
     payload = {

@@ -12,7 +12,7 @@
 ## Features
 
 -   [Open DART](https://opendart.fss.or.kr/)의 오픈 API를 이용한 전자공시 조회
--   [DART](http://dart.fss.or.kr)의 전자공시 정보를 이용한 재무제표 추출
+-   [DART](https://dart.fss.or.kr)의 전자공시 정보를 이용한 재무제표 추출
 
 ## Installation
 
