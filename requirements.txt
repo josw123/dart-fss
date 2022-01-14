@@ -15,7 +15,7 @@ ipython-genutils
 isodate
 
 # numpy compatible version
-numpy==1.18.4;python_version=="3.5"
+numpy==1.21.0;python_version=="3.5"
 numpy>=1.19.5;python_version>="3.6"
 
 # pandas compatible version
