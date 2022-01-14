@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Iterable
 from dart_fss.utils import dict_to_html, dataframe_astype
 from dart_fss.api.filings import get_corp_info
-from dart_fss.api.shareholder import get_executive_shareholder, get_major_shareholder
+from dart_fss.api.shareholder import majorstock, elestock
 from dart_fss.filings import search as se
 from dart_fss.fs import extract, FinancialStatement
 
@@ -81,6 +81,13 @@ class Corp(object):
     def _repr_html_(self) -> str:
         return dict_to_html(self.to_dict(), header=['Label', 'Data'])
 
+    def __dir__(self) -> Iterable[str]:
+        dirs = super(Corp, self).__dir__()
+        dirs = list(dirs)
+        keys = self._info.keys()
+        dirs.extend(keys)
+        return dirs
+
     def load(self):
         """ 종목 정보 로딩 """
         if self._loading is False:
@@ -115,7 +122,7 @@ class Corp(object):
         return self.info
 
     def get_executive_shareholder(self):
-        resp = get_executive_shareholder(corp_code=self.corp_code)
+        resp = elestock(corp_code=self.corp_code)
         df = pd.DataFrame.from_dict(resp['list'])
 
         columns_astype = [
@@ -128,7 +135,7 @@ class Corp(object):
         return df
 
     def get_major_shareholder(self):
-        resp = get_major_shareholder(corp_code=self.corp_code)
+        resp = majorstock(corp_code=self.corp_code)
         df = pd.DataFrame.from_dict(resp['list'])
         columns_astype = [
             ('stkqy', int),
@@ -202,7 +209,8 @@ class Corp(object):
                    report_tp: str = 'annual',
                    lang: str = 'ko',
                    separator: bool = True,
-                   dataset: str = 'xbrl') -> FinancialStatement:
+                   dataset: str = 'xbrl',
+                   cumulative: bool = False) -> FinancialStatement:
         """
          재무제표 검색
 
@@ -224,10 +232,12 @@ class Corp(object):
              1000단위 구분자 표시 여부
          dataset: str, optional
             'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
+         cumulative: bool, optional
+            반기 혹은 분기 보고서 추출시 해당분기 값을 제외한 누적값만 추출할지 여부 (default: False)
          Returns
          -------
          FinancialStatement
              제무제표 검색 결과
 
          """
-        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator, dataset)
+        return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang, separator, dataset, cumulative)

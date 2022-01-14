@@ -15,6 +15,7 @@ from dateutil.relativedelta import relativedelta
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
+from dart_fss.api.filings import get_corp_info
 from dart_fss.filings.reports import Report
 from dart_fss.filings import search as search_filings
 from dart_fss.utils import str_compare, str_unit_to_number_unit, is_notebook
@@ -1175,6 +1176,32 @@ def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
     return statements
 
 
+def select_cumulative(corp_code, statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+    acc_mt = get_corp_info(corp_code)['acc_mt']
+    month = int(acc_mt) % 12 + 1
+    start_with = '{:02}01'.format(month)
+    regex_str = re.compile('\d{4}' + start_with)
+
+    for tp in statements:
+        if tp == 'bs':
+            continue
+
+        df = statements[tp]
+        if df is None:
+            continue
+        concept_columns, data_columns = split_columns_concept_data(df.columns)
+
+        if data_columns is not None:
+            data_columns = [x for x in data_columns if regex_str.search(x[0])]
+            ncolumns = concept_columns.tolist() + data_columns
+            ncolumns = pd.MultiIndex.from_tuples(ncolumns)
+        else:
+            ncolumns = df.columns
+
+        statements[tp] = statements[tp][ncolumns]
+    return statements
+
+
 def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict[str, DataFrame]:
 
     for tp in df:
@@ -1273,7 +1300,8 @@ def extract(corp_code: str,
             report_tp: Union[str, List[str]] = 'annual',
             lang: str = 'ko',
             separator: bool = True,
-            dataset: str = 'xbrl') -> FinancialStatement:
+            dataset: str = 'xbrl',
+            cumulative: bool = False) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1299,6 +1327,8 @@ def extract(corp_code: str,
         1000단위 구분자 표시 여부
     dataset: str, optional
         'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
+    cumulative: bool, optional
+        반기 혹은 분기 보고서 추출시 해당분기 값을 제외한 누적값만 추출할지 여부 (default: False)
     Returns
     -------
     FinancialStatement
@@ -1391,6 +1421,10 @@ def extract(corp_code: str,
 
         statements = drop_empty_columns(statements)
         label_df = drop_empty_columns(label_df)
+
+        if cumulative:
+            statements = select_cumulative(corp_code, statements)
+            label_df = select_cumulative(corp_code, label_df)
 
         statements = sorting_columns(statements)
         label_df = sorting_columns(label_df)

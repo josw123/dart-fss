@@ -1,7 +1,7 @@
 import pandas as pd
 
 from pandas import DataFrame
-from typing import Dict, Optional
+from typing import Dict, Optional, Iterable
 
 from dart_fss.utils import dict_to_html, create_folder
 
@@ -117,7 +117,7 @@ class FinancialStatement(object):
         """ FinancialStatement의 요약 정보를 Dictionary 로 반환"""
         info = self.info
         df_info = []
-        for tp in  self._order:
+        for tp in self._order:
             df = self._statements.get(tp)
             if df is not None:
                 df_info.append({'title': df.columns.tolist()[0][0]})
@@ -181,3 +181,11 @@ class FinancialStatement(object):
 
     def _repr_html_(self):
         return dict_to_html(self.to_dict(), header=['Label', 'Data'])
+
+    def __dir__(self) -> Iterable[str]:
+        dirs = super(FinancialStatement, self).__dir__()
+        dirs = list(dirs)
+        keys = self.to_dict()
+        keys.pop('financial statement')
+        dirs.extend(keys)
+        return dirs

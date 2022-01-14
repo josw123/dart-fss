@@ -3,7 +3,7 @@ import re
 import copy
 
 from urllib.parse import parse_qs
-
+from typing import Iterable
 from bs4 import BeautifulSoup
 
 from dart_fss.filings.pages import Page
@@ -36,7 +36,7 @@ class Report(object):
     xbrl: DartXbrl
         XBRL 파일이 있을시 DartXbrl 클래스
     """
-    _DART_URL_ = 'http://dart.fss.or.kr'
+    _DART_URL_ = 'https://dart.fss.or.kr'
     _REPORT_URL_ = _DART_URL_ + '/dsaf001/main.do'
     _DOWNLOAD_URL_ = _DART_URL_ + '/pdf/download/main.do'
 
@@ -93,6 +93,13 @@ class Report(object):
         else:
             error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
             raise AttributeError(error)
+
+    def __dir__(self) -> Iterable[str]:
+        dirs = super(Report, self).__dir__()
+        dirs = list(dirs)
+        keys = self.info.keys()
+        dirs.extend(keys)
+        return dirs
 
     def _get_report(self):
         """ 보고서 html 불러오기"""
@@ -584,7 +591,7 @@ class AttachedFile(object):
         첨부파일명
 
     """
-    _DART_URL_ = 'http://dart.fss.or.kr'
+    _DART_URL_ = 'https://dart.fss.or.kr'
 
     def __init__(self, rcp_no, url, filename, referer):
         self.rcp_no = rcp_no

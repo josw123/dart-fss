@@ -1,5 +1,9 @@
-from .executive import get_executive_shareholder
-from .major_shareholder import get_major_shareholder
+# -*- coding: utf-8 -*- 
+from .majorstock import majorstock  
+from .elestock import elestock 
 
 
-__all__ = ['get_executive_shareholder', 'get_major_shareholder']
+__all__ = [
+    'majorstock', 
+    'elestock', 
+]
