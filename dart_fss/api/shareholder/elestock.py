@@ -4,10 +4,11 @@ from ..helper import api_request
 
 
 def elestock(
-    corp_code: str, 
+    corp_code: str,
     api_key: str = None
 ) -> Dict:
-    """ 임원ㆍ주요주주특정증권등 소유상황보고서 내에 임원ㆍ주요주주 소유보고 
+    """ 임원ㆍ주요주주특정증권등 소유상황보고서 내에 임원ㆍ주요주주 소유보고 
+
 정보를 제공합니다.
 
     Parameters
@@ -26,6 +27,6 @@ def elestock(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code, 
+        path=path,
+        corp_code=corp_code,
     )

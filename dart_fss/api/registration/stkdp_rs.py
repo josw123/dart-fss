@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def stkdp_rs(
-    corp_code: str, 
-    bgn_de: str, 
-    end_de: str, 
+    corp_code: str,
+    bgn_de: str,
+    end_de: str,
     api_key: str = None
 ) -> Dict:
     """ 증권신고서(증권예탁증권) 내에 요약 정보를 제공합니다.
@@ -31,8 +31,8 @@ def stkdp_rs(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bgn_de=bgn_de,  
-        end_de=end_de, 
+        path=path,
+        corp_code=corp_code,
+        bgn_de=bgn_de,
+        end_de=end_de,
     )

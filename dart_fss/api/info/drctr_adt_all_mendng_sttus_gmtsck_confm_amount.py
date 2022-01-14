@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def drctr_adt_all_mendng_sttus_gmtsck_confm_amount(
-    corp_code: str, 
-    bsns_year: str, 
-    reprt_code: str, 
+    corp_code: str,
+    bsns_year: str,
+    reprt_code: str,
     api_key: str = None
 ) -> Dict:
     """ 정기보고서(사업, 분기, 반기보고서) 내에 이사·감사 전체의 보수현황(주주총회 승인금액)을 제공합니다.
@@ -31,8 +31,8 @@ def drctr_adt_all_mendng_sttus_gmtsck_confm_amount(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bsns_year=bsns_year,  
-        reprt_code=reprt_code, 
+        path=path,
+        corp_code=corp_code,
+        bsns_year=bsns_year,
+        reprt_code=reprt_code,
     )

@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def bnk_mngt_pcsp(
-    corp_code: str, 
-    bgn_de: str, 
-    end_de: str, 
+    corp_code: str,
+    bgn_de: str,
+    end_de: str,
     api_key: str = None
 ) -> Dict:
     """ 주요사항보고서(채권은행 등의 관리절차 중단) 내에 주요 정보를 제공합니다.
@@ -31,8 +31,8 @@ def bnk_mngt_pcsp(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bgn_de=bgn_de,  
-        end_de=end_de, 
+        path=path,
+        corp_code=corp_code,
+        bgn_de=bgn_de,
+        end_de=end_de,
     )

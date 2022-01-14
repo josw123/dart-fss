@@ -31,7 +31,8 @@ def get_corp_code() -> OrderedDict:
         unzip_path = unzip(file=download_path, path=cache_folder)
 
         # Search CORPCODE.xml
-        files = search_file(path=unzip_path, filename='CORPCODE', extensions='xml')
+        files = search_file(
+            path=unzip_path, filename='CORPCODE', extensions='xml')
         if len(files) == 0:
             raise FileNotFoundError('CORPCODE.xml Not Found')
 

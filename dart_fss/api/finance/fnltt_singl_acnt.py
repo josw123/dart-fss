@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def fnltt_singl_acnt(
-    corp_code: str, 
-    bsns_year: str, 
-    reprt_code: str, 
+    corp_code: str,
+    bsns_year: str,
+    reprt_code: str,
     api_key: str = None
 ) -> Dict:
     """ 상장법인(금융업 제외)이 제출한 정기보고서 내에 XBRL재무제표의 주요계정과목(재무상태표, 손익계산서)을 제공합니다.
@@ -31,8 +31,8 @@ def fnltt_singl_acnt(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bsns_year=bsns_year,  
-        reprt_code=reprt_code, 
+        path=path,
+        corp_code=corp_code,
+        bsns_year=bsns_year,
+        reprt_code=reprt_code,
     )

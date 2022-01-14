@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def lwst_lg(
-    corp_code: str, 
-    bgn_de: str, 
-    end_de: str, 
+    corp_code: str,
+    bgn_de: str,
+    end_de: str,
     api_key: str = None
 ) -> Dict:
     """ 주요사항보고서(소송 등의 제기) 내에 주요 정보를 제공합니다.
@@ -31,8 +31,8 @@ def lwst_lg(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bgn_de=bgn_de,  
-        end_de=end_de, 
+        path=path,
+        corp_code=corp_code,
+        bgn_de=bgn_de,
+        end_de=end_de,
     )

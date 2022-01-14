@@ -4,7 +4,7 @@ from ..helper import api_request
 
 
 def majorstock(
-    corp_code: str, 
+    corp_code: str,
     api_key: str = None
 ) -> Dict:
     """ 주식등의 대량보유상황보고서 내에 대량보유 상황보고 정보를 제공합니다.
@@ -25,6 +25,6 @@ def majorstock(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code, 
+        path=path,
+        corp_code=corp_code,
     )

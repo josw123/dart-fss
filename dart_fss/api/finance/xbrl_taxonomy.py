@@ -4,7 +4,7 @@ from ..helper import api_request
 
 
 def xbrl_taxonomy(
-    sj_div: str, 
+    sj_div: str,
     api_key: str = None
 ) -> Dict:
     """ 금융감독원 회계포탈에서 제공하는 IFRS 기반 XBRL 재무제표 공시용 표준계정과목체계(계정과목) 을 제공합니다.
@@ -25,6 +25,6 @@ def xbrl_taxonomy(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        sj_div=sj_div, 
+        path=path,
+        sj_div=sj_div,
     )

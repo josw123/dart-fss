@@ -56,7 +56,8 @@ def get_stock_market_list(corp_cls: str, include_corp_name=True) -> dict:
             stock_code = cols[1].text.strip()
             sector = cols[2].text.strip()
             product = cols[3].text.strip()
-            corp_info = {'sector': sector, 'product': product, 'corp_cls': corp_cls}
+            corp_info = {'sector': sector,
+                         'product': product, 'corp_cls': corp_cls}
             if include_corp_name:
                 corp_info['corp_name'] = corp_name
             stock_market_list[stock_code] = corp_info

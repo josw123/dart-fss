@@ -4,9 +4,9 @@ from ..helper import api_request
 
 
 def exctv_sttus(
-    corp_code: str, 
-    bsns_year: str, 
-    reprt_code: str, 
+    corp_code: str,
+    bsns_year: str,
+    reprt_code: str,
     api_key: str = None
 ) -> Dict:
     """ 정기보고서(사업, 분기, 반기보고서) 내에 임원 현황을 제공합니다.
@@ -31,8 +31,8 @@ def exctv_sttus(
 
     return api_request(
         api_key=api_key,
-        path=path, 
-        corp_code=corp_code,  
-        bsns_year=bsns_year,  
-        reprt_code=reprt_code, 
+        path=path,
+        corp_code=corp_code,
+        bsns_year=bsns_year,
+        reprt_code=reprt_code,
     )
