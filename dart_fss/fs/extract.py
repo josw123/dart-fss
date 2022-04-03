@@ -1301,7 +1301,9 @@ def extract(corp_code: str,
             lang: str = 'ko',
             separator: bool = True,
             dataset: str = 'xbrl',
-            cumulative: bool = False) -> FinancialStatement:
+            cumulative: bool = False,
+            progressbar: bool = True,
+            skip_error: bool = True) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1329,6 +1331,10 @@ def extract(corp_code: str,
         'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
     cumulative: bool, optional
         반기 혹은 분기 보고서 추출시 해당분기 값을 제외한 누적값만 추출할지 여부 (default: False)
+    progressbar: bool, optional
+        ProgressBar 표시 여부 (default: True)
+    skip_error: bool, optional
+        Error 발생시 skip 여부 (default: True)
     Returns
     -------
     FinancialStatement
@@ -1339,6 +1345,9 @@ def extract(corp_code: str,
         from tqdm import tqdm_notebook as tqdm
     else:
         from tqdm import tqdm
+
+    # Disable progressbar
+    tqdm_disable = not progressbar
 
     if dataset not in ['xbrl', 'web']:
         raise ValueError('invalid dataset type: only xbrl or web are allowed')
@@ -1374,10 +1383,10 @@ def extract(corp_code: str,
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
                 length = len(reports)
-                for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
-                    report = reports.pop(0)
-                    if statements is None:
-                        try :
+                for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report', disable=tqdm_disable):
+                    try:
+                        report = reports.pop(0)
+                        if statements is None:
                             statements = analyze_report(report=report,
                                                         fs_tp=fs_tp,
                                                         separate=separate,
@@ -1391,13 +1400,7 @@ def extract(corp_code: str,
                                     raise NotFoundConsolidated('Could not find consolidated financial statements')
                                 # initialize label dictionary
                                 label_df = init_label(statements, fs_tp=fs_tp)
-                        except Exception as ex :
-                            traceback.print_exc()
-                            warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
-                            warnings.warn(warnings_text, RuntimeWarning)
-
-                    else:
-                        try :
+                        else:
                             nstatements = analyze_report(report=report,
                                                          fs_tp=fs_tp,
                                                          separate=separate,
@@ -1409,10 +1412,13 @@ def extract(corp_code: str,
                                 warnings.warn(warnings_text, RuntimeWarning)
                             else:
                                 statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
-                        except Exception as ex :
-                            traceback.print_exc()
-                            warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                    except Exception as ex:
+                        traceback.print_exc()
+                        warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                        if skip_error:
                             warnings.warn(warnings_text, RuntimeWarning)
+                        else:
+                            raise ex
 
         # Spinner enable
         dart.utils.spinner.spinner_enable = True
