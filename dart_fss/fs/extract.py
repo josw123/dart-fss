@@ -231,6 +231,9 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
             row_span = int(th.attrs.get('rowspan', 1))
             col_span = int(th.attrs.get('colspan', 1))
             text = re.sub(r'\s+', '', th.text)
+            # Fix bug(#76)
+            if len(text) == 0:
+                continue
             date_list = [datetime(1900, 1, 1)]
             if idx == 0:
                 if jdx == 0:
