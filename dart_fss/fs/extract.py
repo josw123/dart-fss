@@ -81,7 +81,21 @@ def get_datetime(year, month, day):
     try:
         return datetime(year, month, day)
     except ValueError:
-        return None
+        if month not in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]:
+            warnings_text = "Month must be in 1..12"
+            warnings.warn(warnings_text, RuntimeWarning)
+            return None
+        if day != 0:
+            if month == 12:
+                dt = datetime(year + 1, 1, 1)
+            else:
+                dt = datetime(year, month + 1, 1)
+            dt = dt - relativedelta(day=1)
+        else:
+            dt = datetime(year, month, 1)
+        warnings_text = "Day({0}.{1}.{2}) is out of range for month. dart-fss tries to fix {0}.{1}.{2} to {0}.{1}.{3}".format(year, month, day, dt.day)
+        warnings.warn(warnings_text, RuntimeWarning)
+        return dt
 
 
 
