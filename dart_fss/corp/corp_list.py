@@ -3,7 +3,7 @@ import re
 from typing import Union, List
 from dart_fss.utils import Singleton, Spinner
 from dart_fss.api.filings import get_corp_code
-from dart_fss.api.market import get_stock_market_list
+from dart_fss.api.market import get_stock_market_list, get_trading_halt_list
 from dart_fss.corp.corp import Corp
 
 
@@ -63,6 +63,7 @@ class CorpList(object, metaclass=Singleton):
 
         self._stock_codes = dict()
         self._delisting = dict()
+        self._trading_halt = dict()
         self._stock_market = dict()
         self._profile = profile
 
@@ -93,6 +94,8 @@ class CorpList(object, metaclass=Singleton):
         for k in ['Y', 'K', 'N']:
             data = get_stock_market_list(k, False)
             self._stock_market = {**self._stock_market, **data}
+            trading_halt = get_trading_halt_list(k, False)
+            self._trading_halt = {**self._trading_halt, **trading_halt}
         spinner.stop()
 
         spinner = Spinner('Loading Companies in OpenDART')
@@ -112,6 +115,10 @@ class CorpList(object, metaclass=Singleton):
             if stock_code is not None:
                 try:
                     info = self._stock_market[stock_code]
+                    trading_halt = self._trading_halt.get(stock_code)
+                    if trading_halt:
+                        info['trading_halt'] = True
+                        info['issue'] = trading_halt['issue']
                     corp_cls = info['corp_cls']
                     product = info['product']
                     sector = info['sector']
@@ -246,7 +253,7 @@ class CorpList(object, metaclass=Singleton):
     def sectors(self):
         return self._sectors
 
-    def find_by_stock_code(self, stock_code, include_delisting=False):
+    def find_by_stock_code(self, stock_code, include_delisting=False, include_trading_halt=True):
         """ 주식 종목 코드를 이용한 찾기
 
         Parameters
@@ -254,7 +261,9 @@ class CorpList(object, metaclass=Singleton):
         stock_code: str
             주식 종목 코드(6자리)
         include_delisting: bool, optional
-            상장폐지 주식 포함 검색 default: False
+            상장폐지 주식 포함 여부, True 일때 상장폐지 주식 포함(default: False)
+        include_trading_halt: bool, optional
+            거래정지 주식 포함 여부, True 일때 거래정지 주식 포함(default: True)
         Returns
         -------
         Corp
@@ -264,6 +273,8 @@ class CorpList(object, metaclass=Singleton):
         idx = self._stock_codes.get(stock_code)
         if include_delisting and idx is None:
             idx = self._delisting.get(stock_code)
+        if (not include_trading_halt) and (self._trading_halt.get(stock_code)):
+            idx = None
         return corps[idx] if idx is not None else None
 
     def __repr__(self):
