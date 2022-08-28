@@ -107,12 +107,16 @@ def extract_date_from_header(header):
     regex2 = re.compile(r'(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')
     date_info = []
     td_list = header.find_all('td')
+    re_nbsp = re.compile(r'\xa0')
+    re_space = re.compile(r'\s+')
     for td in td_list:
         # Remove white text in tag
         for tag in td.find_all(style=re.compile(r'color:#ffffff', re.IGNORECASE)):
             tag.decompose()
         texts = text_split_by_br(td)
         for text in texts:
+            text = re_nbsp.sub(' ', text)
+            text = re_space.sub(' ', text)
             searched = regex.findall(text)
             searched2 = regex2.findall(text)
 
