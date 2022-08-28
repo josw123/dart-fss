@@ -81,7 +81,21 @@ def get_datetime(year, month, day):
     try:
         return datetime(year, month, day)
     except ValueError:
-        return None
+        if month not in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]:
+            warnings_text = "Month must be in 1..12"
+            warnings.warn(warnings_text, RuntimeWarning)
+            return None
+        if day != 0:
+            if month == 12:
+                dt = datetime(year + 1, 1, 1)
+            else:
+                dt = datetime(year, month + 1, 1)
+            dt = dt - relativedelta(day=1)
+        else:
+            dt = datetime(year, month, 1)
+        warnings_text = "Day({0}.{1}.{2}) is out of range for month. dart-fss tries to fix {0}.{1}.{2} to {0}.{1}.{3}".format(year, month, day, dt.day)
+        warnings.warn(warnings_text, RuntimeWarning)
+        return dt
 
 
 
@@ -93,12 +107,16 @@ def extract_date_from_header(header):
     regex2 = re.compile(r'(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')
     date_info = []
     td_list = header.find_all('td')
+    re_nbsp = re.compile(r'\xa0')
+    re_space = re.compile(r'\s+')
     for td in td_list:
         # Remove white text in tag
         for tag in td.find_all(style=re.compile(r'color:#ffffff', re.IGNORECASE)):
             tag.decompose()
         texts = text_split_by_br(td)
         for text in texts:
+            text = re_nbsp.sub(' ', text)
+            text = re_space.sub(' ', text)
             searched = regex.findall(text)
             searched2 = regex2.findall(text)
 
@@ -231,6 +249,9 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
             row_span = int(th.attrs.get('rowspan', 1))
             col_span = int(th.attrs.get('colspan', 1))
             text = re.sub(r'\s+', '', th.text)
+            # Fix bug(#76)
+            if len(text) == 0:
+                continue
             date_list = [datetime(1900, 1, 1)]
             if idx == 0:
                 if jdx == 0:
