@@ -150,11 +150,12 @@ class Table(object):
     def labels(self):
         """labels 반환"""
         if self._labels is None:
+            self._labels = {}
             arcrole = XbrlConst.parentChild
             relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
-            root_concept = relationship_set.rootConcepts[0]
-            labels = get_label_list(relationship_set, root_concept)
-            self._labels = labels
+            for root_concept in relationship_set.rootConcepts:
+                labels = get_label_list(relationship_set, root_concept)
+                self._labels = {**self._labels, **labels}
         return self._labels
 
     def to_DataFrame(self, cls=None, lang='ko', start_dt=None, end_dt=None,
