@@ -1274,13 +1274,14 @@ def analyze_report(report: Report,
 def search_annual_report(corp_code: str,
                          bgn_de: str,
                          end_de: str = None,
-                         separate: bool = False):
+                         separate: bool = False,
+                         last_reprt_at: str = 'Y'):
 
     reports = []
     try:
         # 사업보고서 검색(최종보고서)
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
+                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at=last_reprt_at)
     except NoDataReceived:
         # 감사보고서 검색
         if separate:
@@ -1288,7 +1289,7 @@ def search_annual_report(corp_code: str,
         else:
             pblntf_detail_ty = 'F002'
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at=last_reprt_at)
     finally:
         if len(reports) == 0:
             raise RuntimeError('Could not find an annual report')
@@ -1324,7 +1325,8 @@ def extract(corp_code: str,
             dataset: str = 'xbrl',
             cumulative: bool = False,
             progressbar: bool = True,
-            skip_error: bool = True) -> FinancialStatement:
+            skip_error: bool = True,
+            last_report_only: bool = True) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1356,6 +1358,8 @@ def extract(corp_code: str,
         ProgressBar 표시 여부 (default: True)
     skip_error: bool, optional
         Error 발생시 skip 여부 (default: True)
+    last_report_only: bool, optional
+        최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
     Returns
     -------
     FinancialStatement
@@ -1376,6 +1380,11 @@ def extract(corp_code: str,
     all_report_tp = ('annual', 'half', 'quarter')
     all_report_name = ('Annual', 'Semiannual', 'Quarterly')
     all_pblntf_detail_ty = ('A001', 'A002', 'A003')
+
+    if last_report_only:
+        last_reprt_at = 'Y'
+    else:
+        last_reprt_at = 'N'
 
     def check_report_tp(req_tp, tp):
         if isinstance(req_tp, str):
@@ -1402,7 +1411,8 @@ def extract(corp_code: str,
                     reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
                 else:
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                             pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
+                                             pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
+                                             last_reprt_at=last_reprt_at)
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report', disable=tqdm_disable):
                     try:

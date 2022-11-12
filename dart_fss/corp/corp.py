@@ -212,7 +212,8 @@ class Corp(object):
                    dataset: str = 'xbrl',
                    cumulative: bool = False,
                    progressbar: bool = True,
-                   skip_error: bool = True) -> FinancialStatement:
+                   skip_error: bool = True,
+                   last_report_only: bool = True) -> FinancialStatement:
         """
          재무제표 검색
 
@@ -235,13 +236,13 @@ class Corp(object):
          dataset: str, optional
             'xbrl': xbrl 파일 우선 데이터 추출, 'web': web page 우선 데이터 추출(default: 'xbrl')
          cumulative: bool, optional
-
-
             반기 혹은 분기 보고서 추출시 해당분기 값을 제외한 누적값만 추출할지 여부 (default: False)
          progressbar: bool, optional
             ProgressBar 표시 여부 (default: True)
          skip_error: bool, optional
             Error 발생시 skip 여부 (default: True)
+        last_report_only: bool, optional
+            최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
          Returns
          -------
          FinancialStatement
@@ -249,4 +250,4 @@ class Corp(object):
 
          """
         return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang,
-                       separator, dataset, cumulative, progressbar, skip_error)
+                       separator, dataset, cumulative, progressbar, skip_error, last_report_only)
