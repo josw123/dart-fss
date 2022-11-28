@@ -5,7 +5,11 @@ beautifulsoup4
 certifi
 chardet
 decorator
-fake-useragent
+
+#fake-useragent compatible version
+fake-useragent<=0.1.13;python_version<="3.6"
+fake-useragent>=1.0;python_version>="3.7"
+
 
 #idna compatible version
 idna==2.9;python_version=="3.5"
