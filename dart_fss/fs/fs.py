@@ -138,25 +138,47 @@ class FinancialStatement(object):
             저장할 폴더(default: 실행폴더/fsdata)
         """
         import os
+
         if path is None:
             path = os.getcwd()
-            path = os.path.join(path, 'fsdata')
+            path = os.path.join(path, "fsdata")
             create_folder(path)
 
         if filename is None:
-            filename = '{}_{}.xlsx'.format(self.info.get('corp_code'), self.info.get('report_tp'))
+            filename = f'{self.info.get("corp_code")}_{self.info.get("report_tp")}.xlsx'
 
         file_path = os.path.join(path, filename)
         with pd.ExcelWriter(file_path) as writer:
+            infodf = pd.DataFrame({"info": self.info}).drop(index="financial statement")
+            infodf.to_excel(writer, sheet_name="info")
             for tp in self._statements:
                 fs = self._statements[tp]
-                label = self._labels[tp]
                 if fs is not None:
-                    sheet_name = 'Data_' + tp
+                    sheet_name = "Data_" + tp
                     fs.to_excel(writer, sheet_name=sheet_name)
-                    sheet_name = 'Labels_' + tp
+                    sheet_name = "Labels_" + tp
+                    label = self._labels[tp]
                     label.to_excel(writer, sheet_name=sheet_name)
         return file_path
+
+    @classmethod
+    def load(cls, filepath):
+        xl = pd.ExcelFile(filepath)
+
+        statements = {}
+        labels = {}
+        for sheet in xl.sheet_names:
+            if sheet == "info":
+                info = xl.parse(sheet, index_col=0)
+            else:
+                sheet_type, statement_tp = sheet.split("_")
+                if sheet_type == "Data":
+                    statements[statement_tp] = xl.parse(
+                        sheet, header=[0, 1], index_col=0
+                    )
+                elif sheet_type == "Labels":
+                    labels[statement_tp] = xl.parse(sheet, header=[0, 1], index_col=0)
+        return cls(statements, labels, info["info"].to_dict())
 
     def __getattr__(self, item):
         if item in self.info:
