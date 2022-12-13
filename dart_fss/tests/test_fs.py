@@ -62,6 +62,7 @@ def test_fs_to_save(fs_report):
 def test_fs_load(fs_report):
     import tempfile
     with tempfile.TemporaryDirectory() as path:
+        expected = fs_report.info
         file_path = fs_report.save(path=path)
         loaded_report = fs_report.load(file_path)
-    assert loaded_report.info == file_path.info
+    assert loaded_report.info == expected
