@@ -1,5 +1,6 @@
 pipeline {
   agent any
+    stages {
     stage('Python3.7') {
       agent {
         docker {
