@@ -35,7 +35,7 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
         arelle_app_dir = os.path.join(os.path.expanduser("~/.config"), "arelle")
         if not os.path.exists(arelle_app_dir):
             os.makedirs(arelle_app_dir)
-    model_xbrl = Cntlr.Cntlr().modelManager.load(file_path)
+    model_xbrl = Cntlr.Cntlr(logFileName='temp.log').modelManager.load(file_path)
     filename = file_path.split('\\')[-1]
     xbrl = DartXbrl(filename, model_xbrl)
 
