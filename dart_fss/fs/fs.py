@@ -145,7 +145,7 @@ class FinancialStatement(object):
             create_folder(path)
 
         if filename is None:
-            filename = f'{self.info.get("corp_code")}_{self.info.get("report_tp")}.xlsx'
+            filename = '{}_{}.xlsx'.format(self.info.get('corp_code'), self.info.get('report_tp'))
 
         file_path = os.path.join(path, filename)
         with pd.ExcelWriter(file_path) as writer:
