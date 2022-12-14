@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from pandas import DataFrame
@@ -170,6 +171,9 @@ class FinancialStatement(object):
         for sheet in xl.sheet_names:
             if sheet == "info":
                 info = xl.parse(sheet, index_col=0)
+                for k, v in info.items():
+                    if np.isnan(v):
+                        info[k] = None
             else:
                 sheet_type, statement_tp = sheet.split("_")
                 if sheet_type == "Data":
