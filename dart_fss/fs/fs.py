@@ -116,7 +116,7 @@ class FinancialStatement(object):
 
     def to_dict(self) -> Dict[str, str]:
         """ FinancialStatement의 요약 정보를 Dictionary 로 반환"""
-        info = self.info
+        info = self.info.copy()
         df_info = []
         for tp in self._order:
             df = self._statements.get(tp)
@@ -150,7 +150,7 @@ class FinancialStatement(object):
 
         file_path = os.path.join(path, filename)
         with pd.ExcelWriter(file_path) as writer:
-            infodf = pd.DataFrame({"info": self.info}).drop(index="financial statement")
+            infodf = pd.DataFrame({"info": self.info})
             infodf.to_excel(writer, sheet_name="info")
             for tp in self._statements:
                 fs = self._statements[tp]
@@ -165,9 +165,20 @@ class FinancialStatement(object):
     @classmethod
     def load(cls, filepath):
         xl = pd.ExcelFile(filepath)
+        statements = {
+            'bs': None,
+            'is': None,
+            'cis': None,
+            'cf': None
+        }
 
-        statements = {}
-        labels = {}
+        labels = {
+            'bs': None,
+            'is': None,
+            'cis': None,
+            'cf': None
+        }
+
         for sheet in xl.sheet_names:
             if sheet == "info":
                 info = xl.parse(sheet, index_col=0)
