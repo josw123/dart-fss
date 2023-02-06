@@ -1212,7 +1212,7 @@ def select_cumulative(corp_code, statements: Dict[str, DataFrame]) -> Dict[str, 
             continue
         concept_columns, data_columns = split_columns_concept_data(df.columns)
 
-        if data_columns is not None:
+        if concept_columns is not None and data_columns is not None:
             data_columns = [x for x in data_columns if regex_str.search(x[0])]
             ncolumns = concept_columns.tolist() + data_columns
             ncolumns = pd.MultiIndex.from_tuples(ncolumns)
