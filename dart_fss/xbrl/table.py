@@ -150,12 +150,12 @@ class Table(object):
     def labels(self):
         """labels 반환"""
         if self._labels is None:
-            self._labels = {}
+            self._labels = []
             arcrole = XbrlConst.parentChild
             relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
             for root_concept in relationship_set.rootConcepts:
                 labels = get_label_list(relationship_set, root_concept)
-                self._labels = {**self._labels, **labels}
+                self._labels.append(labels)
         return self._labels
 
     def to_DataFrame(self, cls=None, lang='ko', start_dt=None, end_dt=None,
@@ -194,7 +194,10 @@ class Table(object):
         if cls is None:
             cls = self.cls_filter(start_dt, end_dt, label)
         cls = cls_merge_type(cls)
-        depth = get_max_depth(self.labels, show_abstract=show_abstract)
+
+        depth = -1
+        for label in self.labels:
+            depth = max(depth, get_max_depth(label, show_abstract=show_abstract))
         depth = depth if depth < show_depth else show_depth
 
         table = self.parent.get_table_by_code('d999004')
@@ -210,8 +213,12 @@ class Table(object):
             pd.options.display.float_format = '{:}'.format
         df = pd.DataFrame(columns=columns)
 
-        rows = generate_df_rows(self.labels, cls, self.dataset, depth, lang=lang,
+        rows = []
+        for label in self.labels:
+            r = generate_df_rows(label, cls, self.dataset, depth, lang=lang,
                                 show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
+            rows.append(r)
+        rows = flatten(rows)
         data = flatten(rows)
         for idx, r in enumerate(data):
             df.loc[idx] = r
