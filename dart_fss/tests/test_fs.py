@@ -66,3 +66,95 @@ def test_fs_load(fs_report):
         file_path = fs_report.save(path=path)
         loaded_report = fs_report.load(file_path)
     assert loaded_report.info == expected
+
+
+@pytest.fixture
+def test_cases_for_xbrl():
+    return [
+        {
+            "stock_code": "051310",
+            "date": "20120814",
+            "report_tp": "half",
+            "fs_tp": "cis",
+            "expected": 29
+        },
+        {
+            "stock_code": "000880",
+            "date": "20171114",
+            "report_tp": "quarter",
+            "fs_tp": "cis",
+            "expected": 19
+        },
+        {
+            "stock_code": "007280",
+            "date": "20130515",
+            "report_tp": "quarter",
+            "fs_tp": "bs",
+            "expected": 52
+        },
+        {
+            "stock_code": "011080",
+            "date": "20121113",
+            "report_tp": "quarter",
+            "fs_tp": "cf",
+            "expected": 190
+        },
+        {
+            "stock_code": "016170",
+            "date": "20171114",
+            "report_tp": "quarter",
+            "fs_tp": "bs",
+            "expected": 34
+        },
+        {
+            "stock_code": "016170",
+            "date": "20171114",
+            "report_tp": "quarter",
+            "fs_tp": "cf",
+            "expected": 66
+        },
+        {
+            "stock_code": "038320",
+            "date": "20120515",
+            "report_tp": "quarter",
+            "fs_tp": "cf",
+            "expected": 135
+        },
+        {
+            "stock_code": "038320",
+            "date": "20120824",
+            "report_tp": "half",
+            "fs_tp": "cf",
+            "expected": 145
+        },
+        {
+            "stock_code": "009240",
+            "date": "20130401",
+            "report_tp": "annual",
+            "fs_tp": "bs",
+            "expected": 35
+        },
+    ]
+
+
+@pytest.fixture(scope='session')
+def test_extract_fs(test_cases_for_xbrl, corp_list):
+    for test_case in test_cases_for_xbrl:
+        corp = corp_list.find_by_stock_code(
+            test_case["stock_code"], include_delisting=True
+        )
+        fs = corp.extract_fs(
+            bgn_de=test_case["date"],
+            end_de=test_case["date"],
+            report_tp=[test_case["report_tp"]],
+            separate=True,
+        )
+        actual = fs[test_case["fs_tp"]].shape[0]
+        expected = test_case["expected"]
+        assert actual == expected, (
+            f"Failed for {test_case['stock_code']} "
+            f"on {test_case['date']} "
+            f"with report type {test_case['report_tp']} "
+            f"and financial statement type {test_case['fs_tp']}. "
+            f"Expected {expected}, but got {actual}."
+        )
