@@ -1,0 +1,41 @@
+[project]
+name = "dart-fss"
+description = "Web-scraping https://dart.fss.or.kr"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+keywords = ["fss", "dart-fss", "scrapping", "financial statement"]
+authors = [
+    {name = "Sungwoo Jo", email = "nonswing.z@gmail.com"}
+]
+maintainers = [
+    {name = "Sungwoo Jo", email = "nonswing.z@gmail.com"}
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3 :: Only"
+]
+
+dependencies = [
+    "xmltodict",
+    "requests",
+    "arelle-release",
+    "numpy",
+    "pandas",
+    "tqdm",
+    "halo",
+    "fake-useragent>=1.0",
+    "beautifulsoup4",
+    "appdirs",
+]
+
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/josw123/dart-fss"
+documentation = "https://dart-fss.readthedocs.io/"
+repository = "https://github.com/josw123/dart-fss.git"
