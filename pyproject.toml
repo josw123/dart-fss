@@ -35,6 +35,9 @@ dependencies = [
 
 dynamic = ["version"]
 
+[project.optional-dependencies]
+jupyter = ["ipywidgets"]
+
 [project.urls]
 homepage = "https://github.com/josw123/dart-fss"
 documentation = "https://dart-fss.readthedocs.io/"
