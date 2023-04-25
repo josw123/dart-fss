@@ -35,7 +35,7 @@ dependencies = [
 
 dynamic = ["version"]
 
-[project.optional-dependenciedependencys]
+[project.optional-dependencies]
 jupyter = ["jupyterlab", "ipywidgets"]
 
 [project.urls]
