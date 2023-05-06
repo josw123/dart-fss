@@ -18,11 +18,11 @@ import dart_fss
 # -- Project information -----------------------------------------------------
 
 project = 'dart-fss documentation'
-copyright = '2021, Sungwoo Jo'
+copyright = '2023, Sungwoo Jo'
 author = 'Sungwoo Jo'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.3.10'
+release = 'v0.4.3'
 
 # Removing the view page source link
 html_show_sourcelink = False
