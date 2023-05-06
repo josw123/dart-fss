@@ -229,7 +229,7 @@ class Table(object):
         for key, count in df_count.items():
             if regex_pass.search(' '.join(key[1])):
                 pass
-            elif count <= 1:
+            elif count < 1:
                 drop_columns.append(key)
         df = df.drop(drop_columns, axis=1)
         return df
