@@ -37,8 +37,8 @@ def test_xbrl_get_audit_infomation(samsung_xbrl):
 
 def test_xbrl_get_entity_information(samsung_xbrl):
     entity = samsung_xbrl.get_entity_information()
-    actual = entity.iloc[2][2]
-    expected = int(126380)
+    actual = int(entity.iloc[2][2])
+    expected = 126380
     assert actual == expected
 
 
