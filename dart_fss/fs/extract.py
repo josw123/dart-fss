@@ -238,6 +238,10 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     row_length = row_length + 1 if row_length == 1 else row_length
     # row-sapn, col-span을 처리하기 위한 Matrix
     columns_matrix = [[None for _y in range(col_length)] for _x in range(row_length)]
+
+    # Bug fix (#141): Return an empty array if a duplicate column exists
+    duplicate_check = []
+
     for idx, tr in enumerate(thead.find_all('tr')):
         start_idx = 0
         for ele_idx, element in enumerate(columns_matrix[idx]):
@@ -249,6 +253,10 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
             row_span = int(th.attrs.get('rowspan', 1))
             col_span = int(th.attrs.get('colspan', 1))
             text = re.sub(r'\s+', '', th.text)
+            # Bug fix (#141): Return an empty array if a duplicate column exists
+            if text in duplicate_check:
+                return []
+            duplicate_check.append(text)
             # Fix bug(#76)
             if len(text) == 0:
                 continue
@@ -276,6 +284,9 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                         new_text = fs_string[fs_tp]
                     columns_matrix[idx + mdx][start_idx + ndx] = new_text
             start_idx = start_idx + ndx + 1
+    # Bug fix (#141): Return an empty array if a duplicate '과목' exists
+    if len(columns_matrix) < 2 or columns_matrix[1].count('과목') > 1:
+        return []
 
     regex_3month = re.compile(r'3개월')
     regex_total = str_to_regex(r'누적 OR 금액')
