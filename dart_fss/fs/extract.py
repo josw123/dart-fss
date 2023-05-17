@@ -1142,7 +1142,9 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
     for tp in fs_tp:
         statements[tp] = func_fs[tp]()
         if statements[tp]:
-            statements[tp] = statements[tp].to_DataFrame(**option)
+            df = statements[tp].to_DataFrame(**option)
+            valid_columns = np.array([x for x in df.columns if not isinstance(x[1], tuple) or len(x[1]) == 1], dtype=object)
+            statements[tp] = df[valid_columns]
     return statements
 
 
