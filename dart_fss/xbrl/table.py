@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -160,8 +161,8 @@ class Table(object):
 
     def to_DataFrame(self, cls=None, lang='ko', start_dt=None, end_dt=None,
                      label=None, show_abstract=False, show_class=True, show_depth=10,
-                     show_concept=True, separator=True):
-        """ Pandas DataFrame으로 변환하는 함수
+                     show_concept=True, separator=True, ignore_subclass=True):
+        """ Pandas DataFrame으로 변환 하는 함수
 
         Parameters
         ----------
@@ -174,18 +175,19 @@ class Table(object):
         end_dt: str, optional
             검색 종료 일자
         label: str, optional
-            Column Label에 포함될 단어
+            Column label에 포함될 단어
         show_abstract: bool, optional
-            abtract 표시 여부
+            abstract 표시 여부
         show_class: bool, optional
-            class 표시여부
+            class 표시 여부
         show_depth: int, optional
             class 표시 깊이
         show_concept: bool, optional
             concept_id 표시 여부
         separator: bool, optional
             숫자 첫단위 표시 여부
-
+        ignore_subclass: bool, optional
+            대분류인 연결재무제표 및 별도재무제표를 제외한 나머지 column의 표시 여부 (('연결재무제표', '자본금') / ('연결재무제표', '주식발행초과금') 등)
         Returns
         -------
         DataFrame
@@ -232,6 +234,11 @@ class Table(object):
             elif count < 1:
                 drop_columns.append(key)
         df = df.drop(drop_columns, axis=1)
+
+        if ignore_subclass:
+            columns = np.array([x for x in df.columns if not isinstance(x[1], tuple) or len(x[1]) == 1], dtype=object)
+            return df[columns]
+
         return df
 
     def get_value_by_concept_id(self, concept_id, start_dt=None, end_dt=None, label=None, lang='en'):

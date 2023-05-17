@@ -91,7 +91,7 @@ class DartXbrl(object):
             Pandas DataFrame
         """
         table = self.get_table_by_code(code)
-        return table.to_DataFrame(lang=lang, show_class=False, show_concept=False, separator=False)
+        return table.to_DataFrame(lang=lang, show_class=False, show_concept=False, separator=False, ignore_subclass=False)
 
     def get_document_information(self, lang: str = 'ko') -> DataFrame:
         """ 공시 문서 정보
