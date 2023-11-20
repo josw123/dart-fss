@@ -30,6 +30,8 @@ class XBRLViewer(object):
         self._xbrl = None
         self._pages = None
         self._attached_files = None
+        self.loaded = False
+        self.empty = False
         if not lazy_loading:
             self.load()
 
@@ -105,6 +107,9 @@ class XBRLViewer(object):
         self._get_report()
         self.extract_pages()
         self.extract_attached_files()
+        self.loaded = True
+        if len(self.pages) == 0:
+            self.empty = True
 
     @property
     def rcept_no(self):
@@ -181,7 +186,8 @@ class XBRLViewer(object):
 
         dataset = dict()
         for s in scope:
-            dataset[s] = func_set[s]()
+            if s in ['pages', 'attached_files']:
+                dataset[s] = func_set[s]()
         return dataset if len(dataset) > 1 else dataset[scope[0]]
 
     @property

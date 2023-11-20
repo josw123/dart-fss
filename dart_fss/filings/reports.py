@@ -11,7 +11,7 @@ from dart_fss.utils import dict_to_html, request, str_compare, unzip, search_fil
 from dart_fss.xbrl import get_xbrl_from_file
 from dart_fss.utils.regex import str_to_regex
 from dart_fss.api.finance import download_xbrl
-
+from dart_fss.filings.xbrl_viewer import XBRLViewer
 
 class Report(object):
     """ 보고서 클래스
@@ -74,6 +74,7 @@ class Report(object):
         self._related_reports = None
         self._attached_files = None
         self._attached_reports = None
+        self._xbrlviewer = None
 
         lazy_loading = kwargs.get('lazy_loading', True)
         if not lazy_loading:
@@ -304,6 +305,18 @@ class Report(object):
         self._attached_reports = sorted(attached_reports, key=lambda x: x.rcp_no, reverse=True)
         return self._attached_reports
 
+
+    @property
+    def xbrlviewer(self):
+        if self._xbrlviewer is None:
+            self.extract_xbrlviewer()
+        return self._xbrlviewer
+
+    def extract_xbrlviewer(self):
+        if self._xbrlviewer is None:
+            self._xbrlviewer = XBRLViewer(self.rcp_no, lazy_loading=False)
+        return self._xbrlviewer
+
     def load(self):
         """ 페이지들의 HTML을 불러오는 함수 """
         self._get_report()
@@ -311,6 +324,7 @@ class Report(object):
         self.extract_attached_reports()
         self.extract_pages()
         self.extract_attached_files()
+        self.extract_xbrlviewer()
         self.find_all()
 
     def find_all(self, **kwargs):
@@ -333,7 +347,7 @@ class Report(object):
         """
         includes = kwargs.get('includes')
         excludes = kwargs.get('excludes')
-        scope = kwargs.get('scope', ['pages', 'related_reports', 'attached_reports', 'attached_files'])
+        scope = kwargs.get('scope', ['pages', 'related_reports', 'attached_reports', 'attached_files', 'xbrlviewer'])
         options = kwargs.get('options')
 
         def determinant(value):
@@ -341,29 +355,33 @@ class Report(object):
             det2 = not str_to_regex(excludes).search(value) if excludes else True
             return det1 and det2
 
-        def pages(): return [x for x in self.pages if determinant(x.title)]
+        def fn_pages(): return [x for x in self.pages if determinant(x.title)]
 
-        def related_reports():
+        def fn_related_reports():
             if options and options.get('title'):
                 res = [y for x in self.related_reports for y in x.find_all(**kwargs) if determinant(x.title)]
             else:
                 res = [y for x in self.related_reports for y in x.find_all(**kwargs)]
             return res
 
-        def attached_reports():
+        def fn_attached_reports():
             if options and options.get('title'):
                 res = [y for x in self.attached_reports for y in x.find_all(**kwargs) if determinant(x.info['rpt_nm'])]
             else:
                 res = [y for x in self.attached_reports for y in x.find_all(**kwargs)]
             return res
 
-        def attached_files(): return [x for x in self.attached_files if determinant(x.filename)]
+        def fn_attached_files(): return [x for x in self.attached_files if determinant(x.filename)]
+
+        def fn_xbrlviewer(): return self.xbrlviewer.find_all(**kwargs)
+
 
         func_set = {
-            'pages': pages,
-            'related_reports': related_reports,
-            'attached_reports': attached_reports,
-            'attached_files': attached_files
+            'pages': fn_pages,
+            'related_reports': fn_related_reports,
+            'attached_reports': fn_attached_reports,
+            'attached_files': fn_attached_files,
+            'xbrlviewer': fn_xbrlviewer
         }
 
         dataset = dict()
@@ -393,6 +411,10 @@ class Report(object):
                         file = search_file(folder_path)
                         if len(file) > 0:
                             self._xbrl = get_xbrl_from_file(file[0])
+                        elif self.xbrlviewer.empty is False:
+                            self._xbrl = self.xbrlviewer.xbrl
+                        else:
+                            self._xbrl = None
                     else:
                         self._xbrl = None
         return self._xbrl
@@ -401,10 +423,14 @@ class Report(object):
         """ XBRL 첨부파일 검색"""
         query = {
             'includes': 'IFRS OR XBRL',
-            'scope': ['attached_files']
+            'scope': ['attached_files', 'xbrlviewer']
         }
         attached_files = self.find_all(**query)
-        return attached_files[0] if len(attached_files) > 0 else None
+        if len(attached_files['attached_files']) > 0:
+            return attached_files['attached_files'][0]
+        elif len(attached_files['xbrlviewer']) > 0:
+            return attached_files['xbrlviewer'][0]
+        return None
 
     def to_dict(self, summary=True):
         """ Report 정보를 Dictionary 형태로 반환
@@ -432,6 +458,10 @@ class Report(object):
             if len(attached_reports) > 0:
                 info['attached_reports'] = attached_reports
             attached_files = [x.to_dict() for x in self.attached_files]
+
+            if self.xbrlviewer is not None and self.xbrlviewer.empty is False:
+                info['xbrlviewer'] = [self.xbrlviewer.to_dict()]
+
             if len(attached_files) > 0:
                 info['attached_files'] = attached_files
             info['pages'] = [x.to_dict() for x in self.pages]
