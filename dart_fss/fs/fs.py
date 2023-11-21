@@ -191,6 +191,7 @@ class FinancialStatement(object):
                     )
                 elif sheet_type == "Labels":
                     labels[statement_tp] = xl.parse(sheet, header=[0, 1], index_col=0)
+        xl.close()
         return cls(statements, labels, info["info"].to_dict())
 
     def __getattr__(self, item):
