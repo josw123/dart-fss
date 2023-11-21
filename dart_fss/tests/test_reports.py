@@ -48,3 +48,12 @@ def test_reports_to_dict_summary_false(last_report):
     actual = info.get('xbrl')
     expected = '[삼성전자]사업보고서_IFRS(원문XBRL)(2018.04.02).zip'
     assert actual == expected
+
+
+def test_xbrlviewer(dart):
+    corp_code = '00126380'
+    report = dart.search(corp_code=corp_code, bgn_de='20230901', end_de='20231231', pblntf_ty='a')[0]
+    actual = len(report.to_dict(summary=False)['xbrlviewer'])
+    expected = 1
+
+    assert actual == expected
