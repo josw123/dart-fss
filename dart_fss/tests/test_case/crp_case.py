@@ -14,6 +14,11 @@ samsung.add_test_value('cf', '20151231', 'concept_id',
                        'ifrs-full_InterestPaidClassifiedAsOperatingActivities', 748256000000)
 samsung.add_test_value('is', '20151231', 'concept_id', 'ifrs-full_BasicEarningsLossPerShare', 126305)
 
+# XBRL Viewer 업데이트로 인한 테스트 케이스(#146)
+samsung2 = TestCrp(corp_code='00126380', bgn_de='20220101', end_de='20231231',
+                   separate=False, report_tp='quarter')
+samsung2.add_test_value('bs', '20220930', 'concept_id','ifrs-full_CurrentAssets', 250880637000000)
+
 # 현대자동차
 hyundai = TestCrp(corp_code='00164742', bgn_de='20120101',
                   separate=False, report_tp='annual')
@@ -99,5 +104,5 @@ byon = TestCrp(corp_code='00232089', bgn_de='20100101', end_de='20100701', separ
 byon.add_test_value('bs', '20100331', 'label_ko', '유동자산', 2722479385)
 
 
-test_crp_list = [samsung, hyundai, dexter, stone, sjgroup, sds,
+test_crp_list = [samsung, samsung2, hyundai, dexter, stone, sjgroup, sds,
                  jtc, gs_retail, lg_chemical, lg_chemical2, meritz_fire, hana_fn, asia_paper, bookook, byon]

@@ -1257,6 +1257,30 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
     return df
 
 
+def remove_almost_empty_columns(df: Dict[str, DataFrame], min_data_number: int = 1) -> Dict[str, DataFrame]:
+    """
+    Remove almost empty columns from dataframe in dictionary.
+
+    Args:
+    df : Dict[str, DataFrame]
+        The original dictionary containing dataframes.
+    min_data_number : int
+        The minimum number of data in a column to not be considered almost empty.
+
+    Returns:
+    df : Dict[str, DataFrame]
+        The modified dictionary with almost empty columns removed.
+    """
+
+    regex = re.compile(r'\d{8}')
+
+    for tp, df_tp in df.items():
+        if df_tp is not None:
+            new_columns = [col for col in df_tp.columns if (regex.search(col[0]) is None) or (df_tp[col].count() > min_data_number)]
+            df[tp] = df_tp[new_columns]
+
+    return df
+
 def analyze_report(report: Report,
                    fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
                    separate: bool = False,
@@ -1280,6 +1304,7 @@ def analyze_report(report: Report,
     else:
         fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
+    fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
     return fs_df
 
 
