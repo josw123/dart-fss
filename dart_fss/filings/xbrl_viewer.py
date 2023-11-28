@@ -97,8 +97,10 @@ class XBRLViewer(object):
                     tds = tr.find_all('td')
                     if len(tds) == 2:
                         filename = tds[0].text
-                        url_path = tds[1].find('a')['href']
-                        self._attached_files.append(XBRLViewerAttachedFile(self.rcp_no, url_path, filename, self._VIEWER_URL_))
+                        url_path = tds[1].find('a')
+                        url_path = url_path.get('href') if url_path else None
+                        if url_path:
+                            self._attached_files.append(XBRLViewerAttachedFile(self.rcp_no, url_path, filename, self._VIEWER_URL_))
 
         return self._attached_files
 
