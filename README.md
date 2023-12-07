@@ -21,7 +21,7 @@
 - Documentation: https://dart-fss.readthedocs.io/
 
 ``` bash
-pip install dart-fss
+pip install -U dart-fss
 ```
 
 ## Plugins
