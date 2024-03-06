@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-from .notebook import is_notebook
-
-if is_notebook():
-    from halo import HaloNotebook as Halo
-else:
-    from halo import Halo
+from yaspin import yaspin
 
 # Global Spinner Control
 spinner_enable = True
@@ -12,7 +7,7 @@ spinner_enable = True
 if spinner_enable:
     class Spinner:
         """
-        Halo 라이브러리를 이용한 Spinner
+        yaspin 라이브러리를 이용한 Spinner
         """
         def __init__(self, text):
             """ 초기화
@@ -21,7 +16,7 @@ if spinner_enable:
             text: str
                 spinner 사용시 표시할 text
             """
-            self.spinner = Halo(text=text, spinner='dots')
+            self.spinner = yaspin(text=text, spinner='dots')
 
         def start(self):
             """ Spinner Start"""

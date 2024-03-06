@@ -29,6 +29,6 @@ wcwidth
 lxml
 html5lib
 openpyxl
-halo
+yaspin
 xmltodict
 appdirs

@@ -4,7 +4,7 @@ description = "Web-scraping https://dart.fss.or.kr"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {text = "MIT"}
-keywords = ["fss", "dart-fss", "scrapping", "financial statement"]
+keywords = ["fss", "dart-fss", "scrapping", "financial_statement"]
 authors = [
     {name = "Sungwoo Jo", email = "nonswing.z@gmail.com"}
 ]
@@ -27,7 +27,7 @@ dependencies = [
     "numpy",
     "pandas",
     "tqdm",
-    "halo",
+    "yaspin",
     "fake-useragent>=1.0",
     "beautifulsoup4",
     "appdirs",

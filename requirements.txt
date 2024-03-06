@@ -4,7 +4,7 @@ arelle-release
 numpy
 pandas
 tqdm
-halo
+yaspin
 fake-useragent>=1.0
 beautifulsoup4
 appdirs
