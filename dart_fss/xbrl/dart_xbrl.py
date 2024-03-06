@@ -346,6 +346,6 @@ class DartXbrl(object):
         df = self.get_entity_information()
         columns = df.columns.tolist()
         df = df.drop(columns[0], axis=1).set_index(columns[1])
-        info['Company name'] = df.loc['Entity iegistrant name'][0]
+        info['Company name'] = df.loc['Entity iegistrant name'].iloc[0]  # Fix FutureWarning
 
         return dict_to_html(info, header=header)
