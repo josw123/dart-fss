@@ -1304,6 +1304,10 @@ def analyze_report(report: Report,
     else:
         fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
+        # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
+        if fs_df is None and separate is False:
+            raise NotFoundConsolidated('Could not find consolidated financial statements')
+
     fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
     return fs_df
 
@@ -1441,6 +1445,9 @@ def extract(corp_code: str,
     statements = None
     label_df = None
     report = None
+
+    regex_skip_title = str_to_regex("연장")
+
     try:
         for idx, tp in enumerate(all_report_tp):
             if check_report_tp(report_tp, tp):
@@ -1450,10 +1457,14 @@ def extract(corp_code: str,
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
                                              last_reprt_at=last_reprt_at)
+
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report', disable=tqdm_disable):
                     try:
                         report = reports.pop(0)
+                        if regex_skip_title.search(report.report_nm):
+                            continue
+
                         if statements is None:
                             statements = analyze_report(report=report,
                                                         fs_tp=fs_tp,

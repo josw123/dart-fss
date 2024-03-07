@@ -36,7 +36,7 @@ class TestCrp(object):
             pytest.fail('The corp_list should be initialized')
 
         fs = self.corp.extract_fs(bgn_de=self.bgn_de, end_de=self.end_de,
-                                  separate=self.separate, report_tp=self.report_tp)
+                                  separate=self.separate, report_tp=self.report_tp, skip_error=False)
         for test in self.test_set:
             tp = test['fs_tp']
             date = test['date']
@@ -62,7 +62,6 @@ class TestCrp(object):
                 label_column = label_column[0]
             else:
                 label_column = None
-
 
             if label_column is not None and date_column is not None:
                 for idx in range(len(df)):

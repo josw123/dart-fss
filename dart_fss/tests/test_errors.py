@@ -29,5 +29,5 @@ def test_errors(dart):
 
 def test_not_found_consolidated(dart, corp_list):
     with pytest.raises(dart.errors.NotFoundConsolidated):
-        crp = corp_list.find_by_corp_name('모두투어리츠')[0]
+        crp = corp_list.find_by_stock_code('204210')  # 종목명 변경
         crp.extract_fs(bgn_de='20180101', end_de='20190101')
