@@ -59,7 +59,7 @@ jtc.add_test_value('cf', '20200229', 'concept_id',
                    'ifrs-full_CashFlowsFromUsedInOperatingActivities', 4810599061)
 
 # GS리테일
-gs_retail = TestCrp(corp_code='00140177', bgn_de='20110101',
+gs_retail = TestCrp(corp_code='00140177', bgn_de='20160101', # 20110101에 연결재무제표가 없으므로 20160101로 변경
                     separate=False, report_tp='annual')
 gs_retail.add_test_value('cis', '20161231', 'label_ko', '매출원가', 6015117323057)
 gs_retail.add_test_value('cis', '20161231', 'label_ko', '기타손실', 60931373946)
