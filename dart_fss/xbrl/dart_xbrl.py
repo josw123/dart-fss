@@ -54,6 +54,14 @@ class DartXbrl(object):
                 role_code = re.search(r"\[(.*?)\]", definition)
                 role_code = role_code.group(1) if role_code else None
                 tables.append(Table(self, self.xbrl, role_code, definition, uri))
+
+        def extract_role_number(role: str):
+            try:
+                return int(re.search(r'(\d+)', role).group(1))
+            except AttributeError:
+                return 987654321
+
+        tables.sort(key=lambda x: int(extract_role_number(x.code)))
         self._tables = tables
         return tables
 
@@ -74,6 +82,31 @@ class DartXbrl(object):
             if str_compare(table.code, code):
                 return table
         return None
+
+    def get_table_by_name(self, name: str, separate:bool = False) -> Union[List[Table], None]:
+        """ Table 이름과 일치하는 Table 리스트 반환
+
+        Parameters
+        ----------
+        name: str
+            Table 이름
+        separate: bool, optional
+            True: 개별재무제표
+
+        Returns
+        -------
+        List[Table] or None
+            이름에 맞는 Table 리스트 또는 None
+        """
+
+        regex = re.compile(name, re.IGNORECASE)
+        regex2 = re.compile("consolidated" if not separate else "separate", re.IGNORECASE)
+
+        tables = []
+        for table in self.tables:
+            if re.search(regex, table.definition) and re.search(regex2, table.definition):
+                tables.append(table)
+        return tables if len(tables) > 0 else None
 
     def _to_info_DataFrame(self, code: str, lang: str = 'ko') -> DataFrame:
         """ to_DataFrame wrapper
@@ -226,7 +259,7 @@ class DartXbrl(object):
                         return True
         return False
 
-    def _get_statement(self, concept_id: str , separate: bool = False) -> Union[List[Table], None]:
+    def _get_statement(self, concept_id: str, separate: bool = False) -> Union[List[Table], None]:
         """ Financial statement information 을 이용하여 제공되는 재무제표를 추출하는 함수
 
         Parameters
@@ -243,21 +276,30 @@ class DartXbrl(object):
         Returns
         -------
         Table or None
-
-
         """
         table = self.get_table_by_code('d999007')
         if table is None:
             return None
         table_dict = table.get_value_by_concept_id(concept_id)
         compare_name = 'Separate' if separate else 'Consolidated'
-        for keys, value in table_dict.items():
-            for key in keys:
-                title = ''.join(key)
-                if re.search(compare_name, title, re.IGNORECASE):
-                    code_list = consolidated_code_to_role_number(value, separate=separate)
-                    tables = [self.get_table_by_code(code) for code in code_list]
-                    return tables
+
+        dataset_title = {
+            'dart-gcd_StatementOfFinancialPosition': '재무상태표',
+            'dart-gcd_StatementOfComprehensiveIncome': '손익계산서',
+            'dart-gcd_StatementOfChangesInEquity': '자본변동표',
+            'dart-gcd_StatementOfCashFlows': '현금흐름표',
+        }
+
+        try:
+            for keys, value in table_dict.items():
+                for key in keys:
+                    title = ''.join(key)
+                    if re.search(compare_name, title, re.IGNORECASE):
+                        code_list = consolidated_code_to_role_number(value, separate=separate)
+                        tables = [self.get_table_by_code(code) for code in code_list]
+                        return tables
+        except KeyError:
+            return self.get_table_by_name(dataset_title[concept_id], separate=separate)
         return None
 
     def get_financial_statement(self, separate: bool = False) -> Union[List[Table], None]:
