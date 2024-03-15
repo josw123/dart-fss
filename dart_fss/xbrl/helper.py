@@ -6,6 +6,8 @@ from datetime import datetime
 
 import pandas as pd
 
+from arelle.ModelObject import ModelObject
+
 from dart_fss.utils import check_datetime, str_compare,  get_datetime, get_currency_str, str_unit_to_number_unit
 from dart_fss.utils.regex import str_to_regex
 
@@ -39,6 +41,9 @@ def get_label_list(relationship_set, concepts, relationship=None):
         new_relationship_set.sort(key=lambda x: x.order)
         for rel in new_relationship_set:
             new_concepts = rel.viewConcept
+            if not isinstance(rel.toModelObject, ModelObject):
+                warnings.warn('Invalid element in "{}" at line {}, targeting element "{}".'.format(rel.modelDocument.basename, rel.sourceline, rel.toModelObject), RuntimeWarning)
+                return res
             res['children'].append(get_label_list(relationship_set, new_concepts, relationship=rel))
     return res
 
