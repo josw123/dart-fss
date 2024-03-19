@@ -1384,9 +1384,7 @@ def extract(corp_code: str,
     separate: bool, optional
         개별재무제표 여부
     report_tp: str or list, optional
-        str: 'annual' 연간, 'half' 연간 + 반기, 'quarter' 연간 + 반기 + 분기
-        list: ['annual'] : 연간, ['half']: 반기, ['quarter'] 분기, ['annual', 'half']: 연간 + 반기
-              ['annual', 'quarter']: 연간 + 분기, ['half', 'quarter']:  반기 + 분기, ['annual', 'half', 'quarter']: 연간 + 반기 + 분기
+        'annual' 연간, 'half' 연간 + 반기, 'quarter' 연간 + 반기 + 분기, ['annual'] 연간, ['half'] 반기, ['quarter'] 분기, ['annual', 'half'] 연간 + 반기, ['annual', 'quarter'] 연간 + 분기, ['half', 'quarter']  반기 + 분기, ['annual', 'half', 'quarter'] 연간 + 반기 + 분기
     lang: str, optional
         'ko' 한글, 'en' 영문
     separator: bool, optional
