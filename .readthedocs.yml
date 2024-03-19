@@ -1,14 +1,15 @@
 # .readthedocs.yml
 
-# Required
 version: 2
 
-# Build documentation in the docs/ directory with Sphinx
+build:
+  os: "ubuntu-22.04"
+  tools:
+    python: "3.10"
+    
 sphinx:
   configuration: docs/conf.py
 
-# Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.7
   install:
-    - requirements: docs/requirements.txt
+  - requirements: docs/requirements.txt
