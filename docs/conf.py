@@ -13,12 +13,11 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import dart_fss
 
 # -- Project information -----------------------------------------------------
 
 project = 'dart-fss documentation'
-copyright = '2023, Sungwoo Jo'
+copyright = '2024, Sungwoo Jo'
 author = 'Sungwoo Jo'
 
 # The full version, including alpha/beta/rc tags
@@ -35,7 +34,6 @@ numpydoc_show_inherited_class_members = False
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-import sphinx_rtd_theme
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -44,7 +42,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.graphviz',
     'sphinx.ext.inheritance_diagram',
-    'sphinx_autodoc_typehints',
+    # 'sphinx_autodoc_typehints',
     'sphinx_rtd_theme',
     'numpydoc'
 ]
