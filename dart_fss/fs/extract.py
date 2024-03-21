@@ -102,9 +102,9 @@ def get_datetime(year, month, day):
 def extract_date_from_header(header):
     """ 재무제표 기간 추출을 위해 사용하는 method"""
     # YYYY년 MM월 DD일 형태 검색
-    regex = re.compile(r'(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')
+    regex = re.compile(r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})') # Exclude ':'
     # YYYY년 MM월 DD일 M'M'월 D'D'일 형태 검색
-    regex2 = re.compile(r'(\d{4})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')
+    regex2 = re.compile(r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})') # Exclude ':'
     date_info = []
     td_list = header.find_all('td')
     re_nbsp = re.compile(r'\xa0')
