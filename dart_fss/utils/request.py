@@ -15,7 +15,7 @@ def get_user_agent():
     str
         user-agent
     """
-    ua = UserAgent()
+    ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')  # Exclude mobile devices and tablets
     agent = ua.chrome
     return str(agent)
 
