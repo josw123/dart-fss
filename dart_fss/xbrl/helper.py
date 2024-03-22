@@ -124,11 +124,11 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, weight=1.0):
     """ dataset에서 값을 추출하는 함수 """
-    def str_to_float(val):
+    def str_to_float(val, w=1.0):
         try:
-            return float(val)
+            return float(val) * w
         except ValueError:
             return val
 
@@ -152,7 +152,7 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
         value = float('nan')
         for data in dataset[cls['cls_id']]:
             if str_compare(data.concept.id, concept_id):
-                value = str_to_float(data.value)
+                value = str_to_float(data.value, weight)
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
                 if currency_unit is not None:
                     decimals = str_to_float(data.decimals)
@@ -196,7 +196,7 @@ def generate_df_columns(definition, classification, max_depth, lang='ko', show_c
     return pd.MultiIndex.from_tuples(columns)
 
 
-def generate_df_rows(labels, classification, dataset, max_depth,
+def generate_df_rows(labels, classification, dataset, max_depth, calculations,
                      lang="ko", parent=(), show_abstract=False,
                      show_concept=True, show_class=True):
     """ Table의 DataFrame으로 변환시 DataFrame의 Row 생성을 위한 함수"""
@@ -223,12 +223,14 @@ def generate_df_rows(labels, classification, dataset, max_depth,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko']))
+
+        weight = calculations.get(labels['concept_id'], 1.0)
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], weight))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:
         for child in labels['children']:
-            generated_row = generate_df_rows(child, classification, dataset, max_depth,
+            generated_row = generate_df_rows(child, classification, dataset, max_depth, calculations=calculations,
                                              lang=lang, parent=tuple(new_parent), show_abstract=show_abstract,
                                              show_concept=show_concept, show_class=show_class)
             if generated_row is not None:

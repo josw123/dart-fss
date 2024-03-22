@@ -5,6 +5,7 @@ from dart_fss.corp import get_corp_list
 from dart_fss.filings import search
 from dart_fss.fs import extract
 from dart_fss.xbrl import get_xbrl_from_file
+from dart_fss.utils import enable_spinner
 
 __all__ = [
     'api',
@@ -14,7 +15,8 @@ __all__ = [
     'filings', 'search',
     'fs', 'extract',
     'utils',
-    'xbrl', 'get_xbrl_from_file'
+    'xbrl', 'get_xbrl_from_file',
+    'enable_spinner'
 ]
 
 from ._version import get_versions

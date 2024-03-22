@@ -41,6 +41,7 @@ class Table(object):
         self._dataset = None
         self._cls = None
         self._labels = None
+        self._calculations = None
 
     @property
     def facts(self):
@@ -148,6 +149,18 @@ class Table(object):
         return self._cls
 
     @property
+    def calculations(self):
+        """계산식 반환"""
+        if self._calculations is None:
+            arcrole = XbrlConst.summationItem
+            relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
+            self._calculations = {}
+            for rel in relationship_set.modelRelationships:
+                key = str(rel.toModelObject.qname).replace(':', '_')
+                self._calculations[key] = rel.weight
+        return self._calculations
+
+    @property
     def labels(self):
         """labels 반환"""
         if self._labels is None:
@@ -217,7 +230,7 @@ class Table(object):
 
         rows = []
         for label in self.labels:
-            r = generate_df_rows(label, cls, self.dataset, depth, lang=lang,
+            r = generate_df_rows(label, cls, self.dataset, depth, calculations=self.calculations, lang=lang,
                                 show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
             rows.append(r)
         rows = flatten(rows)
@@ -263,7 +276,9 @@ class Table(object):
             { column 이름 : 값 }
         """
         cls = self.cls_filter(start_dt, end_dt, label)
-        data = get_value_from_dataset(classification=cls, dataset=self.dataset, concept_id=concept_id)
+        weight = self.calculations.get(concept_id, 1.0)
+        data = get_value_from_dataset(classification=cls, dataset=self.dataset,
+                                      concept_id=concept_id, weight=weight)
         results = dict()
         for c, d in zip(cls, data):
             title = get_title(c, lang=lang)
