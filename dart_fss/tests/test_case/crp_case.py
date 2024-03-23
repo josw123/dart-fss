@@ -7,11 +7,11 @@ samsung.add_test_value('bs', '20091231', 'concept_id',
                        'ifrs-full_Equity', 73045202000000)
 samsung.add_test_value('is', '20091231', 'concept_id',
                        'dart_OperatingIncomeLoss', 10925259000000)
-samsung.add_test_value('cis', '20091231', 'label_ko', '총포괄손익', 9098844000000)
+samsung.add_test_value('cis', '20091231', 'concept_id', 'ifrs-full_ComprehensiveIncome', 9098844000000)  # Changed from label_ko to concept_id
 samsung.add_test_value('cf', '20091231', 'concept_id',
                        'dart_CashAndCashEquivalentsAtEndOfPeriodCf', 10149930000000)
 samsung.add_test_value('cf', '20151231', 'concept_id',
-                       'ifrs-full_InterestPaidClassifiedAsOperatingActivities', 748256000000)
+                       'ifrs-full_InterestPaidClassifiedAsOperatingActivities',  -748256000000)
 samsung.add_test_value('is', '20151231', 'concept_id', 'ifrs-full_BasicEarningsLossPerShare', 126305)
 
 # XBRL Viewer 업데이트로 인한 테스트 케이스(#146)
