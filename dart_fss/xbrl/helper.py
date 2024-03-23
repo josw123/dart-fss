@@ -198,7 +198,7 @@ def generate_df_columns(definition, classification, max_depth, lang='ko', show_c
 
 def generate_df_rows(labels, classification, dataset, max_depth, calculations,
                      lang="ko", parent=(), show_abstract=False,
-                     show_concept=True, show_class=True):
+                     show_concept=True, show_class=True, apply_weight=False):
     """ Table의 DataFrame으로 변환시 DataFrame의 Row 생성을 위한 함수"""
     lang_type = {
         'ko': 'label_ko',
@@ -223,8 +223,9 @@ def generate_df_rows(labels, classification, dataset, max_depth, calculations,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-
-        weight = calculations.get(labels['concept_id'], 1.0)
+        weight = 1.0
+        if apply_weight:
+            weight = calculations.get(labels['concept_id'], 1.0)
         row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], weight))
         results.append(tuple(row))
 
@@ -232,7 +233,7 @@ def generate_df_rows(labels, classification, dataset, max_depth, calculations,
         for child in labels['children']:
             generated_row = generate_df_rows(child, classification, dataset, max_depth, calculations=calculations,
                                              lang=lang, parent=tuple(new_parent), show_abstract=show_abstract,
-                                             show_concept=show_concept, show_class=show_class)
+                                             show_concept=show_concept, show_class=show_class, apply_weight=apply_weight)
             if generated_row is not None:
                 results.append(generated_row)
     else:

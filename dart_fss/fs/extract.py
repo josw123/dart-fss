@@ -1143,7 +1143,10 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
     for tp in fs_tp:
         statements[tp] = func_fs[tp]()
         if statements[tp]:
-            statements[tp] = statements[tp].to_DataFrame(**option)
+            tp_option = option.copy()
+            if tp == 'cf':
+                tp_option['apply_weight'] = True
+            statements[tp] = statements[tp].to_DataFrame(**tp_option)
     return statements
 
 
