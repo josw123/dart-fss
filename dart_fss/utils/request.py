@@ -73,7 +73,7 @@ class Request(object, metaclass=Singleton):
             Force update
         """
         if force:
-            ua = UserAgent()
+            ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')
             agent = ua.chrome
             user_agent = str(agent)
         else:
