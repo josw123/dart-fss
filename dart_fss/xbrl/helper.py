@@ -12,6 +12,9 @@ from dart_fss.utils import check_datetime, str_compare,  get_datetime, get_curre
 from dart_fss.utils.regex import str_to_regex
 
 
+regex_rm_comment_number = re.compile(r'\(주\d+\)')
+
+
 def get_label_list(relationship_set, concepts, relationship=None):
     """ XBRL의 label list를 변환하는 함수 """
     if relationship is None:
@@ -26,6 +29,9 @@ def get_label_list(relationship_set, concepts, relationship=None):
         else concepts.label(preferredLabel=preferred, lang='ko')
     label_en = concepts.label(lang='en') if preferred is None \
         else concepts.label(preferredLabel=preferred, lang='en')
+
+    label_ko = regex_rm_comment_number.sub('', label_ko).strip()
+    label_en = label_en.strip()
 
     res = {
         'concept_id': concepts.id,
