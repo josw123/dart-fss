@@ -878,7 +878,21 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     nko_column = find_all_columns(ndf, r'label_ko')
 
     index_used = []
-    for idx in range(len(df)):
+
+    for idx, value in enumerate(ndata):
+        if isinstance(value, str):
+            # 이전에 검색된 데이터가 문자인 경우 pass
+            pass
+        elif value is None:
+            # 이전에 검색된 데이터가 없는 경우 pass
+            pass
+        elif math.isnan(value):
+            # 이전에 검색된 데이터가 유효한 값이 아닌 경우 pass
+            pass
+        else:
+            # 올바른 값이 경우 검색 X
+            continue
+
         nvalue = None
         nlabel = ''
         for col in overlap:
@@ -1145,10 +1159,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
     for tp in fs_tp:
         statements[tp] = func_fs[tp]()
         if statements[tp]:
-            tp_option = option.copy()
-            if tp == 'cf':
-                tp_option['apply_weight'] = True
-            statements[tp] = statements[tp].to_DataFrame(**tp_option)
+            statements[tp] = statements[tp].to_DataFrame(**option)
     return statements
 
 
@@ -1218,7 +1229,7 @@ def select_cumulative(corp_code, statements: Dict[str, DataFrame]) -> Dict[str, 
     acc_mt = get_corp_info(corp_code)['acc_mt']
     month = int(acc_mt) % 12 + 1
     start_with = '{:02}01'.format(month)
-    regex_str = re.compile('\d{4}' + start_with)
+    regex_str = re.compile(r'\d{4}' + start_with)
 
     for tp in statements:
         if tp == 'bs':

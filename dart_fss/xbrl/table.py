@@ -16,7 +16,7 @@ from dart_fss.xbrl.helper import (cls_label_check, get_label_list,
                                   cls_merge_type, cls_datetime_check,
                                   get_max_depth, get_value_from_dataset,
                                   generate_df_columns, generate_df_rows,
-                                  flatten, get_title)
+                                  flatten, get_title, prefered_sign)
 
 
 cf_regex = re.compile("현금흐름표", re.IGNORECASE)
@@ -172,14 +172,14 @@ class Table(object):
             self._labels = []
             arcrole = XbrlConst.parentChild
             relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
-            for root_concept in relationship_set.rootConcepts:
-                labels = get_label_list(relationship_set, root_concept)
+            for idx, root_concept in enumerate(relationship_set.rootConcepts):
+                labels = get_label_list(relationship_set, root_concept, relationship_set.modelRelationships[idx])
                 self._labels.append(labels)
         return self._labels
 
     def to_DataFrame(self, cls=None, lang='ko', start_dt=None, end_dt=None,
                      label=None, show_abstract=False, show_class=True, show_depth=10,
-                     show_concept=True, separator=True, ignore_subclass=True, apply_weight=False):
+                     show_concept=True, separator=True, ignore_subclass=True):
         """ Pandas DataFrame으로 변환 하는 함수
 
         Parameters
@@ -206,22 +206,12 @@ class Table(object):
             숫자 첫단위 표시 여부
         ignore_subclass: bool, optional
             대분류인 연결재무제표 및 별도재무제표를 제외한 나머지 column의 표시 여부 (('연결재무제표', '자본금') / ('연결재무제표', '주식발행초과금') 등)
-        apply_weight: bool, optional
-            XBRL Calculations의 weight 적용하여 값 반환 여부 (현금흐름표의 경우 apply_weight=True 설정을 권장)
 
         Returns
         -------
         DataFrame
             재무제표 DataFrame
         """
-
-        if not apply_weight:
-            # 현금흐름표의 경우 weight=True 설정을 권장(DART 웹페이지와 동일한 값 반환)
-            warning_codes = {'D520000', 'D520005'}
-            if self.code in warning_codes or cf_regex.search(self.definition):
-                message = 'Set `apply_weight=True` to align cash flow values with those on the DART web pages.' if lang != 'ko' \
-                    else '현금흐름표 값을 DART 웹페이지와 동일하게 표시하려면 `apply_weight=True` 설정을 권장합니다.'
-                warnings.warn(message)
 
         if cls is None:
             cls = self.cls_filter(start_dt, end_dt, label)
@@ -247,9 +237,8 @@ class Table(object):
 
         rows = []
         for label in self.labels:
-            r = generate_df_rows(label, cls, self.dataset, depth, calculations=self.calculations, lang=lang,
-                                 show_abstract=show_abstract, show_concept=show_concept, show_class=show_class,
-                                 apply_weight=apply_weight)
+            r = generate_df_rows(label, cls, self.dataset, depth, lang=lang,
+                                 show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
             rows.append(r)
         rows = flatten(rows)
         data = flatten(rows)
@@ -272,8 +261,7 @@ class Table(object):
 
         return df
 
-    def get_value_by_concept_id(self, concept_id, start_dt=None, end_dt=None, label=None, lang='en',
-                                apply_weight=False):
+    def get_value_by_concept_id(self, concept_id, start_dt=None, end_dt=None, label=None, lang='en'):
         """ concept_id을 이용하여 값을 찾아 주는 함수
 
         Parameters
@@ -288,8 +276,6 @@ class Table(object):
             검색 포함 label
         lang: str
             'ko' 한글 / 'en' 영문
-        apply_weight: bool
-            XBRL Calculations의 weight 적용하여 값 반환 여부 (현금흐름표의 경우 apply_weight=True 설정을 권장)
 
         Returns
         -------
@@ -297,19 +283,24 @@ class Table(object):
             { column 이름 : 값 }
         """
         cls = self.cls_filter(start_dt, end_dt, label)
-        weight = 1.0
-        if apply_weight:
-            weight = self.calculations.get(concept_id, 1.0)  # Get weight from calculations or default to 1.0
-        else:
-            # 현금흐름표의 경우 weight=True 설정을 권장(DART 웹페이지와 동일한 값 반환)
-            warning_codes = {'D520000', 'D520005'}
-            if self.code in warning_codes or cf_regex.search(self.definition):
-                message = 'Set `apply_weight=True` to align cash flow values with those on the DART web pages.' if lang != 'ko' \
-                    else '현금흐름표 값을 DART 웹페이지와 동일하게 표시하려면 `apply_weight=True` 설정을 권장합니다.'
-                warnings.warn(message)
+
+        def search_concept_id(labels, concept):
+            for l in labels:
+                if l['concept_id'] == concept:
+                    return True, l['preferred']
+                elif l['children']:
+                    result = search_concept_id(l['children'], concept)
+                    if result[0]:
+                        return result
+            return False, None
+
+        sign = 1.0
+        retcode, preferred = search_concept_id(self.labels, concept_id)
+        if retcode:
+            sign = prefered_sign(preferred)
 
         data = get_value_from_dataset(classification=cls, dataset=self.dataset,
-                                      concept_id=concept_id, weight=weight)
+                                      concept_id=concept_id, sign=sign)
         results = dict()
         for c, d in zip(cls, data):
             title = get_title(c, lang=lang)

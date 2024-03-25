@@ -36,6 +36,7 @@ def get_label_list(relationship_set, concepts, relationship=None):
     res = {
         'concept_id': concepts.id,
         'order': 1.0 if relationship is None else relationship.order,
+        'preferred': preferred,
         'label_ko': label_ko,
         'label_en': label_en,
         'isAbstract': concepts.isAbstract,
@@ -130,7 +131,7 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, weight=1.0):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, sign=1.0):
     """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val, w=1.0):
         try:
@@ -158,7 +159,7 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, w
         value = float('nan')
         for data in dataset[cls['cls_id']]:
             if str_compare(data.concept.id, concept_id):
-                value = str_to_float(data.value, weight)
+                value = str_to_float(data.value, sign)
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
                 if currency_unit is not None:
                     decimals = str_to_float(data.decimals)
@@ -202,9 +203,16 @@ def generate_df_columns(definition, classification, max_depth, lang='ko', show_c
     return pd.MultiIndex.from_tuples(columns)
 
 
-def generate_df_rows(labels, classification, dataset, max_depth, calculations,
+def prefered_sign(preferred=None):
+    """ preferred label에 따라 표시할 부호를 결정하는 함수 """
+    if preferred in ('http://www.xbrl.org/2009/role/negatedTerseLabel', 'http://www.xbrl.org/2009/role/negatedLabel'):
+        return -1.0
+    return 1.0
+
+
+def generate_df_rows(labels, classification, dataset, max_depth,
                      lang="ko", parent=(), show_abstract=False,
-                     show_concept=True, show_class=True, apply_weight=False):
+                     show_concept=True, show_class=True):
     """ Table의 DataFrame으로 변환시 DataFrame의 Row 생성을 위한 함수"""
     lang_type = {
         'ko': 'label_ko',
@@ -229,17 +237,15 @@ def generate_df_rows(labels, classification, dataset, max_depth, calculations,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        weight = 1.0
-        if apply_weight:
-            weight = calculations.get(labels['concept_id'], 1.0)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], weight))
+        sign = prefered_sign(labels['preferred'])
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], sign))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:
         for child in labels['children']:
-            generated_row = generate_df_rows(child, classification, dataset, max_depth, calculations=calculations,
+            generated_row = generate_df_rows(child, classification, dataset, max_depth,
                                              lang=lang, parent=tuple(new_parent), show_abstract=show_abstract,
-                                             show_concept=show_concept, show_class=show_class, apply_weight=apply_weight)
+                                             show_concept=show_concept, show_class=show_class)
             if generated_row is not None:
                 results.append(generated_row)
     else:
