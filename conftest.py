@@ -53,5 +53,6 @@ def dart(local):
     if api_key is None:
         pytest.skip('Please, set valid "{}" env variable'.format(env_key))
     dart_fss.set_api_key(api_key)
-
+    dart_fss.enable_spinner(False)
+    dart_fss.utils.request.set_delay(0.5)
     return dart_fss
