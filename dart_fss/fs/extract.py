@@ -841,8 +841,8 @@ def compare_df_and_ndf_label_and_concept(column: Tuple[Union[str, Tuple[str]]],
     return ndata, nlabels
 
 
-def compare_df_and_ndf_value(column: pd.Index,
-                             df: DataFrame, ndf: DataFrame,
+def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
+                             df: DataFrame, ndf: DataFrame, ldf: DataFrame,
                              ndata: List[Union[float, str, None]],
                              nlabels: List[str]) -> Tuple[List[Union[float, str]], List[str]]:
     """
@@ -856,6 +856,8 @@ def compare_df_and_ndf_value(column: pd.Index,
         데이터를 추가할 DataFrame
     ndf: dict of { str: DataFrame }
         데이터를 검색할 DataFrame
+    ldf: dict of { str: DataFrame }
+        Label DataFrame
     ndata: list of float
         추가할 column의 데이터 리스트
     nlabels: list of str
@@ -916,7 +918,7 @@ def compare_df_and_ndf_value(column: pd.Index,
     return ndata, nlabels
 
 
-additional_comparison_function = [compare_df_and_ndf_label_and_concept]
+additional_comparison_function = [compare_df_and_ndf_value]
 
 
 def init_label(fs_df: Dict[str, DataFrame],
@@ -1045,7 +1047,7 @@ def merge_fs(fs_df: Dict[str, DataFrame],
                 ndata = [None for _ in range(len(df))]
                 nlabels = ['' for _ in range(len(df))]
                 if len(overlap) > 0:
-                    ndata, nlabels = compare_df_and_ndf_value(column, df, ndf, ndata, nlabels)
+                    ndata, nlabels = compare_df_and_ndf_label_and_concept(column, df, ndf, label_df[tp], ndata, nlabels)
 
                 for compare_func in additional_comparison_function:
                     ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
