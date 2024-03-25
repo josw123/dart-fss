@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import re
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -8,7 +7,6 @@ from pandas import DataFrame
 
 from dateutil.relativedelta import relativedelta
 
-from arelle.ModelXbrl import ModelXbrl
 from arelle import XbrlConst
 
 from dart_fss.utils import str_to_regex
@@ -17,9 +15,6 @@ from dart_fss.xbrl.helper import (cls_label_check, get_label_list,
                                   get_max_depth, get_value_from_dataset,
                                   generate_df_columns, generate_df_rows,
                                   flatten, get_title, prefered_sign)
-
-
-cf_regex = re.compile("현금흐름표", re.IGNORECASE)
 
 
 class Table(object):
@@ -31,9 +26,12 @@ class Table(object):
        ----------
        parent: str
            로드한 파일 이름
-       xbrl: ModelXbrl
-           arelle Xbrl 클래스
-
+       code: str
+           테이블 코드
+       definition: str
+           테이블 정의
+       uri: str
+           테이블 uri
        """
 
     def __init__(self, parent, xbrl, code, definition, uri):
@@ -223,7 +221,7 @@ class Table(object):
         depth = depth if depth < show_depth else show_depth
 
         table = self.parent.get_table_by_code('d999004')
-        unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode')
+        unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode', ignore_case=True)
 
         definition = self.definition + ' (Unit: {})'.format(unit[0])
         columns = generate_df_columns(definition, cls, depth, lang,

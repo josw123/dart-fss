@@ -131,7 +131,7 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, sign=1.0):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, sign=1.0, ignore_case=False):
     """ dataset에서 값을 추출하는 함수 """
     def str_to_float(val, w=1.0):
         try:
@@ -155,10 +155,13 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, s
 
     results = list()
     added_title = list()
+
+    str_compare_func = str_compare if ignore_case else lambda x, y: x == y
+
     for cls in classification:
         value = float('nan')
         for data in dataset[cls['cls_id']]:
-            if str_compare(data.concept.id, concept_id):
+            if str_compare_func(data.concept.id, concept_id):
                 value = str_to_float(data.value, sign)
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
                 if currency_unit is not None:
