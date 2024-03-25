@@ -16,35 +16,35 @@ def test_xbrl_tables(samsung_xbrl):
 
 def test_xbrl_get_document_information(samsung_xbrl):
     info = samsung_xbrl.get_document_information()
-    actual = info.iloc[1][2]
+    actual = info.iloc[1].iloc[2]
     expected = '사업보고서'
     assert actual == expected
 
 
 def test_xbrl_get_period_information(samsung_xbrl):
     period = samsung_xbrl.get_period_information()
-    actual = period.iloc[1][2]
+    actual = period.iloc[1].iloc[2]
     expected = '2017-01-01'
     assert actual == expected
 
 
 def test_xbrl_get_audit_infomation(samsung_xbrl):
     audit = samsung_xbrl.get_audit_information()
-    actual = int(audit.iloc[5][3])
+    actual = int(audit.iloc[5].iloc[3])
     expected = 260295
     assert actual == expected
 
 
 def test_xbrl_get_entity_information(samsung_xbrl):
     entity = samsung_xbrl.get_entity_information()
-    actual = int(entity.iloc[2][2])
+    actual = int(entity.iloc[2].iloc[2])
     expected = 126380
     assert actual == expected
 
 
 def test_xbrl_get_entity_address_information(samsung_xbrl):
     address = samsung_xbrl.get_entity_address_information()
-    actual = address.iloc[2][2]
+    actual = address.iloc[2].iloc[2]
     expected = 'http://www.samsung.com/sec/'
     assert actual == expected
 
@@ -73,7 +73,7 @@ def test_xbrl_get_financial_statement(samsung_xbrl):
 
 def test_xbrl_to_Dataframe(samsung_xbrl):
     fs = samsung_xbrl.get_financial_statement()[0]
-    actual = int(fs.to_DataFrame(show_concept=False, show_class=False, label='연결').iloc[0][2])
+    actual = int(fs.to_DataFrame(show_concept=False, show_class=False, label='연결').iloc[0].iloc[2])
     expected = 146982464000000
     assert actual == expected
 
