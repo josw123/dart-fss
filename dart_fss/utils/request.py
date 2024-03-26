@@ -16,7 +16,7 @@ def get_user_agent():
         user-agent
     """
     ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')  # Exclude mobile devices and tablets
-    agent = ua.chrome
+    agent = ua.random  # Random user-agent
     return str(agent)
 
 
@@ -74,7 +74,7 @@ class Request(object, metaclass=Singleton):
         """
         if force:
             ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')
-            agent = ua.chrome
+            agent = ua.random  # Random user-agent
             user_agent = str(agent)
         else:
             user_agent = get_user_agent()
