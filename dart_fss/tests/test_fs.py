@@ -7,7 +7,8 @@ from .test_corp import corp_list
 
 @pytest.mark.slow
 @pytest.mark.parametrize("corp", test_crp_list)
-def test_crp_financial_statement(corp, corp_list):
+def test_crp_financial_statement(dart, corp, corp_list):
+    dart.utils.request.update_user_agent(True)
     corp.set_corp_list(corp_list)
     corp.run_test()
 
