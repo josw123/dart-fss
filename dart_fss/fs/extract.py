@@ -877,8 +877,6 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     overlap = df_columns_set.intersection(ndf_columns_set)
     nko_column = find_all_columns(ndf, r'label_ko')
 
-    index_used = []
-
     for idx, value in enumerate(ndata):
         if isinstance(value, str):
             # 이전에 검색된 데이터가 문자인 경우 pass
@@ -895,6 +893,15 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
 
         nvalue = None
         nlabel = ''
+
+        found = {}
+        found_sign = {}
+        max_found = 0
+
+        check_all_zeros = pd.to_numeric(df[list(overlap)].iloc[idx], errors='coerce').sum()
+        if check_all_zeros == 0.0:
+            continue  # 모든 값이 0인 경우 pass
+
         for col in overlap:
             value = df[col].iloc[idx]
             if isinstance(value, str):
@@ -912,18 +919,18 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
                     sign = -1
                     w = ndf[ndf[col] == -value].dropna(axis=1, how='all').dropna(how='all')
 
-                found = False
                 if len(w) > 0:
                     for index in w.index.values:
-                        if index not in index_used and ndf[column].iloc[index] is not None :
-                            nvalue = sign * ndf[column].iloc[index]
-                            nlabel = ndf[nko_column].iloc[index].iloc[0]
-                            nlabel = extract_account_title(nlabel)
-                            index_used.append(index)
-                            found = True
-                            break
-                if found:
-                    break
+                        found[index] = found.get(index, 0) + 1
+                        max_found = max(max_found, found[index])
+                        found_sign[index] = sign
+
+        for k, v in found.items():
+            if v >= max_found:
+                nvalue = found_sign[k] * ndf[column].iloc[k]
+                nlabel = ndf[nko_column].iloc[k].iloc[0]
+                nlabel = extract_account_title(nlabel)
+
         if nvalue and math.isnan(nvalue):
             nvalue = None
 
@@ -1055,13 +1062,11 @@ def merge_fs(fs_df: Dict[str, DataFrame],
                 continue
 
             diff = pd.MultiIndex.from_tuples(diff)
-            overlap = list(overlap)
-
             for column in diff:
                 ndata = [None for _ in range(len(df))]
                 nlabels = ['' for _ in range(len(df))]
-                if len(overlap) > 0:
-                    ndata, nlabels = compare_df_and_ndf_label_and_concept(column, df, ndf, label_df[tp], ndata, nlabels)
+
+                ndata, nlabels = compare_df_and_ndf_label_and_concept(column, df, ndf, label_df[tp], ndata, nlabels)
 
                 for compare_func in additional_comparison_function:
                     ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
