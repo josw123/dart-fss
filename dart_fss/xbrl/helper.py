@@ -6,8 +6,13 @@ from datetime import datetime
 
 import pandas as pd
 
+from arelle.ModelObject import ModelObject
+
 from dart_fss.utils import check_datetime, str_compare,  get_datetime, get_currency_str, str_unit_to_number_unit
 from dart_fss.utils.regex import str_to_regex
+
+
+regex_rm_comment_number = re.compile(r'\(주\d+\)')
 
 
 def get_label_list(relationship_set, concepts, relationship=None):
@@ -25,9 +30,13 @@ def get_label_list(relationship_set, concepts, relationship=None):
     label_en = concepts.label(lang='en') if preferred is None \
         else concepts.label(preferredLabel=preferred, lang='en')
 
+    label_ko = regex_rm_comment_number.sub('', label_ko).strip()
+    label_en = label_en.strip()
+
     res = {
         'concept_id': concepts.id,
         'order': 1.0 if relationship is None else relationship.order,
+        'preferred': preferred,
         'label_ko': label_ko,
         'label_en': label_en,
         'isAbstract': concepts.isAbstract,
@@ -39,6 +48,9 @@ def get_label_list(relationship_set, concepts, relationship=None):
         new_relationship_set.sort(key=lambda x: x.order)
         for rel in new_relationship_set:
             new_concepts = rel.viewConcept
+            if not isinstance(rel.toModelObject, ModelObject):
+                warnings.warn('Invalid element in "{}" at line {}, targeting element "{}".'.format(rel.modelDocument.basename, rel.sourceline, rel.toModelObject), RuntimeWarning)
+                return res
             res['children'].append(get_label_list(relationship_set, new_concepts, relationship=rel))
     return res
 
@@ -119,11 +131,11 @@ def get_datetime_and_name(title):
     return result
 
 
-def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
+def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, sign=1.0, ignore_case=False):
     """ dataset에서 값을 추출하는 함수 """
-    def str_to_float(val):
+    def str_to_float(val, w=1.0):
         try:
-            return float(val)
+            return float(val) * w
         except ValueError:
             return val
 
@@ -143,11 +155,14 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None):
 
     results = list()
     added_title = list()
+
+    str_compare_func = str_compare if ignore_case else lambda x, y: x == y
+
     for cls in classification:
         value = float('nan')
         for data in dataset[cls['cls_id']]:
-            if str_compare(data.concept.id, concept_id):
-                value = str_to_float(data.value)
+            if str_compare_func(data.concept.id, concept_id):
+                value = str_to_float(data.value, sign)
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
                 if currency_unit is not None:
                     decimals = str_to_float(data.decimals)
@@ -191,6 +206,13 @@ def generate_df_columns(definition, classification, max_depth, lang='ko', show_c
     return pd.MultiIndex.from_tuples(columns)
 
 
+def prefered_sign(preferred=None):
+    """ preferred label에 따라 표시할 부호를 결정하는 함수 """
+    if preferred in ('http://www.xbrl.org/2009/role/negatedTerseLabel', 'http://www.xbrl.org/2009/role/negatedLabel'):
+        return -1.0
+    return 1.0
+
+
 def generate_df_rows(labels, classification, dataset, max_depth,
                      lang="ko", parent=(), show_abstract=False,
                      show_concept=True, show_class=True):
@@ -218,7 +240,8 @@ def generate_df_rows(labels, classification, dataset, max_depth,
                     row.append(new_parent[idx])
                 else:
                     row.append(None)
-        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko']))
+        sign = prefered_sign(labels['preferred'])
+        row.extend(get_value_from_dataset(classification, dataset, labels['concept_id'],  labels['label_ko'], sign))
         results.append(tuple(row))
 
     if len(labels['children']) > 0:

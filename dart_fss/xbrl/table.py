@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from dateutil.relativedelta import relativedelta
 
-from arelle.ModelXbrl import ModelXbrl
 from arelle import XbrlConst
 
 from dart_fss.utils import str_to_regex
@@ -15,7 +14,7 @@ from dart_fss.xbrl.helper import (cls_label_check, get_label_list,
                                   cls_merge_type, cls_datetime_check,
                                   get_max_depth, get_value_from_dataset,
                                   generate_df_columns, generate_df_rows,
-                                  flatten, get_title)
+                                  flatten, get_title, prefered_sign)
 
 
 class Table(object):
@@ -27,10 +26,14 @@ class Table(object):
        ----------
        parent: str
            로드한 파일 이름
-       xbrl: ModelXbrl
-           arelle Xbrl 클래스
-
+       code: str
+           테이블 코드
+       definition: str
+           테이블 정의
+       uri: str
+           테이블 uri
        """
+
     def __init__(self, parent, xbrl, code, definition, uri):
         self.parent = parent
         self.code = code
@@ -41,6 +44,7 @@ class Table(object):
         self._dataset = None
         self._cls = None
         self._labels = None
+        self._calculations = None
 
     @property
     def facts(self):
@@ -148,14 +152,26 @@ class Table(object):
         return self._cls
 
     @property
+    def calculations(self):
+        """계산식 반환"""
+        if self._calculations is None:
+            arcrole = XbrlConst.summationItem
+            relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
+            self._calculations = {}
+            for rel in relationship_set.modelRelationships:
+                key = str(rel.toModelObject.qname).replace(':', '_')
+                self._calculations[key] = rel.weight
+        return self._calculations
+
+    @property
     def labels(self):
         """labels 반환"""
         if self._labels is None:
             self._labels = []
             arcrole = XbrlConst.parentChild
             relationship_set = self._xbrl.relationshipSet(arcrole, self.uri)
-            for root_concept in relationship_set.rootConcepts:
-                labels = get_label_list(relationship_set, root_concept)
+            for idx, root_concept in enumerate(relationship_set.rootConcepts):
+                labels = get_label_list(relationship_set, root_concept, relationship_set.modelRelationships[idx])
                 self._labels.append(labels)
         return self._labels
 
@@ -188,11 +204,13 @@ class Table(object):
             숫자 첫단위 표시 여부
         ignore_subclass: bool, optional
             대분류인 연결재무제표 및 별도재무제표를 제외한 나머지 column의 표시 여부 (('연결재무제표', '자본금') / ('연결재무제표', '주식발행초과금') 등)
+
         Returns
         -------
         DataFrame
             재무제표 DataFrame
         """
+
         if cls is None:
             cls = self.cls_filter(start_dt, end_dt, label)
         cls = cls_merge_type(cls)
@@ -203,7 +221,7 @@ class Table(object):
         depth = depth if depth < show_depth else show_depth
 
         table = self.parent.get_table_by_code('d999004')
-        unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode')
+        unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode', ignore_case=True)
 
         definition = self.definition + ' (Unit: {})'.format(unit[0])
         columns = generate_df_columns(definition, cls, depth, lang,
@@ -218,7 +236,7 @@ class Table(object):
         rows = []
         for label in self.labels:
             r = generate_df_rows(label, cls, self.dataset, depth, lang=lang,
-                                show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
+                                 show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
             rows.append(r)
         rows = flatten(rows)
         data = flatten(rows)
@@ -263,7 +281,24 @@ class Table(object):
             { column 이름 : 값 }
         """
         cls = self.cls_filter(start_dt, end_dt, label)
-        data = get_value_from_dataset(classification=cls, dataset=self.dataset, concept_id=concept_id)
+
+        def search_concept_id(labels, concept):
+            for l in labels:
+                if l['concept_id'] == concept:
+                    return True, l['preferred']
+                elif l['children']:
+                    result = search_concept_id(l['children'], concept)
+                    if result[0]:
+                        return result
+            return False, None
+
+        sign = 1.0
+        retcode, preferred = search_concept_id(self.labels, concept_id)
+        if retcode:
+            sign = prefered_sign(preferred)
+
+        data = get_value_from_dataset(classification=cls, dataset=self.dataset,
+                                      concept_id=concept_id, sign=sign)
         results = dict()
         for c, d in zip(cls, data):
             title = get_title(c, lang=lang)

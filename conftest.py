@@ -10,6 +10,23 @@ def pytest_addoption(parser):
 
     parser.addoption("--loc", action="store", default="local", metavar="LOCATION",
                      help="Test environment")
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -36,5 +53,6 @@ def dart(local):
     if api_key is None:
         pytest.skip('Please, set valid "{}" env variable'.format(env_key))
     dart_fss.set_api_key(api_key)
-
+    dart_fss.enable_spinner(False)
+    dart_fss.utils.request.set_delay(0.5)
     return dart_fss

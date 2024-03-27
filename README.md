@@ -24,9 +24,6 @@
 pip install -U dart-fss
 ```
 
-## Plugins
--   [Dart-Fss-Classifier](https://github.com/josw123/dart-fss-classifier): 재무제표 추출 성능 향상
-
 ## Usage
 
 ### Dart API Key 설정
