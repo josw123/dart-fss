@@ -1340,18 +1340,19 @@ def search_annual_report(corp_code: str,
                          last_reprt_at: str = 'Y'):
 
     reports = []
+
+    pblntf_detail_ty = ['A001']
+    if separate:
+        pblntf_detail_ty.append('F001')
+    else:
+        pblntf_detail_ty.append('F002')
+
     try:
         # 사업보고서 검색(최종보고서)
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                 pblntf_detail_ty='A001', page_count=100, last_reprt_at=last_reprt_at)
-    except NoDataReceived:
-        # 감사보고서 검색
-        if separate:
-            pblntf_detail_ty = 'F001'
-        else:
-            pblntf_detail_ty = 'F002'
-        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                  pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at=last_reprt_at)
+    except NoDataReceived:
+        raise RuntimeError('Could not find an annual report')
     finally:
         if len(reports) == 0:
             raise RuntimeError('Could not find an annual report')
