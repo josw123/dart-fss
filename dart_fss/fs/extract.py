@@ -1001,7 +1001,8 @@ def init_label(fs_df: Dict[str, DataFrame],
 def merge_fs(fs_df: Dict[str, DataFrame],
              nfs_df: Dict[str, DataFrame],
              label_df: Dict[str, DataFrame],
-             fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf')):
+             fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
+             min_required: int = 4) -> Tuple[Dict[str, DataFrame], Dict[str, DataFrame]]:
     """
     재무제표 DataFrame과 Report의 데이터를 합쳐주는 Method
 
@@ -1015,6 +1016,8 @@ def merge_fs(fs_df: Dict[str, DataFrame],
         재무제표 검색결과시 추출된 값의 Label
     fs_tp: tuple of str, optional
         'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
+    min_required: int, optional
+        Merge를 위한 최소한의 데이터 개수
     Returns
     -------
     tuple of dict of {str: DataFrame}
@@ -1070,6 +1073,12 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
                 for compare_func in additional_comparison_function:
                     ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
+
+                ndata = np.array(ndata, dtype=np.float64)
+                count = np.count_nonzero(~np.isnan(ndata))
+
+                if count < min_required: # ndata의 유효한 값이 min_required 이하인 경우 추가 Merge X
+                    continue
 
                 label_df[tp][column] = nlabels
                 fs_df[tp][column] = ndata
@@ -1389,7 +1398,8 @@ def extract(corp_code: str,
             cumulative: bool = False,
             progressbar: bool = True,
             skip_error: bool = True,
-            last_report_only: bool = True) -> FinancialStatement:
+            last_report_only: bool = True,
+            min_required: int = 4) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1421,6 +1431,8 @@ def extract(corp_code: str,
         Error 발생시 skip 여부 (default: True)
     last_report_only: bool, optional
         최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
+    min_required: int, optional
+        Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
     Returns
     -------
     FinancialStatement
@@ -1510,7 +1522,9 @@ def extract(corp_code: str,
                                 warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                                 warnings.warn(warnings_text, RuntimeWarning)
                             else:
-                                statements, label_df = merge_fs(statements, nstatements, fs_tp=fs_tp, label_df=label_df)
+                                statements, label_df = merge_fs(statements, nstatements,
+                                                                fs_tp=fs_tp, label_df=label_df,
+                                                                min_required=min_required)
                     except Exception as ex:
                         traceback.print_exc()
                         warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())

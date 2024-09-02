@@ -213,7 +213,8 @@ class Corp(object):
                    cumulative: bool = False,
                    progressbar: bool = True,
                    skip_error: bool = True,
-                   last_report_only: bool = True) -> FinancialStatement:
+                   last_report_only: bool = True,
+                   min_required: int = 4) -> FinancialStatement:
         """
         재무제표 검색
 
@@ -243,6 +244,8 @@ class Corp(object):
            Error 발생시 skip 여부 (default: True)
         last_report_only: bool, optional
            최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
+        min_required: int, optional
+            Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
 
         Returns
         -------
@@ -250,4 +253,4 @@ class Corp(object):
             제무제표 검색 결과
          """
         return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang,
-                       separator, dataset, cumulative, progressbar, skip_error, last_report_only)
+                       separator, dataset, cumulative, progressbar, skip_error, last_report_only, min_required)
