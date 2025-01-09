@@ -13,6 +13,7 @@ from dart_fss.utils.regex import str_to_regex
 from dart_fss.api.finance import download_xbrl
 from dart_fss.filings.xbrl_viewer import XBRLViewer
 
+
 class Report(object):
     """ 보고서 클래스
     DART 재무제표 보고서 정보를 담고 있는 클래스
@@ -67,7 +68,7 @@ class Report(object):
         self.info = copy.deepcopy(kwargs)
         if self.dcm_no:
             self.info.pop('dcm_no')
-        
+
         self.html = None
         self._pages = None
         self._xbrl = None
@@ -92,7 +93,8 @@ class Report(object):
         if item in self.info:
             return self.info[item]
         else:
-            error = "'{}' object has no attribute '{}'".format(type(self).__name__, item)
+            error = "'{}' object has no attribute '{}'".format(
+                type(self).__name__, item)
             raise AttributeError(error)
 
     def __dir__(self) -> Iterable[str]:
@@ -107,7 +109,8 @@ class Report(object):
         payload = dict(rcpNo=self.rcp_no)
         if self.dcm_no:
             payload['dcmNo'] = self.dcm_no
-        resp = request.get(url=self._REPORT_URL_, payload=payload, referer=self._DART_URL_)
+        resp = request.get(url=self._REPORT_URL_,
+                           payload=payload, referer=self._DART_URL_)
         self.html = BeautifulSoup(resp.text, 'html.parser')
 
     @property
@@ -151,7 +154,8 @@ class Report(object):
                 continue
             info = {'rcp_no': rcp_no, 'rpt_nm': rpt_nm, 'parent': self}
             results.append(RelatedReport(**info))
-        self._related_reports = sorted(results, key=lambda x: x.rcp_no, reverse=True)
+        self._related_reports = sorted(
+            results, key=lambda x: x.rcp_no, reverse=True)
         return self._related_reports
 
     @property
@@ -230,7 +234,8 @@ class Report(object):
         # tag 및 class 변경
         a_href = self.html.find('button', class_='btnDown')
         a_onclick = a_href.attrs.get('onclick', '')
-        raw_data = re.search(r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
+        raw_data = re.search(
+            r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
         if raw_data is None:
             return results
 
@@ -238,7 +243,8 @@ class Report(object):
         dcm_no = raw_data.group(2)
 
         payload = dict(rcp_no=rcp_no, dcm_no=dcm_no)
-        resp = request.get(url=self._DOWNLOAD_URL_, payload=payload, referer=self._REPORT_URL_)
+        resp = request.get(url=self._DOWNLOAD_URL_,
+                           payload=payload, referer=self._REPORT_URL_)
         referer = resp.url
         soup = BeautifulSoup(resp.text, 'html.parser')
         tr_list = soup.find_all('tr')
@@ -302,9 +308,9 @@ class Report(object):
                 info['rpt_nm'] = rpt_nm
                 info['parent'] = self
                 attached_reports.append(AttachedReport(**info))
-        self._attached_reports = sorted(attached_reports, key=lambda x: x.rcp_no, reverse=True)
+        self._attached_reports = sorted(
+            attached_reports, key=lambda x: x.rcp_no, reverse=True)
         return self._attached_reports
-
 
     @property
     def xbrlviewer(self):
@@ -347,34 +353,40 @@ class Report(object):
         """
         includes = kwargs.get('includes')
         excludes = kwargs.get('excludes')
-        scope = kwargs.get('scope', ['pages', 'related_reports', 'attached_reports', 'attached_files', 'xbrlviewer'])
+        scope = kwargs.get('scope', [
+                           'pages', 'related_reports', 'attached_reports', 'attached_files', 'xbrlviewer'])
         options = kwargs.get('options')
 
         def determinant(value):
             det1 = str_to_regex(includes).search(value) if includes else True
-            det2 = not str_to_regex(excludes).search(value) if excludes else True
+            det2 = not str_to_regex(excludes).search(
+                value) if excludes else True
             return det1 and det2
 
         def fn_pages(): return [x for x in self.pages if determinant(x.title)]
 
         def fn_related_reports():
             if options and options.get('title'):
-                res = [y for x in self.related_reports for y in x.find_all(**kwargs) if determinant(x.title)]
+                res = [y for x in self.related_reports for y in x.find_all(
+                    **kwargs) if determinant(x.title)]
             else:
-                res = [y for x in self.related_reports for y in x.find_all(**kwargs)]
+                res = [
+                    y for x in self.related_reports for y in x.find_all(**kwargs)]
             return res
 
         def fn_attached_reports():
             if options and options.get('title'):
-                res = [y for x in self.attached_reports for y in x.find_all(**kwargs) if determinant(x.info['rpt_nm'])]
+                res = [y for x in self.attached_reports for y in x.find_all(
+                    **kwargs) if determinant(x.info['rpt_nm'])]
             else:
-                res = [y for x in self.attached_reports for y in x.find_all(**kwargs)]
+                res = [
+                    y for x in self.attached_reports for y in x.find_all(**kwargs)]
             return res
 
-        def fn_attached_files(): return [x for x in self.attached_files if determinant(x.filename)]
+        def fn_attached_files(): return [
+            x for x in self.attached_files if determinant(x.filename)]
 
         def fn_xbrlviewer(): return self.xbrlviewer.find_all(**kwargs)
-
 
         func_set = {
             'pages': fn_pages,
@@ -401,7 +413,8 @@ class Report(object):
         if self._xbrl is None:
             with tempfile.TemporaryDirectory() as path:
                 try:
-                    file_path = download_xbrl(path=path, rcept_no=self.rcept_no)
+                    file_path = download_xbrl(
+                        path=path, rcept_no=self.rcept_no)
                     self._xbrl = get_xbrl_from_file(file_path)
                 except FileNotFoundError:
                     xbrl_attached = self._get_xbrl()
@@ -422,7 +435,7 @@ class Report(object):
     def _get_xbrl(self):
         """ XBRL 첨부파일 검색"""
         query = {
-            'includes': 'IFRS OR XBRL',
+            'includes': 'IFRS OR XBRL AND (ZIP OR zip)',  # Fix bug (#184)
             'scope': ['attached_files', 'xbrlviewer']
         }
         attached_files = self.find_all(**query)
@@ -494,6 +507,7 @@ class RelatedReport(Report):
         상위 보고서
 
     """
+
     def __init__(self, **kwargs):
         self.parent = kwargs.get('parent')
         if self.parent is None:
@@ -505,7 +519,7 @@ class RelatedReport(Report):
     def related_reports(self):
         """ related_reports overriding """
         return []
-    
+
     def extract_related_reports(self):
         """ extract_related_reports overriding"""
         return []
@@ -536,7 +550,7 @@ class RelatedReport(Report):
                 info['attached_files'] = attached_files
             info['pages'] = [x.to_dict() for x in self.pages]
         return info
-    
+
     def find_all(self, **kwargs):
         """
         보고서의 Page 재묵을 검색하여 검색된 Page 리스틑 반환하는 함수
@@ -559,7 +573,8 @@ class RelatedReport(Report):
 
         def determinant(value):
             det1 = str_to_regex(includes).search(value) if includes else True
-            det2 = not str_to_regex(excludes).search(value) if excludes else True
+            det2 = not str_to_regex(excludes).search(
+                value) if excludes else True
             return det1 and det2
 
         return [
@@ -659,5 +674,6 @@ class AttachedFile(object):
             다운받은 첨부파일 경로
 
         """
-        file_path = request.download(url=self.url, path=path, filename=self.filename, referer=self.referer)
+        file_path = request.download(
+            url=self.url, path=path, filename=self.filename, referer=self.referer)
         return file_path
