@@ -38,7 +38,7 @@ dexter.add_test_value('bs', '20161231', 'concept_id',
                       'ifrs-full_Equity', 78181834231)
 
 # 이십일스토어 (구: 두원석재)
-stone = TestCrp(corp_code='01183407', bgn_de='20120101',
+stone = TestCrp(corp_code='01183407', bgn_de='20120101', end_de='20201231', # 2024045 상장폐지로 인한 테스트 케이스 수정
                 separate=True, report_tp='annual')
 stone.add_test_value('bs', '20161231', 'label_ko', 'I.유동자산', 5531436227)
 
