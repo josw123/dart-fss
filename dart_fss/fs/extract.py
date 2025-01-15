@@ -25,6 +25,7 @@ from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
 from dart_fss.filings.search_result import SearchResults
 
+
 def str_to_float(text: str, unit: float) -> float:
     """ 문자를 float 데이터로 변환
 
@@ -70,12 +71,14 @@ def str_to_float(text: str, unit: float) -> float:
 
 regex_br = re.compile(r'<br\s*?\/?\s*?>')
 
+
 def text_split_by_br(tag) -> list:
     s = regex_br.sub('\n', str(tag),  re.MULTILINE)
     t = BeautifulSoup(s, 'html.parser')
     s = t.get_text()
     res = [x for x in s.split('\n') if len(x) > 0]
     return res
+
 
 def get_datetime(year, month, day):
     try:
@@ -93,18 +96,21 @@ def get_datetime(year, month, day):
             dt = dt - relativedelta(day=1)
         else:
             dt = datetime(year, month, 1)
-        warnings_text = "Day({0}.{1}.{2}) is out of range for month. dart-fss tries to fix {0}.{1}.{2} to {0}.{1}.{3}".format(year, month, day, dt.day)
+        warnings_text = "Day({0}.{1}.{2}) is out of range for month. dart-fss tries to fix {0}.{1}.{2} to {0}.{1}.{3}".format(
+            year, month, day, dt.day)
         warnings.warn(warnings_text, RuntimeWarning)
         return dt
-
 
 
 def extract_date_from_header(header):
     """ 재무제표 기간 추출을 위해 사용하는 method"""
     # YYYY년 MM월 DD일 형태 검색
-    regex = re.compile(r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})') # Exclude ':'
+    regex = re.compile(
+        r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')  # Exclude ':'
     # YYYY년 MM월 DD일 M'M'월 D'D'일 형태 검색
-    regex2 = re.compile(r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})') # Exclude ':'
+    regex2 = re.compile(
+        # Exclude ':'
+        r'(\d{4})[^0-9:]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})[^0-9]*\s*(\d{1,2})')
     date_info = []
     td_list = header.find_all('td')
     re_nbsp = re.compile(r'\xa0')
@@ -142,7 +148,7 @@ def extract_date_from_header(header):
                     dt = get_datetime(year, month, day)
                     if dt is not None:
                         date.append(dt)
-                
+
                     month = int(s[3])
                     day = int(s[4])
                     dt = get_datetime(year, month, day)
@@ -199,7 +205,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
         thead.thead.append(tt)
         for td in thead.tr.find_all('td'):
             td.name = 'th'
-    th_colspan_list = [int(th.attrs.get('colspan', 1)) for th in thead.tr.find_all('th')]
+    th_colspan_list = [int(th.attrs.get('colspan', 1))
+                       for th in thead.tr.find_all('th')]
     date_info = extract_date_from_header(fs_table['header'])
     # 검색된 날짜가 없을경우 Empty array return
     if len(date_info) == 0:
@@ -237,7 +244,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
     row_length = len(thead.find_all('tr'))
     row_length = row_length + 1 if row_length == 1 else row_length
     # row-sapn, col-span을 처리하기 위한 Matrix
-    columns_matrix = [[None for _y in range(col_length)] for _x in range(row_length)]
+    columns_matrix = [[None for _y in range(
+        col_length)] for _x in range(row_length)]
 
     # Bug fix (#141): Return an empty array if a duplicate column exists
     duplicate_check = []
@@ -268,11 +276,13 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                     if len(date_info) > 0:
                         date_list = date_info.pop(0)
                     else:
-                        date = '-'.join([date.strftime('%Y%m%d') for date in date_list])
+                        date = '-'.join([date.strftime('%Y%m%d')
+                                        for date in date_list])
                         warnings_text = "Date data length does not match table header."\
-                                + "So last date was set using last data({}). ".format(date)
+                            + "So last date was set using last data({}). ".format(date)
                         warnings.warn(warnings_text, RuntimeWarning)
-                    text = '-'.join([date.strftime('%Y%m%d') for date in date_list])
+                    text = '-'.join([date.strftime('%Y%m%d')
+                                    for date in date_list])
 
             if regex.search(text):
                 row_span = 2
@@ -312,7 +322,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                 continue
             elif regex_3month.search(item):
                 # extract date info
-                date_info = [datetime.strptime(date_str, '%Y%m%d') for date_str in column[0].split('-')]
+                date_info = [datetime.strptime(
+                    date_str, '%Y%m%d') for date_str in column[0].split('-')]
 
                 # calculating start_dt
                 delta = relativedelta(months=3)
@@ -320,7 +331,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                 start_dt = start_dt.replace(day=1)
 
                 end_dt = date_info[1]
-                column[0] = '-'.join([date.strftime('%Y%m%d') for date in [start_dt, end_dt]])
+                column[0] = '-'.join([date.strftime('%Y%m%d')
+                                     for date in [start_dt, end_dt]])
             elif regex_total.search(item):
                 pass
             else:
@@ -368,7 +380,8 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
             return BeautifulSoup(text, 'html.parser').text
 
     for idx, tr in enumerate(tbody.find_all('tr')):
-        extracted = [re.sub(r'\s+|=+', '', get_text_before_newline(td)) for td in tr.find_all('td')]
+        extracted = [re.sub(r'\s+|=+', '', get_text_before_newline(td))
+                     for td in tr.find_all('td')]
         row = {key: 0 for key in deduplicated}
         for key, index_list in column_matrix.items():
             for index in index_list:
@@ -398,7 +411,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 row_unit = unit_regex.search(ordered_list[0])
             else:
                 row_unit = False
-        except TypeError as ex :
+        except TypeError as ex:
             warnings_text = '{} : {}'.format(repr(ex), ordered_list[0])
             warnings.warn(warnings_text, RuntimeWarning)
             row_unit = False
@@ -443,8 +456,9 @@ def seek_table(tables: List, includes: Pattern,
                 children = tag.find_all(text=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
                     texts = text_split_by_br(tag)
-                    children = [text for text in texts if includes.search(text)]
-                    
+                    children = [
+                        text for text in texts if includes.search(text)]
+
                 for child in children:
                     title = child
                     if title:
@@ -536,28 +550,32 @@ def search_fs_table(tables: List, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
             excludes = str_to_regex(excludes)
 
         regex = str_to_regex(query)
-        title, header, tb = seek_table(tables=tables, includes=regex, excludes=excludes)
+        title, header, tb = seek_table(
+            tables=tables, includes=regex, excludes=excludes)
         fs_table[key] = {'title': title, 'header': header, 'table': tb}
     return fs_table
 
 
-def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko', report = None):
+def extract_fs_table(fs_table, fs_tp, separate: bool = False, lang: str = 'ko', report=None):
     results = OrderedDict()
     for tp, table in fs_table.items():
         if tp in fs_tp:
             df = None
             if table['table']:
                 try:
-                    columns = convert_thead_into_columns(fs_tp=tp, fs_table=table, separate=separate, lang=lang)
+                    columns = convert_thead_into_columns(
+                        fs_tp=tp, fs_table=table, separate=separate, lang=lang)
                     # Table Header 가 추출된 경우에만 Table Body 추출
                     if len(columns) > 0:
-                        df = convert_tbody_to_dataframe(columns=columns, fs_table=table)
-                except Exception as ex :
+                        df = convert_tbody_to_dataframe(
+                            columns=columns, fs_table=table)
+                except Exception as ex:
                     traceback.print_exc()
                     report_dict = None
-                    if report is not None :
+                    if report is not None:
                         report_dict = report.to_dict()
-                    warnings_text = 'Unable to extract a {} type financial statement. : {}'.format(tp, report_dict)
+                    warnings_text = 'Unable to extract a {} type financial statement. : {}'.format(
+                        tp, report_dict)
                     warnings.warn(warnings_text, RuntimeWarning)
             results[tp] = df
     return results
@@ -594,8 +612,10 @@ def report_find_all(report: Report, query: dict, fs_tp: Tuple[str], separate: bo
             soup = BeautifulSoup(html, 'html.parser')
 
             tables = soup.find_all('table', border='1')
-            fs_table = search_fs_table(tables=tables, fs_tp=fs_tp, separate=separate)
-            count = sum([fs_table[fs_tp]['table'] is not None for fs_tp in fs_table])
+            fs_table = search_fs_table(
+                tables=tables, fs_tp=fs_tp, separate=separate)
+            count = sum([fs_table[fs_tp]['table']
+                        is not None for fs_tp in fs_table])
             if count > 0:
                 searched_end = True
                 break
@@ -634,7 +654,7 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
 
     query = {
         'includes': includes,
-        'excludes':excludes,
+        'excludes': excludes,
         'scope': ['attached_reports', 'pages'],
         'options': {'title': True}  # 첨부보고서 및 연결보고서의 title 까지 검색
     }
@@ -659,7 +679,8 @@ def analyze_html(report: Report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
     if count == 0:
         return None
 
-    extract_results = extract_fs_table(fs_table=fs_table, fs_tp=fs_tp, separate=separate, lang=lang, report=report)
+    extract_results = extract_fs_table(
+        fs_table=fs_table, fs_tp=fs_tp, separate=separate, lang=lang, report=report)
     return extract_results
 
 
@@ -898,7 +919,8 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
         found_sign = {}
         max_found = 0
 
-        check_all_zeros = pd.to_numeric(df[list(overlap)].iloc[idx], errors='coerce').sum()
+        check_all_zeros = pd.to_numeric(
+            df[list(overlap)].iloc[idx], errors='coerce').sum()
         if check_all_zeros == 0.0:
             continue  # 모든 값이 0인 경우 pass
 
@@ -913,11 +935,13 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
             else:
                 sign = 1
                 # Ref와 일치하는 값을 가지는 row index 찾기
-                w = ndf[ndf[col] == value].dropna(axis=1, how='all').dropna(how='all')
+                w = ndf[ndf[col] == value].dropna(
+                    axis=1, how='all').dropna(how='all')
                 # 만약 찾지 못하는 경우 Ref의 값의 음수와 동일한 값을 가지는 row index 찾기
                 if len(w) == 0:
                     sign = -1
-                    w = ndf[ndf[col] == -value].dropna(axis=1, how='all').dropna(how='all')
+                    w = ndf[ndf[col] == -
+                            value].dropna(axis=1, how='all').dropna(how='all')
 
                 if len(w) > 0:
                     for index in w.index.values:
@@ -991,7 +1015,8 @@ def init_label(fs_df: Dict[str, DataFrame],
                 label_df[tp] = pd.DataFrame(columns=nlabel_columns)
 
                 if len(concept_column) == 1:
-                    label_df[tp][nlabel_columns[0]] = [extract_account_title(x) for x in list(df[concept_column[0]])]
+                    label_df[tp][nlabel_columns[0]] = [
+                        extract_account_title(x) for x in list(df[concept_column[0]])]
 
                 for column in date_columns:
                     label_df[tp][column] = list(df[ko_column])
@@ -1047,17 +1072,19 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             # label_df가 없을시 초기화
             if label_df.get(tp) is None:
-                label_df = init_label(fs_df=fs_df, fs_tp=fs_tp, label_df=label_df)
+                label_df = init_label(
+                    fs_df=fs_df, fs_tp=fs_tp, label_df=label_df)
 
             _, df_columns = split_columns_concept_data(df.columns)
-            _, ndf_columns =  split_columns_concept_data(ndf.columns)
+            _, ndf_columns = split_columns_concept_data(ndf.columns)
             df_columns = convert_multiindex_to_set(df_columns)
             ndf_columns = convert_multiindex_to_set(ndf_columns)
 
             overlap = df_columns.intersection(ndf_columns)
 
             date_regex = re.compile(r'\d{8}')
-            diff = [x for x in (ndf_columns - overlap) if date_regex.search(x[0])]
+            diff = [x for x in (ndf_columns - overlap)
+                    if date_regex.search(x[0])]
             diff.sort(key=lambda x: date_regex.findall(x[0])[0], reverse=True)
 
             # Data가 동일할 경우 Continue
@@ -1069,15 +1096,17 @@ def merge_fs(fs_df: Dict[str, DataFrame],
                 ndata = [None for _ in range(len(df))]
                 nlabels = ['' for _ in range(len(df))]
 
-                ndata, nlabels = compare_df_and_ndf_label_and_concept(column, df, ndf, label_df[tp], ndata, nlabels)
+                ndata, nlabels = compare_df_and_ndf_label_and_concept(
+                    column, df, ndf, label_df[tp], ndata, nlabels)
 
                 for compare_func in additional_comparison_function:
-                    ndata, nlabels = compare_func(column, df, ndf, label_df[tp], ndata, nlabels)
+                    ndata, nlabels = compare_func(
+                        column, df, ndf, label_df[tp], ndata, nlabels)
 
-                ndata = np.array(ndata, dtype=np.float64)
+                ndata = pd.to_numeric(ndata, errors='coerce')
                 count = np.count_nonzero(~np.isnan(ndata))
 
-                if count < min_required: # ndata의 유효한 값이 min_required 이하인 경우 추가 Merge X
+                if count < min_required:  # ndata의 유효한 값이 min_required 이하인 경우 추가 Merge X
                     continue
 
                 label_df[tp][column] = nlabels
@@ -1085,11 +1114,11 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
     return fs_df, label_df
 
-def convert_multiindex_to_set(multiindex) :
-    if multiindex is None :
+
+def convert_multiindex_to_set(multiindex):
+    if multiindex is None:
         return set()
     return set(multiindex.tolist())
-
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
@@ -1166,7 +1195,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
         'show_depth': show_depth,
         'show_concept': show_concept,
         'separator': separator,
-        'ignore_subclass': True,# 하위 class 무시
+        'ignore_subclass': True,  # 하위 class 무시
     }
 
     statements = OrderedDict()
@@ -1306,10 +1335,12 @@ def remove_almost_empty_columns(df: Dict[str, DataFrame], min_data_number: int =
 
     for tp, df_tp in df.items():
         if df_tp is not None:
-            new_columns = [col for col in df_tp.columns if (regex.search(col[0]) is None) or (df_tp[col].count() > min_data_number)]
+            new_columns = [col for col in df_tp.columns if (regex.search(
+                col[0]) is None) or (df_tp[col].count() > min_data_number)]
             df[tp] = df_tp[new_columns]
 
     return df
+
 
 def analyze_report(report: Report,
                    fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'),
@@ -1327,7 +1358,8 @@ def analyze_report(report: Report,
     # XBRL File check
     if xbrl is not None:
         if separate is False and not xbrl.exist_consolidated():
-            raise NotFoundConsolidated('Could not find consolidated financial statements')
+            raise NotFoundConsolidated(
+                'Could not find consolidated financial statements')
         fs_df = analyze_xbrl(report, fs_tp=fs_tp, separate=separate, lang=lang,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
@@ -1336,7 +1368,8 @@ def analyze_report(report: Report,
 
         # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
         if fs_df is None and separate is False:
-            raise NotFoundConsolidated('Could not find consolidated financial statements')
+            raise NotFoundConsolidated(
+                'Could not find consolidated financial statements')
 
     fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
     return fs_df
@@ -1372,7 +1405,7 @@ def search_annual_report(corp_code: str,
 def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
     try:
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
-                                pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
+                                 pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
     except NoDataReceived:
         resp = {
             'page_no': 1,
@@ -1484,7 +1517,8 @@ def extract(corp_code: str,
         for idx, tp in enumerate(all_report_tp):
             if check_report_tp(report_tp, tp):
                 if tp == 'annual':
-                    reports = search_annual_report(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
+                    reports = search_annual_report(
+                        corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
                 else:
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
@@ -1504,11 +1538,13 @@ def extract(corp_code: str,
                                                         lang=lang,
                                                         separator=separator)
                             if statements is None:
-                                warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                                warnings_text = 'Unable to extract financial statements: {}.'.format(
+                                    report.to_dict())
                                 warnings.warn(warnings_text, RuntimeWarning)
                             else:
                                 if separate is False and all([statements[tp] is None for tp in statements]):
-                                    raise NotFoundConsolidated('Could not find consolidated financial statements')
+                                    raise NotFoundConsolidated(
+                                        'Could not find consolidated financial statements')
                                 # initialize label dictionary
                                 label_df = init_label(statements, fs_tp=fs_tp)
                         else:
@@ -1519,7 +1555,8 @@ def extract(corp_code: str,
                                                          separator=separator,
                                                          dataset=dataset)
                             if nstatements is None:
-                                warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                                warnings_text = 'Unable to extract financial statements: {}.'.format(
+                                    report.to_dict())
                                 warnings.warn(warnings_text, RuntimeWarning)
                             else:
                                 statements, label_df = merge_fs(statements, nstatements,
@@ -1527,7 +1564,8 @@ def extract(corp_code: str,
                                                                 min_required=min_required)
                     except Exception as ex:
                         traceback.print_exc()
-                        warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
+                        warnings_text = 'Unable to extract financial statements: {}.'.format(
+                            report.to_dict())
                         if skip_error:
                             warnings.warn(warnings_text, RuntimeWarning)
                         else:
@@ -1536,7 +1574,8 @@ def extract(corp_code: str,
         # Spinner enable
         dart.utils.spinner.spinner_enable = True
         if separate is False and (statements is None or all([statements[tp] is None for tp in statements])):
-            raise NotFoundConsolidated('Could not find consolidated financial statements')
+            raise NotFoundConsolidated(
+                'Could not find consolidated financial statements')
 
         statements = drop_empty_columns(statements)
         label_df = drop_empty_columns(label_df)
@@ -1560,7 +1599,8 @@ def extract(corp_code: str,
         return FinancialStatement(statements, label_df, info)
     except Exception as e:
         if report is not None:
-            msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
+            msg = 'An error occurred while fetching or analyzing {}.'.format(
+                report.to_dict())
         else:
             msg = 'Unexpected Error'
         e.args = (*e.args, msg, )
