@@ -32,6 +32,7 @@ class Corp(object):
     def __init__(self,
                  corp_code: str,
                  corp_name: str = None,
+                 corp_eng_name: str = None,
                  modify_date: str = None,
                  stock_code: str = None,
                  profile: bool = False):
@@ -54,6 +55,7 @@ class Corp(object):
         self._info = {
             'corp_code': corp_code,
             'corp_name': corp_name,
+            'corp_eng_name': corp_eng_name,
             'stock_code': stock_code,
             'modify_date': modify_date,
         }
