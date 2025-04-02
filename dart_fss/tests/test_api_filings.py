@@ -1,7 +1,7 @@
 def test_get_corp_code(dart):
     res = dart.api.filings.get_corp_code()
     actual = res[0].keys()
-    expected = ['corp_code', 'corp_name', 'stock_code', 'modify_date']
+    expected = ['corp_code', 'corp_name', 'corp_eng_name', 'stock_code', 'modify_date'] # API UPDATED
     for act in actual:
         assert act in expected
 
