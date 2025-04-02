@@ -232,10 +232,15 @@ class Report(object):
             self._get_report()
         results = []
         # tag 및 class 변경
-        a_href = self.html.find('button', class_='btnDown')
-        a_onclick = a_href.attrs.get('onclick', '')
-        raw_data = re.search(
-            r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
+        a_href = self.html.find_all('button', class_='btnDown')
+        raw_data = None
+        for a in a_href:
+            a_onclick = a.attrs.get('onclick', '')
+            raw_data = re.search(
+                r'openPdfDownload\(.*?(\d+).*?(\d+).*?\)', a_onclick)
+            if raw_data is not None:
+                break
+
         if raw_data is None:
             return results
 
