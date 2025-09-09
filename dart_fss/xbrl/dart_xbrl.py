@@ -30,6 +30,18 @@ class DartXbrl(object):
         self._tables = None
         self._link_roles = None
 
+    def is_empty(self) -> bool:
+        if not self.tables:
+            return True
+
+        data = [
+            self.get_financial_statement(True),
+            self.get_income_statement(True),
+            self.get_changes_in_equity(True),
+            self.get_cash_flows(True),
+        ]
+        return all(x is None for x in data)
+
     @property
     def tables(self) -> List[Table]:
         """list of Table: Table 리스트"""
@@ -108,7 +120,7 @@ class DartXbrl(object):
                 tables.append(table)
         return tables if len(tables) > 0 else None
 
-    def _to_info_DataFrame(self, code: str, lang: str = 'ko') -> DataFrame:
+    def _to_info_DataFrame(self, code: str, lang: str = 'ko') -> Union[DataFrame, None]:
         """ to_DataFrame wrapper
 
         Parameters
@@ -120,13 +132,15 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             Pandas DataFrame
         """
         table = self.get_table_by_code(code)
+        if table is None:
+            return None
         return table.to_DataFrame(lang=lang, show_class=False, show_concept=False, separator=False, ignore_subclass=False)
 
-    def get_document_information(self, lang: str = 'ko') -> DataFrame:
+    def get_document_information(self, lang: str = 'ko') -> Union[DataFrame,None]:
         """ 공시 문서 정보
 
         Parameters
@@ -136,12 +150,12 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             공시 문서 정보
         """
         return self._to_info_DataFrame('d999001', lang=lang)
 
-    def get_period_information(self, lang: str = 'ko') -> DataFrame:
+    def get_period_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 공시 문서 기간 정보
 
         Parameters
@@ -151,17 +165,19 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             공시 문서 기간 정보
         """
         df = self._to_info_DataFrame('d999002', lang=lang)
+        if df is None:
+            return None
         data = df[df.columns[2:]].iloc[3]
         data_set = [(key, data[key]) for key in data.keys()]
         new_columns = list(df.columns[:2]) + [data[0] for data in sorted(data_set, key=lambda x: x[1], reverse=True)]
         new_columns = pd.MultiIndex.from_tuples(new_columns)
         return df[new_columns]
 
-    def get_audit_information(self, lang: str = 'ko') -> DataFrame:
+    def get_audit_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 감사 정보
 
         Parameters
@@ -171,12 +187,12 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             감사 정보
         """
         return self._to_info_DataFrame('d999003', lang=lang)
 
-    def get_entity_information(self, lang: str = 'ko') -> DataFrame:
+    def get_entity_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 공시 대상 정보
 
         Parameters
@@ -186,12 +202,12 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             공시 대상 정보
         """
         return self._to_info_DataFrame('d999004', lang=lang)
 
-    def get_entity_address_information(self, lang: str = 'ko') -> DataFrame:
+    def get_entity_address_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 주소 정보
 
         Parameters
@@ -201,13 +217,13 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             주소 정보
 
         """
         return self._to_info_DataFrame('d999005', lang=lang)
 
-    def get_author_information(self, lang: str = 'ko') -> DataFrame:
+    def get_author_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 작성자 정보
 
         Parameters
@@ -217,12 +233,12 @@ class DartXbrl(object):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             작성자 정보
         """
         return self._to_info_DataFrame('d999006', lang=lang)
 
-    def get_financial_statement_information(self, lang: str = 'ko') -> DataFrame:
+    def get_financial_statement_information(self, lang: str = 'ko') -> Union[DataFrame, None]:
         """ 재무제표 정보
 
         Parameters
@@ -247,6 +263,8 @@ class DartXbrl(object):
         """
         regex = re.compile(r'Consolidated', re.IGNORECASE)
         info_table = self.get_table_by_code('d999007')
+        if info_table is None:
+            raise ValueError("Missing consolidated financial statement information")
         cls_list = info_table.cls
         for cls in cls_list:
             titles = get_title(cls, 'en')
@@ -364,6 +382,8 @@ class DartXbrl(object):
 
     def __repr__(self):
         df = self.get_document_information()
+        if df is None:
+            return ''
         columns = df.columns.tolist()
         dict_info = df.set_index(columns[1]).to_dict()
         info = None
@@ -374,6 +394,8 @@ class DartXbrl(object):
 
     def _repr_html_(self):
         df = self.get_document_information()
+        if df is None:
+            return ''
         columns = df.columns.tolist()
         dict_info = df.set_index(columns[1]).to_dict()
         info = None
