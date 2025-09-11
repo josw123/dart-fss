@@ -62,14 +62,7 @@ def get_stock_market_list(corp_cls: str, include_corp_name: bool = True) -> Dict
 
     try:
         resp = request.post(url=url, payload=payload, referer=referer)
-        # lxml이 설치되어 있으면 더 빠름; 없으면 html.parser로 폴백
-        parser = 'lxml'
-        try:
-            import lxml  # noqa: F401
-        except Exception:
-            parser = 'html.parser'
-
-        soup = BeautifulSoup(resp.text, parser)
+        soup = BeautifulSoup(resp.text, 'html.parser') # lxml parser 오류로 인한 수정
 
         # 표 본문만 대상으로 검색(헤더/푸터 스킵)
         tbody = soup.find('tbody')
