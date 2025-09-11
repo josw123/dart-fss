@@ -83,7 +83,7 @@ pipeline {
       steps {
         sh 'pip install -r requirements.txt'
         sh 'pip install -U codecov pytest pytest-cov'
-        sh 'pytest --runslow --cov-report=term-missing --cov=./dart_fss'
+        sh 'pytest --cov-report=term-missing --cov=./dart_fss'
         sh 'codecov'
       }
     }
