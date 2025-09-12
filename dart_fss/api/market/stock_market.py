@@ -1,36 +1,50 @@
 # -*- coding: utf-8 -*-
+import warnings
+from typing import Dict
 from dart_fss.utils import request
 from bs4 import BeautifulSoup
 
-
-def get_stock_market_list(corp_cls: str, include_corp_name=True) -> dict:
-    """ 상장 회사 dictionary 반환
+def get_stock_market_list(corp_cls: str, include_corp_name: bool = True) -> Dict[str, dict]:
+    """상장 회사 dictionary 반환
 
     Parameters
     ----------
     corp_cls: str
-        Y: stock market(코스피), K: kosdaq market(코스닥), N: konex Market(코넥스)
+        'Y' (코스피), 'K' (코스닥), 'N' (코넥스)
     include_corp_name: bool, optional
-        if True, returning dictionary includes corp_name(default: True)
+        True면 회사명을 포함해 반환 (default: True)
+
     Returns
     -------
-    dict of {stock_code: information}
-        상장 회사 정보 dictionary 반환( 회사 이름, 섹터, 물품)
+    Dict[str, dict]
+        {주식코드: {'sector': ..., 'market_type': ..., 'product': ..., 'corp_cls': ..., 'corp_name': ...?}}
     """
+    if not isinstance(corp_cls, str) or not corp_cls:
+        raise ValueError("corp_cls must be one of {'Y','K','N'}")
 
-    if corp_cls.upper() == 'E':
+    cls = corp_cls.upper()
+    if cls == 'E':
         raise ValueError('ETC market is not supported')
 
     corp_cls_to_market = {
-        "Y": "stockMkt",
-        "K": "kosdaqMkt",
-        "N": "konexMkt",
+        'Y': 'stockMkt',
+        'K': 'kosdaqMkt',
+        'N': 'konexMkt',
+    }
+    if cls not in corp_cls_to_market:
+        raise ValueError("Invalid corp_cls. Use 'Y' (KOSPI), 'K' (KOSDAQ), or 'N' (KONEX).")
+
+    # 화면 표기(한글) → KRX 내부 파라미터 매핑
+    market_type_info = {
+        '유가': 'stockMkt',
+        '코스닥': 'kosdaqMkt',
+        '코넥스': 'konexMkt',
     }
 
     url = 'https://kind.krx.co.kr/corpgeneral/corpList.do'
     referer = 'https://kind.krx.co.kr/corpgeneral/corpList.do?method=loadInitPage'
 
-    market_type = corp_cls_to_market[corp_cls.upper()]
+    market_type = corp_cls_to_market[cls]
     payload = {
         'method': 'download',
         'pageIndex': 1,
@@ -43,23 +57,65 @@ def get_stock_market_list(corp_cls: str, include_corp_name=True) -> dict:
         'location': 'all',
     }
 
-    stock_market_list = dict()
+    # 결과 저장
+    stock_market_list: Dict[str, dict] = {}
 
-    resp = request.post(url=url, payload=payload, referer=referer)
-    html = BeautifulSoup(resp.text, 'html.parser')
-    rows = html.find_all('tr')
+    try:
+        resp = request.post(url=url, payload=payload, referer=referer)
+        soup = BeautifulSoup(resp.text, 'html.parser') # lxml parser 오류로 인한 수정
 
-    for row in rows:
-        cols = row.find_all('td')
-        if len(cols) > 0:
-            corp_name = cols[0].text.strip()
-            stock_code = cols[1].text.strip()
-            sector = cols[2].text.strip()
-            product = cols[3].text.strip()
-            corp_info = {'sector': sector,
-                         'product': product, 'corp_cls': corp_cls}
+        # 표 본문만 대상으로 검색(헤더/푸터 스킵)
+        tbody = soup.find('tbody')
+        if tbody is None:
+            # 구조 변경 가능성 대비
+            rows = soup.find_all('tr')
+        else:
+            rows = tbody.find_all('tr')
+
+        mkt_map = market_type_info  # 지역 변수 캐시
+
+        for row in rows:
+            cols = row.find_all('td')
+            # 기대 컬럼: [회사명, 시장구분(한글), 종목코드, 업종, 제품]
+            if len(cols) < 5:
+                continue
+
+            # strip + 내부 공백 정규화
+            def norm(x: str) -> str:
+                return ' '.join(x.strip().split())
+
+            corp_name = norm(cols[0].get_text())
+            market_kr  = norm(cols[1].get_text())
+            stock_code = norm(cols[2].get_text())
+            sector     = norm(cols[3].get_text())
+            product    = norm(cols[4].get_text())
+
+            # 시장 구분(한글)이 예상과 다르면 스킵 (사이트 구조/라벨 변경 대응)
+            market_key = mkt_map.get(market_kr)
+            if market_key is None:
+                # 다른 시장(예: ETF/관리종목 등) 라벨이 섞일 수 있으므로 조용히 패스
+                continue
+
+            info = {
+                'sector': sector,
+                'market_type': market_key,
+                'product': product,
+                'corp_cls': cls,
+            }
             if include_corp_name:
-                corp_info['corp_name'] = corp_name
-            stock_market_list[stock_code] = corp_info
+                info['corp_name'] = corp_name
+
+            # 주식코드를 키로 사용
+            if stock_code:
+                stock_market_list[stock_code] = info
+
+        if not stock_market_list:
+            warnings.warn(
+                'No rows parsed. The KRX page structure may have changed or the response was empty.',
+                UserWarning
+            )
+
+    except Exception as e:
+        warnings.warn(f'Failed to fetch stock market list ({cls}): {e}', UserWarning)
 
     return stock_market_list

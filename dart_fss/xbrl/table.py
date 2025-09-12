@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -131,6 +132,8 @@ class Table(object):
             if len(dims) > 0:
                 for dimQname in sorted(dims.keys(), key=lambda d: str(d), reverse=True):
                     dim_value = dims[dimQname]
+                    if dim_value.member is None:
+                        continue
                     ko = dim_value.member.label(lang='ko')
                     ko = re.sub(r'\[.*?\]', '', ko)
                     en = dim_value.member.label(lang='en')
@@ -222,7 +225,10 @@ class Table(object):
 
         table = self.parent.get_table_by_code('d999004')
         unit = get_value_from_dataset(table.cls, table.dataset, 'dart-gcd_EntityReportingCurrencyISOCode', ignore_case=True)
-
+        if len(unit) < 1:
+            warnings_text = "dart-gcd_EntityReportingCurrencyISOCode is not found. Assuming KRW."
+            warnings.warn(warnings_text, RuntimeWarning)
+            unit = ['KRW']
         definition = self.definition + ' (Unit: {})'.format(unit[0])
         columns = generate_df_columns(definition, cls, depth, lang,
                                       show_concept=show_concept, show_class=show_class)

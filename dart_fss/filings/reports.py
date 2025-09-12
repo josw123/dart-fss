@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import copy
+import warnings
 
 from urllib.parse import parse_qs
 from typing import Iterable
@@ -435,6 +436,9 @@ class Report(object):
                             self._xbrl = None
                     else:
                         self._xbrl = None
+        if self._xbrl and self._xbrl.is_empty():
+            warnings.warn("The DART disclosure contains an XBRL file, but it is either invalid or empty.", UserWarning)
+            self._xbrl = None
         return self._xbrl
 
     def _get_xbrl(self):

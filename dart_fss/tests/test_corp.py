@@ -30,9 +30,9 @@ def test_find_by_product(corp_list):
 
 
 def test_find_by_sector(corp_list):
-    res = corp_list.find_by_sector(corp_list.sectors[0])
+    res = corp_list.find_by_sector('1차 비철금속 제조업')
     actual = len(res)
-    expected = 21 #섹터 회사수 증가로 수정
+    expected = 22  # The number may vary as the corp list is updated
     assert actual == expected
 
 
@@ -90,4 +90,3 @@ def test_corp_search_filings(corp_list):
     actual = filings.total_count
     expected = 1
     assert actual == expected
-

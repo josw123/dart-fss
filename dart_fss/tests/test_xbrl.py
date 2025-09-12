@@ -59,7 +59,7 @@ def test_xbrl_get_author_information(samsung_xbrl):
 
 def test_xbrl_get_financial_statement_information(samsung_xbrl):
     state = samsung_xbrl.get_financial_statement_information()
-    actual = state.iloc[3][2]
+    actual = state.iloc[3,2]
     expected = 'D3001'
     assert actual == expected
 
