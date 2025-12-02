@@ -22,10 +22,10 @@ def test_find_by_corp_name_with_market_type(corp_list):
 
 
 def test_find_by_product(corp_list):
-    # Change test case from cell phone to mine
-    res = corp_list.find_by_product('광산')
+    # Change test case from mine to memory
+    res = corp_list.find_by_product('메모리')
     actual = len(res)
-    expected = 1
+    expected = 15
     assert actual == expected
 
 
