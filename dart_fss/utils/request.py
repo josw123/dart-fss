@@ -73,7 +73,7 @@ class Request(object, metaclass=Singleton):
             Force update
         """
         if force:
-            ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')
+            ua = UserAgent(os=['Windows', 'Mac OS X', 'Linux'], platforms='desktop')
             agent = ua.random  # Random user-agent
             user_agent = str(agent)
         else:
