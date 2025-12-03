@@ -15,7 +15,7 @@ def get_user_agent():
     str
         user-agent
     """
-    ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')  # Exclude mobile devices and tablets
+    ua = UserAgent(os=['Windows', 'Mac OS X', 'Linux'], platforms='desktop')  # Exclude mobile devices and tablets
     agent = ua.random  # Random user-agent
     return str(agent)
 
@@ -73,7 +73,7 @@ class Request(object, metaclass=Singleton):
             Force update
         """
         if force:
-            ua = UserAgent(os=['windows', 'macos', 'linux'], platforms='pc')
+            ua = UserAgent(os=['Windows', 'Mac OS X', 'Linux'], platforms='desktop')
             agent = ua.random  # Random user-agent
             user_agent = str(agent)
         else:

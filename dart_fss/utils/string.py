@@ -1,3 +1,4 @@
+import warnings
 import re
 from typing import Union
 from dart_fss.utils.cache import cache
@@ -5,9 +6,16 @@ from dart_fss.utils.regex import str_to_regex
 
 
 CURRENCY = {
-    '원': 'KWR',
+    '원': 'KRW',
     '달러': 'USD',
     '엔': 'JPY',
+    '유로': 'EUR',
+    '위안': 'CNY',
+    '파운드': 'GBP',
+    '홍콩달러': 'HKD',
+    '대만달러': 'TWD',
+    '호주달러': 'AUD',
+    '캐나다달러': 'CAD',
 }
 
 
@@ -64,7 +72,11 @@ def str_unit_to_number_unit(str_unit: str) -> int:
         str_unit_to_unit[k] = 1
         str_unit_to_unit[v] = 1
 
-    return str_unit_to_unit[str_unit]
+    unit = str_unit_to_unit.get(str_unit)
+    if unit is None:
+        warnings.warn(f'Unknown unit: {str_unit}')
+        unit = 1
+    return unit
 
 
 @cache()
