@@ -136,8 +136,18 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, s
     def str_to_float(val, w=1.0):
         try:
             return float(val) * w
-        except ValueError:
-            return val
+        except (ValueError, TypeError):
+            return val if isinstance(val, str) else float('nan')
+
+    def is_number(val):
+        try:
+            math.isnan(val)
+            return True
+        except TypeError:
+            return False
+
+    def is_nan(val):
+        return is_number(val) and math.isnan(val)
 
     if isinstance(classification, dict):
         classification = [classification]
@@ -164,10 +174,10 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, s
             if str_compare_func(data.concept.id, concept_id):
                 value = str_to_float(data.value, sign)
                 # XBRL 내부 주당이익에서 발생하는 오류 수정을 위한 코드
-                if currency_unit is not None:
+                if currency_unit is not None and is_number(value):
                     decimals = str_to_float(data.decimals)
                     # decimals이 없을 경우 0으로 처리
-                    if math.isinf(decimals) or math.isnan(decimals):
+                    if not is_number(decimals) or math.isinf(decimals) or math.isnan(decimals):
                         decimals = 0
                     value = value * pow(10, decimals)
                     value = value * currency_unit
@@ -176,7 +186,9 @@ def get_value_from_dataset(classification, dataset, concept_id, label_ko=None, s
         title = get_title(cls, 'en')
         if title in added_title:
             index = added_title.index(title)
-            if not math.isnan(value):
+            if is_number(value) and not is_nan(value):
+                results[index] = value
+            elif not is_number(value) and is_nan(results[index]):
                 results[index] = value
         else:
             results.append(value)
