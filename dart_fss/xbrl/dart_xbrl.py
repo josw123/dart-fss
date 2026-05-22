@@ -35,9 +35,13 @@ class DartXbrl(object):
             return True
 
         data = [
+            self.get_financial_statement(False),
             self.get_financial_statement(True),
+            self.get_income_statement(False),
             self.get_income_statement(True),
+            self.get_changes_in_equity(False),
             self.get_changes_in_equity(True),
+            self.get_cash_flows(False),
             self.get_cash_flows(True),
         ]
         return all(x is None for x in data)
