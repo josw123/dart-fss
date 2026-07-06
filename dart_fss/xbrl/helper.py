@@ -270,6 +270,43 @@ def generate_df_rows(labels, classification, dataset, max_depth,
 
 
 
+CONSOLIDATED_CODE_TO_ROLES = {
+    'D1001': ['D210000'],
+    'D1002': ['D220000'],
+    'D2001': ['D431410'],
+    'D2002': ['D431420'],
+    'D2003': ['D432410'],
+    'D2004': ['D432420'],
+    'D2005': ['D310000', 'D410000'],
+    'D2006': ['D310000', 'D420000'],
+    'D2007': ['D320000', 'D410000'],
+    'D2008': ['D320000', 'D420000'],
+    'D2009': ['D310000'],
+    'D2010': ['D320000'],
+    'D3001': ['D610000'],
+    'D4001': ['D510000'],
+    'D4002': ['D520000'],
+}
+
+SEPARATED_CODE_TO_ROLES = {
+    'D1001': ['D210005'],
+    'D1002': ['D220005'],
+    'D2001': ['D431415'],
+    'D2002': ['D431425'],
+    'D2003': ['D432415'],
+    'D2004': ['D432425'],
+    'D2005': ['D310005', 'D410005'],
+    'D2006': ['D310005', 'D420005'],
+    'D2007': ['D320005', 'D410005'],
+    'D2008': ['D320005', 'D420005'],
+    'D2009': ['D310005'],
+    'D2010': ['D320005'],
+    'D3001': ['D610005'],
+    'D4001': ['D510005'],
+    'D4002': ['D520005'],
+}
+
+
 def consolidated_code_to_role_number(code, separate=False):
     """ 코드번호를 Role 번호로 변환하는 함수
 
@@ -285,41 +322,26 @@ def consolidated_code_to_role_number(code, separate=False):
     list of str
         Role 번호 리스트
     """
-    consolidated_code = {
-        'D1001': ['D210000'],
-        'D1002': ['D220000'],
-        'D2001': ['D431410'],
-        'D2002': ['D431420'],
-        'D2003': ['D432410'],
-        'D2004': ['D432420'],
-        'D2005': ['D310000', 'D410000'],
-        'D2006': ['D310000', 'D420000'],
-        'D2007': ['D320000', 'D410000'],
-        'D2008': ['D320000', 'D420000'],
-        'D2009': ['D310000'],
-        'D2010': ['D320000'],
-        'D3001': ['D610000'],
-        'D4001': ['D510000'],
-        'D4002': ['D520000'],
-    }
-    separated_code = {
-        'D1001': ['D210005'],
-        'D1002': ['D220005'],
-        'D2001': ['D431415'],
-        'D2002': ['D431425'],
-        'D2003': ['D432415'],
-        'D2004': ['D432425'],
-        'D2005': ['D310005', 'D410005'],
-        'D2006': ['D310005', 'D420005'],
-        'D2007': ['D320005', 'D410005'],
-        'D2008': ['D320005', 'D420005'],
-        'D2009': ['D310005'],
-        'D2010': ['D320005'],
-        'D3001': ['D610005'],
-        'D4001': ['D510005'],
-        'D4002': ['D520005'],
-    }
-    return separated_code[code] if separate else consolidated_code[code]
+    # 미지원 코드는 KeyError를 그대로 전파해야 함 (DartXbrl._get_statement가 의존)
+    code_table = SEPARATED_CODE_TO_ROLES if separate else CONSOLIDATED_CODE_TO_ROLES
+    return code_table[code]
+
+
+def get_statement_role_numbers(separate=False):
+    """ 본 재무제표 Role 번호 집합을 반환하는 함수
+
+    Parameters
+    ----------
+    separate: bool, optional
+        개별재무제표 여부
+
+    Returns
+    -------
+    set of str
+        본 재무제표 Role 번호 집합
+    """
+    code_table = SEPARATED_CODE_TO_ROLES if separate else CONSOLIDATED_CODE_TO_ROLES
+    return {role for roles in code_table.values() for role in roles}
 
 
 def cls_datetime_check(cls, start_dt, end_dt):

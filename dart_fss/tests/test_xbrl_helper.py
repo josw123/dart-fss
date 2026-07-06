@@ -2,7 +2,9 @@ import math
 from datetime import datetime
 from types import SimpleNamespace
 
-from dart_fss.xbrl.helper import get_value_from_dataset
+from dart_fss.xbrl.helper import (get_value_from_dataset,
+                                  consolidated_code_to_role_number,
+                                  get_statement_role_numbers)
 
 
 def _make_fact(concept_id, value, decimals='0'):
@@ -83,3 +85,22 @@ def test_currency_unit_branch_safe_on_text():
     dataset = {'ctx_u': [_make_fact(concept_id, text, decimals=None)]}
     result = get_value_from_dataset(cls, dataset, concept_id, label_ko='현금및현금성자산(단위:원)')
     assert result == [text]
+
+
+def test_consolidated_code_to_role_number_regression():
+    assert consolidated_code_to_role_number('D2005') == ['D310000', 'D410000']
+    assert consolidated_code_to_role_number('D2005', separate=True) == ['D310005', 'D410005']
+    assert consolidated_code_to_role_number('D1001') == ['D210000']
+    assert consolidated_code_to_role_number('D1001', separate=True) == ['D210005']
+
+
+def test_get_statement_role_numbers():
+    consolidated = get_statement_role_numbers()
+    assert 'D210000' in consolidated
+    assert 'D520000' in consolidated
+    assert 'D851100' not in consolidated
+    assert 'D520005' not in consolidated
+
+    separated = get_statement_role_numbers(separate=True)
+    assert 'D520005' in separated
+    assert 'D520000' not in separated
