@@ -8,7 +8,16 @@ from arelle import ModelXbrl, XbrlConst
 
 from dart_fss.utils import str_compare, dict_to_html
 from dart_fss.xbrl.table import Table
-from dart_fss.xbrl.helper import get_title, consolidated_code_to_role_number
+from dart_fss.xbrl.helper import (get_title, consolidated_code_to_role_number,
+                                  get_statement_role_numbers)
+
+
+DATASET_TITLE = {
+    'dart-gcd_StatementOfFinancialPosition': '재무상태표',
+    'dart-gcd_StatementOfComprehensiveIncome': '손익계산서',
+    'dart-gcd_StatementOfChangesInEquity': '자본변동표',
+    'dart-gcd_StatementOfCashFlows': '현금흐름표',
+}
 
 
 class DartXbrl(object):
@@ -270,6 +279,9 @@ class DartXbrl(object):
         if info_table is None:
             raise ValueError("Missing consolidated financial statement information")
         cls_list = info_table.cls
+        if not cls_list:
+            # D999007에 fact가 없는 공시는 연결 재무상태표 Role 존재 여부로 판단
+            return self.get_financial_statement(separate=False) is not None
         for cls in cls_list:
             titles = get_title(cls, 'en')
             for title in titles:
@@ -280,6 +292,33 @@ class DartXbrl(object):
                     if regex.search(' '.join(title)):
                         return True
         return False
+
+    def _get_statement_by_name(self, concept_id: str, separate: bool = False) -> Union[List[Table], None]:
+        """ D999007 정보를 사용할 수 없을 때 Role 정의를 이용하여 재무제표를 검색하는 함수
+
+        Parameters
+        ----------
+        concept_id: str
+            dart-gcd_StatementOfFinancialPosition: 재무상태표
+            dart-gcd_StatementOfComprehensiveIncome: 포괄손익계산서
+            dart-gcd_StatementOfChangesInEquity: 자본변동표
+            dart-gcd_StatementOfCashFlows: 현금프름표
+        separate: bool, optional
+            True: 개별재무제표
+            False: 연결재무제표
+
+        Returns
+        -------
+        list of Table or None
+        """
+        tables = self.get_table_by_name(DATASET_TITLE[concept_id], separate=separate)
+        if tables is None:
+            return None
+        # 주석 Role(D851100 현금흐름표 주석 등)도 이름이 매칭되므로 본 재무제표 Role 번호로 필터링
+        role_numbers = get_statement_role_numbers(separate=separate)
+        tables = [table for table in tables
+                  if table.code is not None and table.code.upper() in role_numbers]
+        return tables if len(tables) > 0 else None
 
     def _get_statement(self, concept_id: str, separate: bool = False) -> Union[List[Table], None]:
         """ Financial statement information 을 이용하여 제공되는 재무제표를 추출하는 함수
@@ -303,14 +342,10 @@ class DartXbrl(object):
         if table is None:
             return None
         table_dict = table.get_value_by_concept_id(concept_id)
+        if not table_dict:
+            # D999007 Role은 존재하나 fact가 없는 공시 존재 (ex. rcept_no 20250318001434)
+            return self._get_statement_by_name(concept_id, separate=separate)
         compare_name = 'Separate' if separate else 'Consolidated'
-
-        dataset_title = {
-            'dart-gcd_StatementOfFinancialPosition': '재무상태표',
-            'dart-gcd_StatementOfComprehensiveIncome': '손익계산서',
-            'dart-gcd_StatementOfChangesInEquity': '자본변동표',
-            'dart-gcd_StatementOfCashFlows': '현금흐름표',
-        }
 
         try:
             for keys, value in table_dict.items():
@@ -321,7 +356,7 @@ class DartXbrl(object):
                         tables = [self.get_table_by_code(code) for code in code_list]
                         return tables
         except KeyError:
-            return self.get_table_by_name(dataset_title[concept_id], separate=separate)
+            return self._get_statement_by_name(concept_id, separate=separate)
         return None
 
     def get_financial_statement(self, separate: bool = False) -> Union[List[Table], None]:
