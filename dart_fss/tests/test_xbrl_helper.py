@@ -104,3 +104,12 @@ def test_get_statement_role_numbers():
     separated = get_statement_role_numbers(separate=True)
     assert 'D520005' in separated
     assert 'D520000' not in separated
+
+
+def test_consolidated_code_to_role_number_financial_industry():
+    assert consolidated_code_to_role_number('D1101') == ['DB220000']
+    assert consolidated_code_to_role_number('D2201', separate=True) == ['DI320005']
+    assert consolidated_code_to_role_number('D3301') == ['DS610000']
+    assert consolidated_code_to_role_number('D4401', separate=True) == ['DX520005']
+    assert 'DB220000' in get_statement_role_numbers()
+    assert 'DB220005' in get_statement_role_numbers(separate=True)
