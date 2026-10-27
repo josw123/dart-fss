@@ -1,9 +1,14 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta:__legacy__"
+
 [project]
 name = "dart-fss"
 description = "Web-scraping https://dart.fss.or.kr"
 readme = "README.md"
-requires-python = ">=3.7"
-license = {text = "MIT"}
+requires-python = ">=3.9"
+license = "MIT"
+license-files = []
 keywords = ["fss", "dart-fss", "scrapping", "financial_statement"]
 authors = [
     {name = "Sungwoo Jo", email = "nonswing.z@gmail.com"}
@@ -26,12 +31,13 @@ dependencies = [
     "arelle-release",
     "numpy",
     "pandas",
-    "tqdm",
+    "tqdm>=4.36",
     "yaspin",
-    "fake-useragent>=1.5",
+    "fake-useragent>=2.0",
     "beautifulsoup4",
     "appdirs",
-    "lxml"
+    "lxml",
+    "openpyxl>=3.1.5"
 ]
 
 dynamic = ["version"]
@@ -43,6 +49,3 @@ jupyter = ["jupyterlab", "ipywidgets"]
 homepage = "https://github.com/josw123/dart-fss"
 documentation = "https://dart-fss.readthedocs.io/"
 repository = "https://github.com/josw123/dart-fss.git"
-
-[tool.setuptools]
-license-files = []
