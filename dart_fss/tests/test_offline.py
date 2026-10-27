@@ -71,3 +71,13 @@ def test_fs_result_cache(tmp_path):
     # 옵션이 다르면 별도 캐시
     assert cache.load(report, dict(option, separate=True)) is None
     assert cache.load(report, dict(option, dataset='web')) is None
+
+
+def test_ordered_column_helpers():
+    from dart_fss.fs.extract import ordered_columns, ordered_intersection
+
+    a = pd.MultiIndex.from_tuples([('20201231', 'x'), ('20191231', 'x'), ('20181231', 'x'), ('20191231', 'x')])
+    b = pd.MultiIndex.from_tuples([('20181231', 'x'), ('20201231', 'x')])
+    assert ordered_columns(a) == [('20201231', 'x'), ('20191231', 'x'), ('20181231', 'x')]
+    assert ordered_intersection(a, b) == [('20201231', 'x'), ('20181231', 'x')]
+    assert ordered_columns(None) == [] and ordered_intersection(None, b) == []

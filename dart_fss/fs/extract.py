@@ -900,10 +900,9 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     _, df_columns = split_columns_concept_data(df.columns)
     _, ndf_columns = split_columns_concept_data(ndf.columns)
 
-    df_columns_set = convert_multiindex_to_set(df_columns)
-    ndf_columns_set = convert_multiindex_to_set(ndf_columns)
-
-    overlap = df_columns_set.intersection(ndf_columns_set)
+    # set 순회 순서는 문자열 해시(실행마다 무작위)에 따라 달라져 동일 개수로 매칭된 행 중 선택 결과가 바뀌므로
+    # 기존 Dataframe의 column 순서를 유지
+    overlap = ordered_intersection(df_columns, ndf_columns)
     nko_column = find_all_columns(ndf, r'label_ko')
 
     for idx, value in enumerate(ndata):
@@ -1085,14 +1084,12 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             _, df_columns = split_columns_concept_data(df.columns)
             _, ndf_columns = split_columns_concept_data(ndf.columns)
+            # set 순회 순서는 실행마다 달라지므로 추가할 Dataframe의 column 순서를 유지
             df_columns = convert_multiindex_to_set(df_columns)
-            ndf_columns = convert_multiindex_to_set(ndf_columns)
-
-            overlap = df_columns.intersection(ndf_columns)
 
             date_regex = re.compile(r'\d{8}')
-            diff = [x for x in (ndf_columns - overlap)
-                    if date_regex.search(x[0])]
+            diff = [x for x in ordered_columns(ndf_columns)
+                    if x not in df_columns and date_regex.search(x[0])]
             diff.sort(key=lambda x: date_regex.findall(x[0])[0], reverse=True)
 
             # Data가 동일할 경우 Continue
@@ -1127,6 +1124,19 @@ def convert_multiindex_to_set(multiindex):
     if multiindex is None:
         return set()
     return set(multiindex.tolist())
+
+
+def ordered_columns(multiindex) -> list:
+    """ 중복을 제거한 column 리스트 (순서 유지)"""
+    if multiindex is None:
+        return []
+    return list(dict.fromkeys(multiindex.tolist()))
+
+
+def ordered_intersection(multiindex, other) -> list:
+    """ multiindex의 순서를 유지한 교집합"""
+    other = convert_multiindex_to_set(other)
+    return [x for x in ordered_columns(multiindex) if x in other]
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
