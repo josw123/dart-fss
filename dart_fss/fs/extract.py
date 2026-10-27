@@ -1754,7 +1754,8 @@ def extract(corp_code: str,
             if check_report_tp(report_tp, tp):
                 if tp == 'annual':
                     reports = search_annual_report(
-                        corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
+                        corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate,
+                        last_reprt_at=last_reprt_at)
                 else:
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
@@ -1771,6 +1772,7 @@ def extract(corp_code: str,
                             continue
 
                         if statements is None:
+                            # 첫 보고서는 dataset 옵션과 무관하게 XBRL 우선으로 추출 (의도된 동작)
                             statements = analyze(report=report,
                                                  fs_tp=fs_tp,
                                                         separate=separate,

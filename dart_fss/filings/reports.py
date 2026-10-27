@@ -246,6 +246,8 @@ class Report(object):
                 break
 
         if raw_data is None:
+            # 다운로드 버튼이 없는 공시: 빈 리스트로 설정 (미설정 시 attached_files가 None 반환)
+            self._attached_files = results
             return results
 
         rcp_no = raw_data.group(1)

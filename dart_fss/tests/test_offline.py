@@ -81,3 +81,29 @@ def test_ordered_column_helpers():
     assert ordered_columns(a) == [('20201231', 'x'), ('20191231', 'x'), ('20181231', 'x')]
     assert ordered_intersection(a, b) == [('20201231', 'x'), ('20181231', 'x')]
     assert ordered_columns(None) == [] and ordered_intersection(None, b) == []
+
+
+def test_attached_files_without_download_button():
+    from bs4 import BeautifulSoup
+
+    report = Report(rcept_no='20190401004781')
+    report.html = BeautifulSoup('<html><body></body></html>', 'html.parser')
+    assert report.attached_files == []
+
+
+def test_extract_passes_last_report_only_to_annual_search(monkeypatch):
+    import importlib
+    ex = importlib.import_module('dart_fss.fs.extract')
+
+    captured = {}
+
+    def fake_search_annual_report(**kwargs):
+        captured.update(kwargs)
+        raise RuntimeError('stop')
+
+    monkeypatch.setattr(ex, 'search_annual_report', fake_search_annual_report)
+    try:
+        ex.extract(corp_code='00126380', bgn_de='20200101', last_report_only=False, progressbar=False)
+    except RuntimeError:
+        pass
+    assert captured['last_reprt_at'] == 'N'
