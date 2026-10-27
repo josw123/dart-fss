@@ -220,7 +220,8 @@ class Corp(object):
                    skip_error: bool = True,
                    last_report_only: bool = True,
                    min_required: int = 4,
-                   workers: int = 1) -> FinancialStatement:
+                   workers: int = 1,
+                   cache: Union[bool, str] = False) -> FinancialStatement:
         """
         재무제표 검색
 
@@ -254,6 +255,8 @@ class Corp(object):
             Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
         workers: int, optional
             XBRL 분석에 사용할 프로세스 수, 2 이상이면 병렬 처리 (default: 1)
+        cache: bool or str, optional
+            보고서별 분석 결과 디스크 캐시 사용 여부 또는 캐시 폴더 (default: False)
 
         Returns
         -------
@@ -262,4 +265,4 @@ class Corp(object):
          """
         return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang,
                        separator, dataset, cumulative, progressbar, skip_error, last_report_only, min_required,
-                       workers)
+                       workers, cache)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import math
 import shutil
@@ -1413,6 +1414,79 @@ def _analyze_xbrl_file(file_path: str, fs_tp: Tuple[str], separate: bool, lang: 
     return status, fs_df, [(w.category, str(w.message)) for w in caught]
 
 
+class _ResultCache(object):
+    """ 보고서별 재무제표 분석 결과 디스크 캐시 (extract의 cache 옵션)
+
+    공시는 접수번호(rcept_no)별로 내용이 변경되지 않으므로 분석 결과를 저장하여 재사용한다.
+    추출 옵션, dart-fss 및 pandas 버전이 다르면 다른 캐시로 취급한다.
+    """
+    def __init__(self, path: str):
+        os.makedirs(path, exist_ok=True)
+        self.path = path
+
+    def _file(self, report: Report, kwargs: dict) -> str:
+        import json
+        import hashlib
+        from dart_fss import __version__
+        key = json.dumps({
+            'rcept_no': report.rcept_no,
+            'fs_tp': list(kwargs['fs_tp']),
+            'separate': kwargs['separate'],
+            'lang': kwargs['lang'],
+            'separator': kwargs['separator'],
+            'dataset': kwargs.get('dataset', 'xbrl'),
+            'dart_fss': __version__,
+            'pandas': pd.__version__,
+        }, sort_keys=True)
+        name = hashlib.sha256(key.encode('utf-8')).hexdigest()
+        return os.path.join(self.path, '{}_{}.pkl'.format(report.rcept_no, name[:16]))
+
+    def exists(self, report: Report, kwargs: dict) -> bool:
+        return os.path.exists(self._file(report, kwargs))
+
+    def load(self, report: Report, kwargs: dict):
+        import pickle
+        try:
+            with open(self._file(report, kwargs), 'rb') as f:
+                return pickle.load(f)
+        except Exception:
+            # 캐시가 없거나 손상된 경우 다시 분석
+            return None
+
+    def save(self, report: Report, kwargs: dict, fs_df):
+        import pickle
+        if fs_df is None:
+            return
+        file = self._file(report, kwargs)
+        temp = '{}.{}.tmp'.format(file, os.getpid())
+        try:
+            with open(temp, 'wb') as f:
+                pickle.dump(fs_df, f, protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(temp, file)
+        except OSError:
+            if os.path.exists(temp):
+                os.remove(temp)
+
+
+def get_fs_cache_folder() -> str:
+    """ 재무제표 분석 결과 캐시 기본 폴더 (extract의 cache=True)"""
+    from dart_fss.utils import get_cache_folder
+    return os.path.join(get_cache_folder(), 'fs')
+
+
+def clear_fs_cache(path: str = None):
+    """ 재무제표 분석 결과 캐시 삭제
+
+    Parameters
+    ----------
+    path: str, optional
+        캐시 폴더 (default: get_fs_cache_folder())
+    """
+    path = path or get_fs_cache_folder()
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+
+
 class _ParallelAnalyzer(object):
     """ 여러 보고서의 XBRL 분석을 병렬로 수행 (extract의 workers > 1)
 
@@ -1420,9 +1494,11 @@ class _ParallelAnalyzer(object):
     XBRL 파싱 및 재무제표 생성만 별도 프로세스에서 수행한다. 결과는 보고서 순서대로 반환된다.
     XBRL 다운로드에 실패했거나 2011년 이전 보고서 등은 기존과 동일하게 analyze_report로 처리한다.
     """
-    def __init__(self, workers: int, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool):
+    def __init__(self, workers: int, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool,
+                 cache: Optional[_ResultCache] = None):
         from concurrent.futures import ProcessPoolExecutor
         self.pool = ProcessPoolExecutor(max_workers=workers)
+        self.cache = cache
         self.lookahead = workers * 2
         self.option = dict(fs_tp=fs_tp, separate=separate, lang=lang, separator=separator)
         self.queue = []
@@ -1433,6 +1509,8 @@ class _ParallelAnalyzer(object):
 
     def _submit(self, report: Report):
         if int(report.rcept_dt[:4]) <= 2011:
+            return None
+        if self.cache is not None and self.cache.exists(report, self.option):
             return None
         path = tempfile.mkdtemp()
         try:
@@ -1447,6 +1525,14 @@ class _ParallelAnalyzer(object):
         while self.queue and len(self.jobs) < self.lookahead:
             report = self.queue.pop(0)
             self.jobs[id(report)] = self._submit(report)
+
+    def discard(self, report: Report):
+        self._fill()
+        job = self.jobs.pop(id(report), None)
+        self._fill()
+        if job is not None:
+            job[0].cancel()
+            shutil.rmtree(job[1], ignore_errors=True)
 
     def analyze(self, report: Report, **kwargs):
         self._fill()
@@ -1537,7 +1623,8 @@ def extract(corp_code: str,
             skip_error: bool = True,
             last_report_only: bool = True,
             min_required: int = 4,
-            workers: int = 1) -> FinancialStatement:
+            workers: int = 1,
+            cache: Union[bool, str] = False) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1575,6 +1662,10 @@ def extract(corp_code: str,
         XBRL 분석에 사용할 프로세스 수. 2 이상이면 다운로드는 순차적으로 하되 XBRL 분석을 병렬로 수행하며,
         결과는 동일하다. dataset='xbrl'일 때만 적용된다. Windows/macOS에서 스크립트로 실행할 경우
         ``if __name__ == '__main__':`` 블록 안에서 호출해야 한다. (default: 1)
+    cache: bool or str, optional
+        보고서별 분석 결과를 디스크에 저장하고 재사용할지 여부. True이면 기본 캐시 폴더
+        (get_fs_cache_folder()), 문자열이면 해당 폴더를 사용한다. 캐시된 보고서는 다운로드 및 분석을
+        생략하며, 분석 중 발생했던 경고는 다시 표시되지 않는다. 삭제는 clear_fs_cache() (default: False)
     Returns
     -------
     FinancialStatement
@@ -1622,10 +1713,27 @@ def extract(corp_code: str,
 
     regex_skip_title = str_to_regex("연장")
 
+    result_cache = None
+    if cache:
+        result_cache = _ResultCache(cache if isinstance(cache, str) else get_fs_cache_folder())
+
     parallel = None
     if workers > 1 and dataset == 'xbrl':
-        parallel = _ParallelAnalyzer(workers, fs_tp=fs_tp, separate=separate, lang=lang, separator=separator)
-    analyze = parallel.analyze if parallel is not None else analyze_report
+        parallel = _ParallelAnalyzer(workers, fs_tp=fs_tp, separate=separate, lang=lang, separator=separator,
+                                     cache=result_cache)
+    analyze_func = parallel.analyze if parallel is not None else analyze_report
+
+    def analyze(report: Report, **kwargs):
+        if result_cache is None:
+            return analyze_func(report=report, **kwargs)
+        fs_df = result_cache.load(report, kwargs)
+        if fs_df is not None:
+            if parallel is not None:
+                parallel.discard(report)
+            return fs_df
+        fs_df = analyze_func(report=report, **kwargs)
+        result_cache.save(report, kwargs, fs_df)
+        return fs_df
 
     try:
         for idx, tp in enumerate(all_report_tp):

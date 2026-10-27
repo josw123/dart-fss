@@ -53,3 +53,21 @@ def test_fs_show_depth_with_nan():
     fs = FinancialStatement({'bs': df}, {'bs': None}, {})
     actual = fs.show('bs', show_depth=1)
     assert actual[(title, 'concept_id')].tolist() == ['c1', 'c2']
+
+
+def test_fs_result_cache(tmp_path):
+    from types import SimpleNamespace
+    from dart_fss.fs.extract import _ResultCache
+
+    cache = _ResultCache(str(tmp_path))
+    report = SimpleNamespace(rcept_no='20190401004781')
+    option = dict(fs_tp=('bs',), separate=False, lang='ko', separator=True)
+    fs_df = {'bs': pd.DataFrame({'a': [1.0, np.nan]})}
+
+    assert cache.load(report, option) is None
+    cache.save(report, option, fs_df)
+    assert cache.exists(report, option)
+    pd.testing.assert_frame_equal(cache.load(report, option)['bs'], fs_df['bs'])
+    # 옵션이 다르면 별도 캐시
+    assert cache.load(report, dict(option, separate=True)) is None
+    assert cache.load(report, dict(option, dataset='web')) is None

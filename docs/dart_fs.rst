@@ -6,6 +6,10 @@
 
 ..  autofunction:: dart_fss.fs.extract
 
+..  autofunction:: dart_fss.fs.get_fs_cache_folder
+
+..  autofunction:: dart_fss.fs.clear_fs_cache
+
 FinancialStatement 클래스
 ''''''''''''''''''''''''''''''''''''
 
@@ -37,6 +41,10 @@ Example
     # 여러 보고서를 추출할 때 XBRL 분석을 병렬로 수행 (결과 동일, 다운로드는 순차)
     # 스크립트로 실행할 경우 if __name__ == '__main__': 블록 안에서 호출
     # fs = dart.fs.extract(corp_code=corp_code, bgn_de='20120101', workers=4)
+
+    # 보고서별 분석 결과를 디스크에 캐시하여 재실행 시 다운로드 및 분석 생략
+    # 캐시 삭제: dart.fs.clear_fs_cache()
+    # fs = dart.fs.extract(corp_code=corp_code, bgn_de='20120101', cache=True)
 
     # 연결재무상태표
     df_fs = fs['bs'] # 또는 fs[0], 표시 옵션 적용: fs.show('bs', show_depth=1)
