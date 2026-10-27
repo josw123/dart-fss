@@ -65,6 +65,9 @@ class Corp(object):
         self._profile = profile
 
     def __getattr__(self, item):
+        # copy/pickle 시 _info가 설정되기 전 호출되면 무한 재귀가 발생하므로 차단
+        if item in ('_info', '_profile') or item.startswith('__'):
+            raise AttributeError(item)
         if item in self._info:
             return self._info[item]
         else:
@@ -125,7 +128,7 @@ class Corp(object):
 
     def get_executive_shareholder(self):
         resp = elestock(corp_code=self.corp_code)
-        df = pd.DataFrame.from_dict(resp['list'])
+        df = pd.DataFrame(resp['list'])
 
         columns_astype = [
             ('sp_stock_lmp_cnt',int),
@@ -138,7 +141,7 @@ class Corp(object):
 
     def get_major_shareholder(self):
         resp = majorstock(corp_code=self.corp_code)
-        df = pd.DataFrame.from_dict(resp['list'])
+        df = pd.DataFrame(resp['list'])
         columns_astype = [
             ('stkqy', int),
             ('stkqy_irds', int),
