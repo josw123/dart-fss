@@ -38,9 +38,13 @@ def get_xbrl_from_file(file_path: str) -> DartXbrl:
             os.makedirs(arelle_app_dir)
     cntlr = Cntlr.Cntlr(logFileName='logToStdErr')
     cntlr.logger.setLevel(logging.CRITICAL)
-    model_xbrl = cntlr.modelManager.load(file_path)
+    try:
+        model_xbrl = cntlr.modelManager.load(file_path)
+    finally:
+        # Cntlr 생성 시마다 전역 'arelle' logger에 handler가 추가되므로 제거
+        if getattr(cntlr, 'logHandler', None) is not None:
+            cntlr.logger.removeHandler(cntlr.logHandler)
+        spinner.stop()
     filename = file_path.split('\\')[-1]
     xbrl = DartXbrl(filename, model_xbrl)
-
-    spinner.stop()
     return xbrl
