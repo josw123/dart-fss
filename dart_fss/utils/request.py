@@ -50,11 +50,11 @@ class Request(object, metaclass=Singleton):
     User-Agent 및 Cookies 관련 정보를 저장하고 있습니다.
 
     Attributes
-    ---------
+    ----------
     s: Session
         Requests Session
     delay: float
-        Delay for repeat delay, Default: 1s
+        Delay for repeat delay, Default: 0.2s
 
     """
     def __init__(self):

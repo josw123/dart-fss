@@ -51,10 +51,10 @@ class FinancialStatement(object):
         Parameters
         ----------
         tp: str
-            표시할 재무제표 타입: 'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+            표시할 재무제표 타입: 'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
         show_class: bool
             class 표시 여부
-        show_depth: bool
+        show_depth: int
             표시할 class의 깊이
         show_concept: bool
             concept_id 표시 여부

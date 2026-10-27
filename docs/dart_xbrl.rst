@@ -4,6 +4,8 @@ XBRL 데이터 추출
 XBRL 파일 데이터 분석
 ----------------------------------
 
+일반 기업 서식(D1001~D4002)과 금융업 서식(은행 D1101~D4101, 보험 D1201~D4201, 증권 D1301~D4301, 기타금융 D1401~D4401)의 재무제표를 지원합니다.
+
 .. autofunction:: dart_fss.xbrl.get_xbrl_from_file
 
 
@@ -42,7 +44,7 @@ Example
     # 첫번째 리포트 선택
     report = reports[0]
 
-    # 리포트의 xbrl 데이터
+    # 리포트의 xbrl 데이터 (XBRL이 없거나 비어 있는 경우 None)
     xbrl = report.xbrl
 
     # 연결재무제표 존재 여부 확인( True / False)
@@ -54,7 +56,7 @@ Example
     # 연결 현금흐름표 추출 (리스트 반환)
     cf = xbrl.get_cash_flows()
 
-    # 연결 현금프름표
+    # 연결 현금흐름표
     cf = cf[0]
 
     # Pandas DataFrame으로 변환

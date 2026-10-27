@@ -1,9 +1,8 @@
 # Dart-Fss
 [![PyPI](https://img.shields.io/pypi/v/dart-fss.svg)](https://pypi.org/project/dart-fss/)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dart-fss.svg)
-![Build Status](https://bit.ly/3fufevG)
-[![Coverage](https://codecov.io/gh/josw123/dart-fss/branch/master/graphs/badge.svg)](https://codecov.io/gh/josw123/dart-fss)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ebb506ba99d4a22b2bbcda2d85b3bde)](https://www.codacy.com/app/josw123/dart-fss?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josw123/dart-fss&amp;utm_campaign=Badge_Grade)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dart-fss.svg)](https://pypi.org/project/dart-fss/)
+[![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://dart-fss.readthedocs.io/)
+[![License](https://img.shields.io/pypi/l/dart-fss.svg)](LICENSE)
 
 대한민국 금융감독원에서 운영하는 다트([DART](https://dart.fss.or.kr)) 사이트 크롤링 및 재무제표 추출을 위한 라이브러리
 
@@ -13,11 +12,12 @@
 
 -   [Open DART](https://opendart.fss.or.kr/)의 오픈 API를 이용한 전자공시 조회
 -   [DART](https://dart.fss.or.kr)의 전자공시 정보를 이용한 재무제표 추출
+-   XBRL 재무제표 분석 (일반 기업 및 은행·보험·증권·기타 금융업 서식 지원)
 
 ## Installation
 
 - Open DART 지원 / 신규 Open DART API Key 필요
-- Python 3.7 이상 지원
+- Python 3.9 이상 지원
 - Documentation: https://dart-fss.readthedocs.io/
 
 ``` bash
@@ -55,8 +55,16 @@ fs.save()
 
 ## 주의사항
 
--   Open DART 및 DART 홈페이지의 경우 분당 1000회 이상 요청시 서비스가 제한될 수 있음
--   [관련 공지사항](https://opendart.fss.or.kr/cop/bbs/selectArticleList.do?bbsId=B0000000000000000002): [FAQ]->[오픈API 이용한도는 어떻게 되나요?]
+-   Open DART API는 일일 이용한도가 있으며, DART 홈페이지는 짧은 시간에 요청이 몰리면 IP 접속이 일정 시간 차단될 수 있음
+    -   [관련 공지사항](https://opendart.fss.or.kr/cop/bbs/selectArticleList.do?bbsId=B0000000000000000002): [FAQ]->[오픈API 이용한도는 어떻게 되나요?]
+-   기본 요청 간격은 0.2초이며, 대량으로 조회할 경우 아래와 같이 간격을 늘리는 것을 권장
+
+```python
+import dart_fss as dart
+
+# 요청 간격 1초로 변경
+dart.utils.request.set_delay(1.0)
+```
 
 ## License
 This project is licensed under the MIT License
