@@ -2,6 +2,8 @@
 
 import re
 import math
+import shutil
+import tempfile
 import warnings
 import numpy as np
 import pandas as pd
@@ -23,6 +25,7 @@ from dart_fss.utils import str_insert_whitespace as ws
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
+from dart_fss.api.finance import download_xbrl
 from dart_fss.filings.search_result import SearchResults
 
 
@@ -1364,15 +1367,116 @@ def analyze_report(report: Report,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
     else:
-        fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-
-        # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
-        if fs_df is None and separate is False:
-            raise NotFoundConsolidated(
-                'Could not find consolidated financial statements')
+        fs_df = _analyze_report_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
     return fs_df
+
+
+def _analyze_report_html(report: Report, fs_tp: Tuple[str], separate: bool, lang: str):
+    fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+
+    # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
+    if fs_df is None and separate is False:
+        raise NotFoundConsolidated(
+            'Could not find consolidated financial statements')
+    return fs_df
+
+
+def _analyze_xbrl_file(file_path: str, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool):
+    """ worker 프로세스에서 XBRL 파일을 분석 (analyze_report의 XBRL 경로와 동일, 네트워크 요청 없음)
+
+    Returns
+    -------
+    tuple of (str, dict or None, list)
+        ('ok' 또는 'empty', 재무제표, worker에서 발생한 warning 목록)
+    """
+    from types import SimpleNamespace
+    import dart_fss as dart
+    from dart_fss.xbrl import get_xbrl_from_file
+
+    dart.utils.spinner.spinner_enable = False
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        xbrl = get_xbrl_from_file(file_path)
+        if xbrl.is_empty():
+            fs_df, status = None, 'empty'
+        else:
+            if separate is False and not xbrl.exist_consolidated():
+                raise NotFoundConsolidated(
+                    'Could not find consolidated financial statements')
+            fs_df = analyze_xbrl(SimpleNamespace(xbrl=xbrl), fs_tp=fs_tp, separate=separate, lang=lang,
+                                 show_abstract=False, show_class=True, show_depth=10,
+                                 show_concept=True, separator=separator)
+            fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
+            status = 'ok'
+    return status, fs_df, [(w.category, str(w.message)) for w in caught]
+
+
+class _ParallelAnalyzer(object):
+    """ 여러 보고서의 XBRL 분석을 병렬로 수행 (extract의 workers > 1)
+
+    DART 요청 제한(IP 차단)을 피하기 위해 다운로드는 메인 프로세스에서 순차적으로 수행하고,
+    XBRL 파싱 및 재무제표 생성만 별도 프로세스에서 수행한다. 결과는 보고서 순서대로 반환된다.
+    XBRL 다운로드에 실패했거나 2011년 이전 보고서 등은 기존과 동일하게 analyze_report로 처리한다.
+    """
+    def __init__(self, workers: int, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool):
+        from concurrent.futures import ProcessPoolExecutor
+        self.pool = ProcessPoolExecutor(max_workers=workers)
+        self.lookahead = workers * 2
+        self.option = dict(fs_tp=fs_tp, separate=separate, lang=lang, separator=separator)
+        self.queue = []
+        self.jobs = OrderedDict()
+
+    def schedule(self, reports: List[Report]):
+        self.queue = list(reports)
+
+    def _submit(self, report: Report):
+        if int(report.rcept_dt[:4]) <= 2011:
+            return None
+        path = tempfile.mkdtemp()
+        try:
+            file_path = download_xbrl(path=path, rcept_no=report.rcept_no)
+        except Exception:
+            # 실패 시 analyze_report에서 기존과 동일하게 처리(대체 경로 탐색 또는 예외 발생)
+            shutil.rmtree(path, ignore_errors=True)
+            return None
+        return self.pool.submit(_analyze_xbrl_file, file_path, **self.option), path
+
+    def _fill(self):
+        while self.queue and len(self.jobs) < self.lookahead:
+            report = self.queue.pop(0)
+            self.jobs[id(report)] = self._submit(report)
+
+    def analyze(self, report: Report, **kwargs):
+        self._fill()
+        job = self.jobs.pop(id(report), None)
+        self._fill()
+        if job is None:
+            return analyze_report(report=report, **kwargs)
+
+        future, path = job
+        try:
+            status, fs_df, caught = future.result()
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
+        for category, message in caught:
+            warnings.warn(message, category)
+        if status == 'empty':
+            warnings.warn("The DART disclosure contains an XBRL file, but it is either invalid or empty.", UserWarning)
+            fs_df = _analyze_report_html(report, fs_tp=self.option['fs_tp'],
+                                         separate=self.option['separate'], lang=self.option['lang'])
+            fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
+        return fs_df
+
+    def close(self):
+        for job in self.jobs.values():
+            if job is not None:
+                job[0].cancel()
+                shutil.rmtree(job[1], ignore_errors=True)
+        self.jobs.clear()
+        self.queue = []
+        self.pool.shutdown(wait=True, cancel_futures=True)
 
 
 def search_annual_report(corp_code: str,
@@ -1432,7 +1536,8 @@ def extract(corp_code: str,
             progressbar: bool = True,
             skip_error: bool = True,
             last_report_only: bool = True,
-            min_required: int = 4) -> FinancialStatement:
+            min_required: int = 4,
+            workers: int = 1) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1466,6 +1571,10 @@ def extract(corp_code: str,
         최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
     min_required: int, optional
         Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
+    workers: int, optional
+        XBRL 분석에 사용할 프로세스 수. 2 이상이면 다운로드는 순차적으로 하되 XBRL 분석을 병렬로 수행하며,
+        결과는 동일하다. dataset='xbrl'일 때만 적용된다. Windows/macOS에서 스크립트로 실행할 경우
+        ``if __name__ == '__main__':`` 블록 안에서 호출해야 한다. (default: 1)
     Returns
     -------
     FinancialStatement
@@ -1513,6 +1622,11 @@ def extract(corp_code: str,
 
     regex_skip_title = str_to_regex("연장")
 
+    parallel = None
+    if workers > 1 and dataset == 'xbrl':
+        parallel = _ParallelAnalyzer(workers, fs_tp=fs_tp, separate=separate, lang=lang, separator=separator)
+    analyze = parallel.analyze if parallel is not None else analyze_report
+
     try:
         for idx, tp in enumerate(all_report_tp):
             if check_report_tp(report_tp, tp):
@@ -1524,6 +1638,9 @@ def extract(corp_code: str,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
                                              last_reprt_at=last_reprt_at)
 
+                if parallel is not None:
+                    parallel.schedule([x for x in reports if not regex_skip_title.search(x.report_nm)])
+
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report', disable=tqdm_disable):
                     try:
@@ -1532,8 +1649,8 @@ def extract(corp_code: str,
                             continue
 
                         if statements is None:
-                            statements = analyze_report(report=report,
-                                                        fs_tp=fs_tp,
+                            statements = analyze(report=report,
+                                                 fs_tp=fs_tp,
                                                         separate=separate,
                                                         lang=lang,
                                                         separator=separator)
@@ -1548,8 +1665,8 @@ def extract(corp_code: str,
                                 # initialize label dictionary
                                 label_df = init_label(statements, fs_tp=fs_tp)
                         else:
-                            nstatements = analyze_report(report=report,
-                                                         fs_tp=fs_tp,
+                            nstatements = analyze(report=report,
+                                                  fs_tp=fs_tp,
                                                          separate=separate,
                                                          lang=lang,
                                                          separator=separator,
@@ -1607,3 +1724,5 @@ def extract(corp_code: str,
         raise e
     finally:
         dart.utils.spinner.spinner_enable = True
+        if parallel is not None:
+            parallel.close()

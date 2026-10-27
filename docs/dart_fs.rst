@@ -34,6 +34,10 @@ Example
     # fs = samsung.extract_fs(bgn_de='20120101') 와 동일
     fs = dart.fs.extract(corp_code=corp_code, bgn_de='20120101')
 
+    # 여러 보고서를 추출할 때 XBRL 분석을 병렬로 수행 (결과 동일, 다운로드는 순차)
+    # 스크립트로 실행할 경우 if __name__ == '__main__': 블록 안에서 호출
+    # fs = dart.fs.extract(corp_code=corp_code, bgn_de='20120101', workers=4)
+
     # 연결재무상태표
     df_fs = fs['bs'] # 또는 fs[0], 표시 옵션 적용: fs.show('bs', show_depth=1)
     # 연결재무상태표 추출에 사용된 Label 정보
