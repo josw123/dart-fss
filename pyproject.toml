@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 name = "dart-fss"
 description = "Web-scraping https://dart.fss.or.kr"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = []
 keywords = ["fss", "dart-fss", "scrapping", "financial_statement"]
@@ -17,7 +17,6 @@ maintainers = [
     {name = "Sungwoo Jo", email = "nonswing.z@gmail.com"}
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

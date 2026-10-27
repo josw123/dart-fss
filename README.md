@@ -17,7 +17,7 @@
 ## Installation
 
 - Open DART 지원 / 신규 Open DART API Key 필요
-- Python 3.9 이상 지원
+- Python 3.10 이상 지원
 - Documentation: https://dart-fss.readthedocs.io/
 
 ``` bash

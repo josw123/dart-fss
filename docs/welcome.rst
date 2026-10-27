@@ -13,7 +13,7 @@ DART-FSS
 Installation
 ---------------------------
 
--   Python 3.9 이상 지원
+-   Python 3.10 이상 지원
 
 ..  code::
 
