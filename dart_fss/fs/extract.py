@@ -362,7 +362,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     deduplicated = [key for key in column_matrix]
 
     df_columns = pd.MultiIndex.from_tuples(deduplicated)
-    df = pd.DataFrame(columns=df_columns)
+    df_column_list = df_columns.tolist()
 
     tbody = fs_table['table'].tbody
     regex = str_to_regex('label_ko OR comment')
@@ -383,7 +383,8 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
             # br 태그로 구분되는 경우 첫번째 라인 텍스트만 반환
             return BeautifulSoup(text, 'html.parser').text
 
-    for idx, tr in enumerate(tbody.find_all('tr')):
+    rows = []
+    for tr in tbody.find_all('tr'):
         extracted = [re.sub(r'\s+|=+', '', get_text_before_newline(td))
                      for td in tr.find_all('td')]
         row = {key: 0 for key in deduplicated}
@@ -406,9 +407,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 else:
                     row[key] = row[key] * unit
 
-        ordered_list = []
-        for column in df_columns.tolist():
-            ordered_list.append(row.get(column, None))
+        ordered_list = [row.get(column, None) for column in df_column_list]
 
         try:
             if len(ordered_list) > 0 and ordered_list[0] is not None:
@@ -428,8 +427,12 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 else:
                     ordered_list[jdx] = ordered_list[jdx] / unit * row_unit
 
-        df.loc[idx] = ordered_list
-    return df
+        rows.append(ordered_list)
+
+    # 행 단위 df.loc[idx] 추가는 O(n^2)이고 pandas 4에서 dtype 불일치 시 오류가 발생하므로 한 번에 생성
+    if not rows:
+        return pd.DataFrame(columns=df_columns)
+    return pd.DataFrame(rows, columns=df_columns, index=pd.Index(np.arange(len(rows)), dtype='int64'))
 
 
 def seek_table(tables: List, includes: Pattern,
