@@ -241,3 +241,34 @@ def test_is_empty_false_for_empty_d999007_with_statement_roles():
     ])
 
     assert xbrl.is_empty() is False
+
+
+_BANK_BS_CONSOLIDATED = _FakeTable(
+    'DB220000',
+    '[DB220000] 재무상태표, 은행 - 연결 | Statement of Financial Position, Deposit Based '
+    '- Consolidated financial statements')
+_BANK_BS_SEPARATE = _FakeTable(
+    'DB220005',
+    '[DB220005] 재무상태표, 은행 - 별도 | Statement of Financial Position, Deposit Based '
+    '- Separate financial statements')
+_BANK_CF_CONSOLIDATED = _FakeTable(
+    'DB520000',
+    '[DB520000] 현금흐름표, 은행 - 연결 | Statement of Cash Flows, Deposit Based '
+    '- Consolidated financial statements')
+
+
+def test_get_statement_financial_industry_code():
+    # 금융업 서식 코드 (ex. 전북은행 rcept_no 20260608000239, #207)
+    info = _info_table(concept_values={_BS_CONCEPT: {
+        _CONSOLIDATED_KEY: 'D1101', _SEPARATE_KEY: 'D1101'}})
+    xbrl = _make_xbrl_with_tables([_BANK_BS_CONSOLIDATED, _BANK_BS_SEPARATE, info])
+
+    assert [t.code for t in xbrl.get_financial_statement(separate=False)] == ['DB220000']
+    assert [t.code for t in xbrl.get_financial_statement(separate=True)] == ['DB220005']
+
+
+def test_get_statement_fallback_financial_industry_roles():
+    xbrl = _make_xbrl_with_tables([_BANK_CF_CONSOLIDATED, _CF_NOTE_CONSOLIDATED, _info_table()])
+
+    tables = xbrl.get_cash_flows(separate=False)
+    assert [t.code for t in tables] == ['DB520000']
