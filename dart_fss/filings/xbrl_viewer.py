@@ -54,10 +54,10 @@ class XBRLViewer(object):
 
         tds = self.html.find_all('td', {'class': 'scd'})
         self._pages = []
+        # Javascript was changed in newdart
+        regex_page = re.compile(r'onclick=\"viewDoc\((.*)\)\"')
         for td in tds:
             title = td.get_text().strip()
-            # Javascript was changed in newdart
-            regex_page = re.compile(r'onclick=\"viewDoc\((.*)\)\"')
             pageinfo = regex_page.findall(str(td))
             pageinfo = [x.replace("'", "").split(',') for x in pageinfo][0]
             self._pages.append(XBRLViewerPage(title, pageinfo[0].strip(), pageinfo[1].strip(), pageinfo[2].strip()))

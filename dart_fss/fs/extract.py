@@ -453,7 +453,7 @@ def seek_table(tables: List, includes: Pattern,
             # tag 가 Tag Object 인 경우에만 검색 진행
             if isinstance(tag, Tag):
                 # title 검색
-                children = tag.find_all(text=includes)
+                children = tag.find_all(string=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
                     texts = text_split_by_br(tag)
                     children = [
@@ -1389,16 +1389,17 @@ def search_annual_report(corp_code: str,
     else:
         pblntf_detail_ty.append('F002')
 
+    # finally 블록의 return은 Python 3.14부터 SyntaxWarning이므로 동일 동작으로 재작성
+    # (기존과 같이 검색 중 발생한 모든 예외를 RuntimeError로 변환)
     try:
         # 사업보고서 검색(최종보고서)
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                  pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at=last_reprt_at)
-    except NoDataReceived:
+    except Exception:
         raise RuntimeError('Could not find an annual report')
-    finally:
-        if len(reports) == 0:
-            raise RuntimeError('Could not find an annual report')
-        return reports
+    if len(reports) == 0:
+        raise RuntimeError('Could not find an annual report')
+    return reports
 
 
 # 인카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
@@ -1415,8 +1416,7 @@ def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
             'list': [],
         }
         reports = SearchResults(resp)
-    finally:
-        return reports
+    return reports
 
 
 def extract(corp_code: str,
@@ -1473,7 +1473,7 @@ def extract(corp_code: str,
 
     """
     if is_notebook():
-        from tqdm import tqdm_notebook as tqdm
+        from tqdm.notebook import tqdm
     else:
         from tqdm import tqdm
 
