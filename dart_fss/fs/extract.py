@@ -270,7 +270,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                 return []
             duplicate_check.append(text)
             # Fix bug(#76)
-            if len(text) == 0:
+            # 첫 행의 첫 칸(과목)은 비어 있어도 아래에서 '과목'으로 처리 (빈 칸으로 건너뛰면 열이 밀림)
+            if len(text) == 0 and not (idx == 0 and jdx == 0):
                 continue
             date_list = [datetime(1900, 1, 1)]
             if idx == 0:
