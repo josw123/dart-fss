@@ -376,8 +376,9 @@ class Report(object):
 
         def fn_related_reports():
             if options and options.get('title'):
-                res = [y for x in self.related_reports for y in x.find_all(
-                    **kwargs) if determinant(x.info['rpt_nm'])]
+                # 제목이 일치하는 보고서만 불러오기 (불일치 보고서 로딩 시 불필요한 HTTP 요청 발생)
+                res = [y for x in self.related_reports if determinant(x.info['rpt_nm'])
+                       for y in x.find_all(**kwargs)]
             else:
                 res = [
                     y for x in self.related_reports for y in x.find_all(**kwargs)]
@@ -385,8 +386,9 @@ class Report(object):
 
         def fn_attached_reports():
             if options and options.get('title'):
-                res = [y for x in self.attached_reports for y in x.find_all(
-                    **kwargs) if determinant(x.info['rpt_nm'])]
+                # 제목이 일치하는 보고서만 불러오기 (불일치 보고서 로딩 시 불필요한 HTTP 요청 발생)
+                res = [y for x in self.attached_reports if determinant(x.info['rpt_nm'])
+                       for y in x.find_all(**kwargs)]
             else:
                 res = [
                     y for x in self.attached_reports for y in x.find_all(**kwargs)]
