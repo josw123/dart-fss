@@ -104,10 +104,8 @@ class Table(object):
 
     def _get_cls(self):
         """ classification 정보 추출 함수"""
-        contexts = set()
-        for data in self.facts:
-            context = data.context
-            contexts.add(context)
+        # set()은 객체 id 기반 해시라 실행마다 순서가 바뀌므로 등장 순서를 유지
+        contexts = dict.fromkeys(data.context for data in self.facts)
 
         cls = list()
         for context in contexts:
