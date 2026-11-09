@@ -1,28 +1,6 @@
 pipeline {
   agent any
     stages {
-    stage('Python3.9') {
-      agent {
-        docker {
-          image 'python:3.9.20'
-          args '-u root:sudo'
-        }
-
-      }
-      post {
-        cleanup {
-          cleanWs()
-        }
-
-      }
-      steps {
-        sh 'pip install -r requirements.txt'
-        sh 'pip install -U codecov pytest pytest-cov'
-        sh 'pytest --cov-report=term-missing --cov=./dart_fss'
-        sh 'codecov'
-      }
-    }
-
     stage('Python3.10') {
       agent {
         docker {
@@ -91,6 +69,48 @@ pipeline {
       agent {
         docker {
           image 'python:3.13.7'
+          args '-u root:sudo'
+        }
+
+      }
+      post {
+        cleanup {
+          cleanWs()
+        }
+
+      }
+      steps {
+        sh 'pip install -r requirements.txt'
+        sh 'pip install -U codecov pytest pytest-cov'
+        sh 'pytest --cov-report=term-missing --cov=./dart_fss'
+        sh 'codecov'
+      }
+    }
+    stage('Python3.14') {
+      agent {
+        docker {
+          image 'python:3.14.10'
+          args '-u root:sudo'
+        }
+
+      }
+      post {
+        cleanup {
+          cleanWs()
+        }
+
+      }
+      steps {
+        sh 'pip install -r requirements.txt'
+        sh 'pip install -U codecov pytest pytest-cov'
+        sh 'pytest --cov-report=term-missing --cov=./dart_fss'
+        sh 'codecov'
+      }
+    }
+    stage('Python3.15') {
+      agent {
+        docker {
+          image 'python:3.15.2'
           args '-u root:sudo'
         }
 
