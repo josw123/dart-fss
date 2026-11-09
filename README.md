@@ -1,5 +1,6 @@
 # Dart-Fss
 [![PyPI](https://img.shields.io/pypi/v/dart-fss.svg)](https://pypi.org/project/dart-fss/)
+[![test](https://github.com/josw123/dart-fss/actions/workflows/test.yml/badge.svg)](https://github.com/josw123/dart-fss/actions/workflows/test.yml)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dart-fss.svg)](https://pypi.org/project/dart-fss/)
 [![Downloads](https://static.pepy.tech/badge/dart-fss/month)](https://pepy.tech/project/dart-fss)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://dart-fss.readthedocs.io/)
