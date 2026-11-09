@@ -44,7 +44,7 @@ def search_filings(corp_code: str = None,
     page_no: int, optional
         페이지 번호(1~n) default : 1
     page_count: int, optional
-        페이지당 건수(1~100) 기본값 : 10, default : 100
+        페이지당 건수(1~100), default : 10
 
     Returns
     -------

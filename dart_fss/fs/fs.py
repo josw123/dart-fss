@@ -51,10 +51,10 @@ class FinancialStatement(object):
         Parameters
         ----------
         tp: str
-            표시할 재무제표 타입: 'fs' 재무상태표, 'is' 손익계산서, 'ci' 포괄손익계산서, 'cf' 현금흐름표
+            표시할 재무제표 타입: 'bs' 재무상태표, 'is' 손익계산서, 'cis' 포괄손익계산서, 'cf' 현금흐름표
         show_class: bool
             class 표시 여부
-        show_depth: bool
+        show_depth: int
             표시할 class의 깊이
         show_concept: bool
             concept_id 표시 여부
@@ -86,7 +86,7 @@ class FinancialStatement(object):
             cdf = df[class_columns]
             for idx in range(len(cdf)):
                 for class_idx, item in enumerate(cdf.iloc[idx]):
-                    if class_idx > show_depth and item is not None:
+                    if class_idx > show_depth and pd.notna(item):
                         drop_rows.append(idx)
             ncolumns = []
             for column in columns:
@@ -164,7 +164,6 @@ class FinancialStatement(object):
 
     @classmethod
     def load(cls, filepath):
-        xl = pd.ExcelFile(filepath)
         statements = {
             'bs': None,
             'is': None,
@@ -179,19 +178,18 @@ class FinancialStatement(object):
             'cf': None
         }
 
-        for sheet in xl.sheet_names:
-            if sheet == "info":
-                info = xl.parse(sheet, index_col=0)
-                info = info.where(pd.notnull(info), None)
-            else:
-                sheet_type, statement_tp = sheet.split("_")
-                if sheet_type == "Data":
-                    statements[statement_tp] = xl.parse(
-                        sheet, header=[0, 1], index_col=0
-                    )
-                elif sheet_type == "Labels":
-                    labels[statement_tp] = xl.parse(sheet, header=[0, 1], index_col=0)
-        xl.close()
+        with pd.ExcelFile(filepath) as xl:
+            for sheet in xl.sheet_names:
+                if sheet == "info":
+                    info = pd.read_excel(xl, sheet_name=sheet, index_col=0)
+                    # pandas 3의 str dtype에서는 where(..., None)이 NaN을 유지하므로 object로 변환
+                    info = info.astype(object).where(pd.notnull(info), None)
+                else:
+                    sheet_type, statement_tp = sheet.split("_")
+                    if sheet_type == "Data":
+                        statements[statement_tp] = pd.read_excel(xl, sheet_name=sheet, header=[0, 1], index_col=0)
+                    elif sheet_type == "Labels":
+                        labels[statement_tp] = pd.read_excel(xl, sheet_name=sheet, header=[0, 1], index_col=0)
         return cls(statements, labels, info["info"].to_dict())
 
     def __getattr__(self, item):

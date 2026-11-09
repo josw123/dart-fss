@@ -5,7 +5,7 @@ DART 공시 정보 검색
 ----------------------------------
 Open DART에서 제공하는 OPEN API를 이용하여 공시 정보를 검색하는 함수
 
-search_report
+search
 '''''''''''''''''''
 ..  autofunction:: dart_fss.filings.search
 
@@ -47,14 +47,17 @@ Example
     corp_code = '00126380'
 
     # 모든 상장된 기업 리스트 불러오기
-    crp_list = get_corp_list()
+    corp_list = dart.get_corp_list()
 
     # 삼성전자
-    samsung = corp_list.find_by_corp_name(corp_code=corp_code)
+    samsung = corp_list.find_by_corp_code(corp_code=corp_code)
 
-    # 연간보고서 검색
+    # 연간보고서 검색 (기본 page_count=10, 한 페이지만 반환)
     # reports = samsung.search_filings(bgn_de='20100101', pblntf_detail_ty='a001')
-    reports = search_report(corp_code=corp_code, bgn_de='20100101', pblntf_detail_ty='a001')
+    reports = dart.filings.search(corp_code=corp_code, bgn_de='20100101', pblntf_detail_ty='a001')
+
+    # 전체 페이지 수 / 전체 검색 건수
+    reports.total_page, reports.total_count
 
     # Reports의 Index는 0부터 시작
     # 가장 최신 보고서 선택
@@ -66,6 +69,6 @@ Example
     # 짝수번째 보고서 선택
     even_report = reports[::2]
 
-    # 가장 오래된 보고서 선택
+    # 현재 페이지에서 가장 오래된 보고서 선택
     oldest_report = reports[-1]
 

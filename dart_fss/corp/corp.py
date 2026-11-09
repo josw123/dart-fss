@@ -65,6 +65,9 @@ class Corp(object):
         self._profile = profile
 
     def __getattr__(self, item):
+        # copy/pickle 시 _info가 설정되기 전 호출되면 무한 재귀가 발생하므로 차단
+        if item in ('_info', '_profile') or item.startswith('__'):
+            raise AttributeError(item)
         if item in self._info:
             return self._info[item]
         else:
@@ -125,7 +128,7 @@ class Corp(object):
 
     def get_executive_shareholder(self):
         resp = elestock(corp_code=self.corp_code)
-        df = pd.DataFrame.from_dict(resp['list'])
+        df = pd.DataFrame(resp['list'])
 
         columns_astype = [
             ('sp_stock_lmp_cnt',int),
@@ -138,7 +141,7 @@ class Corp(object):
 
     def get_major_shareholder(self):
         resp = majorstock(corp_code=self.corp_code)
-        df = pd.DataFrame.from_dict(resp['list'])
+        df = pd.DataFrame(resp['list'])
         columns_astype = [
             ('stkqy', int),
             ('stkqy_irds', int),
@@ -184,7 +187,7 @@ class Corp(object):
         page_no: int, optional
             페이지 번호(1~n) default : 1
         page_count: int, optional
-            페이지당 건수(1~100) 기본값 : 10, default : 100
+            페이지당 건수(1~100), default : 10
 
         Returns
         -------
@@ -216,7 +219,9 @@ class Corp(object):
                    progressbar: bool = True,
                    skip_error: bool = True,
                    last_report_only: bool = True,
-                   min_required: int = 4) -> FinancialStatement:
+                   min_required: int = 4,
+                   workers: int = 1,
+                   cache: Union[bool, str] = False) -> FinancialStatement:
         """
         재무제표 검색
 
@@ -248,6 +253,10 @@ class Corp(object):
            최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
         min_required: int, optional
             Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
+        workers: int, optional
+            XBRL 분석에 사용할 프로세스 수, 2 이상이면 병렬 처리 (default: 1)
+        cache: bool or str, optional
+            보고서별 분석 결과 디스크 캐시 사용 여부 또는 캐시 폴더 (default: False)
 
         Returns
         -------
@@ -255,4 +264,5 @@ class Corp(object):
             제무제표 검색 결과
          """
         return extract(self.corp_code, bgn_de, end_de, fs_tp, separate, report_tp, lang,
-                       separator, dataset, cumulative, progressbar, skip_error, last_report_only, min_required)
+                       separator, dataset, cumulative, progressbar, skip_error, last_report_only, min_required,
+                       workers, cache)

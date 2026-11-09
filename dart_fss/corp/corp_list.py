@@ -163,7 +163,7 @@ class CorpList(object, metaclass=Singleton):
         Parameters
         ----------
         corp_name: str
-            공시대상회사의 고유번호(8자리)
+            회사 명칭 (정규표현식 사용 가능)
         exactly: bool, optional
             corp_name과 정확히 일치 여부(default: False)
         market: str or list of str, optional

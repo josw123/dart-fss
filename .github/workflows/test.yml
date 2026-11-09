@@ -1,0 +1,58 @@
+name: test
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 18 * * 0'  # 매주 월요일 03:00 KST (DART 서식 변경 확인)
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    name: offline (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
+          activate-environment: true
+      - run: uv pip install -e . pytest
+      - run: pytest dart_fss/tests/test_offline.py
+
+  # Open DART 는 같은 API 키를 여러 IP 에서 동시에 호출하면 서비스를 거부함
+  # -> self-hosted runner 1대에서 순차 실행, 외부 PR 코드는 실행하지 않음
+  api:
+    name: api (self-hosted)
+    needs: offline
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, dart-fss]
+    environment: dart-fss  # DART_API_KEY, CODECOV_TOKEN (master, develop 만 허용)
+    concurrency:
+      group: opendart
+      cancel-in-progress: false
+    timeout-minutes: 180
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.14'
+          activate-environment: true
+      - run: uv pip install -e . pytest pytest-cov
+      - run: pytest --runslow --cov=./dart_fss --cov-report=xml --cov-report=term-missing
+      - uses: codecov/codecov-action@v7
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false

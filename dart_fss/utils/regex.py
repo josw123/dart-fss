@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from functools import lru_cache
 
 
 def is_operator(item):
@@ -102,6 +103,15 @@ def str_to_regex(query):
     Pattern
         regular expression pattern
     """
+    try:
+        return _cached_str_to_regex(query)
+    except TypeError:  # unhashable query
+        return re.compile(str_to_pattern(query))
+
+
+@lru_cache(maxsize=256)
+def _cached_str_to_regex(query):
+    # find_all 등에서 항목마다 호출되므로 파싱 결과를 캐시
     return re.compile(str_to_pattern(query))
 
 

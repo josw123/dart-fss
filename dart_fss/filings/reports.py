@@ -91,6 +91,9 @@ class Report(object):
         self.rcp_no = rcept_no
 
     def __getattr__(self, item):
+        # copy/pickle 시 info가 설정되기 전 호출되면 무한 재귀가 발생하므로 차단
+        if item == 'info' or item.startswith('__'):
+            raise AttributeError(item)
         if item in self.info:
             return self.info[item]
         else:
@@ -243,6 +246,8 @@ class Report(object):
                 break
 
         if raw_data is None:
+            # 다운로드 버튼이 없는 공시: 빈 리스트로 설정 (미설정 시 attached_files가 None 반환)
+            self._attached_files = results
             return results
 
         rcp_no = raw_data.group(1)
@@ -373,8 +378,9 @@ class Report(object):
 
         def fn_related_reports():
             if options and options.get('title'):
-                res = [y for x in self.related_reports for y in x.find_all(
-                    **kwargs) if determinant(x.title)]
+                # 제목이 일치하는 보고서만 불러오기 (불일치 보고서 로딩 시 불필요한 HTTP 요청 발생)
+                res = [y for x in self.related_reports if determinant(x.info['rpt_nm'])
+                       for y in x.find_all(**kwargs)]
             else:
                 res = [
                     y for x in self.related_reports for y in x.find_all(**kwargs)]
@@ -382,8 +388,9 @@ class Report(object):
 
         def fn_attached_reports():
             if options and options.get('title'):
-                res = [y for x in self.attached_reports for y in x.find_all(
-                    **kwargs) if determinant(x.info['rpt_nm'])]
+                # 제목이 일치하는 보고서만 불러오기 (불일치 보고서 로딩 시 불필요한 HTTP 요청 발생)
+                res = [y for x in self.attached_reports if determinant(x.info['rpt_nm'])
+                       for y in x.find_all(**kwargs)]
             else:
                 res = [
                     y for x in self.attached_reports for y in x.find_all(**kwargs)]
@@ -443,15 +450,14 @@ class Report(object):
 
     def _get_xbrl(self):
         """ XBRL 첨부파일 검색"""
-        query = {
-            'includes': 'IFRS OR XBRL AND (ZIP OR zip)',  # Fix bug (#184)
-            'scope': ['attached_files', 'xbrlviewer']
-        }
-        attached_files = self.find_all(**query)
-        if len(attached_files['attached_files']) > 0:
-            return attached_files['attached_files'][0]
-        elif len(attached_files['xbrlviewer']) > 0:
-            return attached_files['xbrlviewer'][0]
+        includes = 'IFRS OR XBRL AND (ZIP OR zip)'  # Fix bug (#184)
+        attached_files = self.find_all(includes=includes, scope=['attached_files'])
+        if len(attached_files) > 0:
+            return attached_files[0]
+        # 첨부파일에 없을 때만 XBRL Viewer 로딩(추가 HTTP 요청 발생)
+        xbrlviewer = self.find_all(includes=includes, scope=['attached_files', 'xbrlviewer'])['xbrlviewer']
+        if len(xbrlviewer) > 0:
+            return xbrlviewer[0]
         return None
 
     def to_dict(self, summary=True):

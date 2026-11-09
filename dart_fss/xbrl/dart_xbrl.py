@@ -83,7 +83,7 @@ class DartXbrl(object):
         def extract_role_number(role: str):
             try:
                 return int(re.search(r'(\d+)', role).group(1))
-            except AttributeError:
+            except (AttributeError, TypeError):  # role 코드가 없는 경우(None) 포함
                 return 987654321
 
         tables.sort(key=lambda x: int(extract_role_number(x.code)))

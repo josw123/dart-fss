@@ -104,10 +104,8 @@ class Table(object):
 
     def _get_cls(self):
         """ classification 정보 추출 함수"""
-        contexts = set()
-        for data in self.facts:
-            context = data.context
-            contexts.add(context)
+        # set()은 객체 id 기반 해시라 실행마다 순서가 바뀌므로 등장 순서를 유지
+        contexts = dict.fromkeys(data.context for data in self.facts)
 
         cls = list()
         for context in contexts:
@@ -237,17 +235,18 @@ class Table(object):
             pd.options.display.float_format = '{:,}'.format
         else:
             pd.options.display.float_format = '{:}'.format
-        df = pd.DataFrame(columns=columns)
-
         rows = []
         for label in self.labels:
             r = generate_df_rows(label, cls, self.dataset, depth, lang=lang,
                                  show_abstract=show_abstract, show_concept=show_concept, show_class=show_class)
             rows.append(r)
-        rows = flatten(rows)
         data = flatten(rows)
-        for idx, r in enumerate(data):
-            df.loc[idx] = r
+        # 행 단위 df.loc[idx] 추가는 O(n^2)이고 pandas 4에서 dtype 불일치 시 오류가 발생하므로 한 번에 생성
+        if data:
+            data = [r if r is not None else [np.nan] * len(columns) for r in data]
+            df = pd.DataFrame(data, columns=columns, index=pd.Index(np.arange(len(data)), dtype='int64'))
+        else:
+            df = pd.DataFrame(columns=columns)
 
         regex_pass = str_to_regex('concept_id OR label_ko OR label_en OR class')
         df_count = df.count()

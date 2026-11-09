@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import os
 import re
 import math
+import shutil
+import tempfile
 import warnings
 import numpy as np
 import pandas as pd
@@ -23,6 +26,7 @@ from dart_fss.utils import str_insert_whitespace as ws
 from dart_fss.errors.errors import NotFoundConsolidated, NoDataReceived
 from dart_fss.utils import str_to_regex, get_currency_str
 from dart_fss.fs.fs import FinancialStatement
+from dart_fss.api.finance import download_xbrl
 from dart_fss.filings.search_result import SearchResults
 
 
@@ -266,7 +270,8 @@ def convert_thead_into_columns(fs_tp: str, fs_table: dict, separate: bool = Fals
                 return []
             duplicate_check.append(text)
             # Fix bug(#76)
-            if len(text) == 0:
+            # 첫 행의 첫 칸(과목)은 비어 있어도 아래에서 '과목'으로 처리 (빈 칸으로 건너뛰면 열이 밀림)
+            if len(text) == 0 and not (idx == 0 and jdx == 0):
                 continue
             date_list = [datetime(1900, 1, 1)]
             if idx == 0:
@@ -358,7 +363,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
     deduplicated = [key for key in column_matrix]
 
     df_columns = pd.MultiIndex.from_tuples(deduplicated)
-    df = pd.DataFrame(columns=df_columns)
+    df_column_list = df_columns.tolist()
 
     tbody = fs_table['table'].tbody
     regex = str_to_regex('label_ko OR comment')
@@ -379,7 +384,8 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
             # br 태그로 구분되는 경우 첫번째 라인 텍스트만 반환
             return BeautifulSoup(text, 'html.parser').text
 
-    for idx, tr in enumerate(tbody.find_all('tr')):
+    rows = []
+    for tr in tbody.find_all('tr'):
         extracted = [re.sub(r'\s+|=+', '', get_text_before_newline(td))
                      for td in tr.find_all('td')]
         row = {key: 0 for key in deduplicated}
@@ -402,9 +408,7 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 else:
                     row[key] = row[key] * unit
 
-        ordered_list = []
-        for column in df_columns.tolist():
-            ordered_list.append(row.get(column, None))
+        ordered_list = [row.get(column, None) for column in df_column_list]
 
         try:
             if len(ordered_list) > 0 and ordered_list[0] is not None:
@@ -424,8 +428,12 @@ def convert_tbody_to_dataframe(columns: list, fs_table: dict):
                 else:
                     ordered_list[jdx] = ordered_list[jdx] / unit * row_unit
 
-        df.loc[idx] = ordered_list
-    return df
+        rows.append(ordered_list)
+
+    # 행 단위 df.loc[idx] 추가는 O(n^2)이고 pandas 4에서 dtype 불일치 시 오류가 발생하므로 한 번에 생성
+    if not rows:
+        return pd.DataFrame(columns=df_columns)
+    return pd.DataFrame(rows, columns=df_columns, index=pd.Index(np.arange(len(rows)), dtype='int64'))
 
 
 def seek_table(tables: List, includes: Pattern,
@@ -453,7 +461,7 @@ def seek_table(tables: List, includes: Pattern,
             # tag 가 Tag Object 인 경우에만 검색 진행
             if isinstance(tag, Tag):
                 # title 검색
-                children = tag.find_all(text=includes)
+                children = tag.find_all(string=includes)
                 if len(children) == 0:  # 부국증권도 사업보고서 검색 안되던 문제 해결을 위한 코드(#66)
                     texts = text_split_by_br(tag)
                     children = [
@@ -892,10 +900,9 @@ def compare_df_and_ndf_value(column: Tuple[Union[str, Tuple[str]]],
     _, df_columns = split_columns_concept_data(df.columns)
     _, ndf_columns = split_columns_concept_data(ndf.columns)
 
-    df_columns_set = convert_multiindex_to_set(df_columns)
-    ndf_columns_set = convert_multiindex_to_set(ndf_columns)
-
-    overlap = df_columns_set.intersection(ndf_columns_set)
+    # set 순회 순서는 문자열 해시(실행마다 무작위)에 따라 달라져 동일 개수로 매칭된 행 중 선택 결과가 바뀌므로
+    # 기존 Dataframe의 column 순서를 유지
+    overlap = ordered_intersection(df_columns, ndf_columns)
     nko_column = find_all_columns(ndf, r'label_ko')
 
     for idx, value in enumerate(ndata):
@@ -1077,14 +1084,12 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             _, df_columns = split_columns_concept_data(df.columns)
             _, ndf_columns = split_columns_concept_data(ndf.columns)
+            # set 순회 순서는 실행마다 달라지므로 추가할 Dataframe의 column 순서를 유지
             df_columns = convert_multiindex_to_set(df_columns)
-            ndf_columns = convert_multiindex_to_set(ndf_columns)
-
-            overlap = df_columns.intersection(ndf_columns)
 
             date_regex = re.compile(r'\d{8}')
-            diff = [x for x in (ndf_columns - overlap)
-                    if date_regex.search(x[0])]
+            diff = [x for x in ordered_columns(ndf_columns)
+                    if x not in df_columns and date_regex.search(x[0])]
             diff.sort(key=lambda x: date_regex.findall(x[0])[0], reverse=True)
 
             # Data가 동일할 경우 Continue
@@ -1119,6 +1124,19 @@ def convert_multiindex_to_set(multiindex):
     if multiindex is None:
         return set()
     return set(multiindex.tolist())
+
+
+def ordered_columns(multiindex) -> list:
+    """ 중복을 제거한 column 리스트 (순서 유지)"""
+    if multiindex is None:
+        return []
+    return list(dict.fromkeys(multiindex.tolist()))
+
+
+def ordered_intersection(multiindex, other) -> list:
+    """ multiindex의 순서를 유지한 교집합"""
+    other = convert_multiindex_to_set(other)
+    return [x for x in ordered_columns(multiindex) if x in other]
 
 
 def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate: bool = False, lang: str = 'ko',
@@ -1364,15 +1382,201 @@ def analyze_report(report: Report,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
     else:
-        fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-
-        # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
-        if fs_df is None and separate is False:
-            raise NotFoundConsolidated(
-                'Could not find consolidated financial statements')
+        fs_df = _analyze_report_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
     return fs_df
+
+
+def _analyze_report_html(report: Report, fs_tp: Tuple[str], separate: bool, lang: str):
+    fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+
+    # If consolidated financial statements are not found, raise an NotFoundConsolidated exception
+    if fs_df is None and separate is False:
+        raise NotFoundConsolidated(
+            'Could not find consolidated financial statements')
+    return fs_df
+
+
+def _analyze_xbrl_file(file_path: str, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool):
+    """ worker 프로세스에서 XBRL 파일을 분석 (analyze_report의 XBRL 경로와 동일, 네트워크 요청 없음)
+
+    Returns
+    -------
+    tuple of (str, dict or None, list)
+        ('ok' 또는 'empty', 재무제표, worker에서 발생한 warning 목록)
+    """
+    from types import SimpleNamespace
+    import dart_fss as dart
+    from dart_fss.xbrl import get_xbrl_from_file
+
+    dart.utils.spinner.spinner_enable = False
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        xbrl = get_xbrl_from_file(file_path)
+        if xbrl.is_empty():
+            fs_df, status = None, 'empty'
+        else:
+            if separate is False and not xbrl.exist_consolidated():
+                raise NotFoundConsolidated(
+                    'Could not find consolidated financial statements')
+            fs_df = analyze_xbrl(SimpleNamespace(xbrl=xbrl), fs_tp=fs_tp, separate=separate, lang=lang,
+                                 show_abstract=False, show_class=True, show_depth=10,
+                                 show_concept=True, separator=separator)
+            fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
+            status = 'ok'
+    return status, fs_df, [(w.category, str(w.message)) for w in caught]
+
+
+class _ResultCache(object):
+    """ 보고서별 재무제표 분석 결과 디스크 캐시 (extract의 cache 옵션)
+
+    공시는 접수번호(rcept_no)별로 내용이 변경되지 않으므로 분석 결과를 저장하여 재사용한다.
+    추출 옵션, dart-fss 및 pandas 버전이 다르면 다른 캐시로 취급한다.
+    """
+    def __init__(self, path: str):
+        os.makedirs(path, exist_ok=True)
+        self.path = path
+
+    def _file(self, report: Report, kwargs: dict) -> str:
+        import json
+        import hashlib
+        from dart_fss import __version__
+        key = json.dumps({
+            'rcept_no': report.rcept_no,
+            'fs_tp': list(kwargs['fs_tp']),
+            'separate': kwargs['separate'],
+            'lang': kwargs['lang'],
+            'separator': kwargs['separator'],
+            'dataset': kwargs.get('dataset', 'xbrl'),
+            'dart_fss': __version__,
+            'pandas': pd.__version__,
+        }, sort_keys=True)
+        name = hashlib.sha256(key.encode('utf-8')).hexdigest()
+        return os.path.join(self.path, '{}_{}.pkl'.format(report.rcept_no, name[:16]))
+
+    def exists(self, report: Report, kwargs: dict) -> bool:
+        return os.path.exists(self._file(report, kwargs))
+
+    def load(self, report: Report, kwargs: dict):
+        import pickle
+        try:
+            with open(self._file(report, kwargs), 'rb') as f:
+                return pickle.load(f)
+        except Exception:
+            # 캐시가 없거나 손상된 경우 다시 분석
+            return None
+
+    def save(self, report: Report, kwargs: dict, fs_df):
+        import pickle
+        if fs_df is None:
+            return
+        file = self._file(report, kwargs)
+        temp = '{}.{}.tmp'.format(file, os.getpid())
+        try:
+            with open(temp, 'wb') as f:
+                pickle.dump(fs_df, f, protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(temp, file)
+        except OSError:
+            if os.path.exists(temp):
+                os.remove(temp)
+
+
+def get_fs_cache_folder() -> str:
+    """ 재무제표 분석 결과 캐시 기본 폴더 (extract의 cache=True)"""
+    from dart_fss.utils import get_cache_folder
+    return os.path.join(get_cache_folder(), 'fs')
+
+
+def clear_fs_cache(path: str = None):
+    """ 재무제표 분석 결과 캐시 삭제
+
+    Parameters
+    ----------
+    path: str, optional
+        캐시 폴더 (default: get_fs_cache_folder())
+    """
+    path = path or get_fs_cache_folder()
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+
+
+class _ParallelAnalyzer(object):
+    """ 여러 보고서의 XBRL 분석을 병렬로 수행 (extract의 workers > 1)
+
+    DART 요청 제한(IP 차단)을 피하기 위해 다운로드는 메인 프로세스에서 순차적으로 수행하고,
+    XBRL 파싱 및 재무제표 생성만 별도 프로세스에서 수행한다. 결과는 보고서 순서대로 반환된다.
+    XBRL 다운로드에 실패했거나 2011년 이전 보고서 등은 기존과 동일하게 analyze_report로 처리한다.
+    """
+    def __init__(self, workers: int, fs_tp: Tuple[str], separate: bool, lang: str, separator: bool,
+                 cache: Optional[_ResultCache] = None):
+        from concurrent.futures import ProcessPoolExecutor
+        self.pool = ProcessPoolExecutor(max_workers=workers)
+        self.cache = cache
+        self.lookahead = workers * 2
+        self.option = dict(fs_tp=fs_tp, separate=separate, lang=lang, separator=separator)
+        self.queue = []
+        self.jobs = OrderedDict()
+
+    def schedule(self, reports: List[Report]):
+        self.queue = list(reports)
+
+    def _submit(self, report: Report):
+        if int(report.rcept_dt[:4]) <= 2011:
+            return None
+        if self.cache is not None and self.cache.exists(report, self.option):
+            return None
+        path = tempfile.mkdtemp()
+        try:
+            file_path = download_xbrl(path=path, rcept_no=report.rcept_no)
+        except Exception:
+            # 실패 시 analyze_report에서 기존과 동일하게 처리(대체 경로 탐색 또는 예외 발생)
+            shutil.rmtree(path, ignore_errors=True)
+            return None
+        return self.pool.submit(_analyze_xbrl_file, file_path, **self.option), path
+
+    def _fill(self):
+        while self.queue and len(self.jobs) < self.lookahead:
+            report = self.queue.pop(0)
+            self.jobs[id(report)] = self._submit(report)
+
+    def discard(self, report: Report):
+        self._fill()
+        job = self.jobs.pop(id(report), None)
+        self._fill()
+        if job is not None:
+            job[0].cancel()
+            shutil.rmtree(job[1], ignore_errors=True)
+
+    def analyze(self, report: Report, **kwargs):
+        self._fill()
+        job = self.jobs.pop(id(report), None)
+        self._fill()
+        if job is None:
+            return analyze_report(report=report, **kwargs)
+
+        future, path = job
+        try:
+            status, fs_df, caught = future.result()
+        finally:
+            shutil.rmtree(path, ignore_errors=True)
+        for category, message in caught:
+            warnings.warn(message, category)
+        if status == 'empty':
+            warnings.warn("The DART disclosure contains an XBRL file, but it is either invalid or empty.", UserWarning)
+            fs_df = _analyze_report_html(report, fs_tp=self.option['fs_tp'],
+                                         separate=self.option['separate'], lang=self.option['lang'])
+            fs_df = remove_almost_empty_columns(fs_df, min_data_number=1)
+        return fs_df
+
+    def close(self):
+        for job in self.jobs.values():
+            if job is not None:
+                job[0].cancel()
+                shutil.rmtree(job[1], ignore_errors=True)
+        self.jobs.clear()
+        self.queue = []
+        self.pool.shutdown(wait=True, cancel_futures=True)
 
 
 def search_annual_report(corp_code: str,
@@ -1389,16 +1593,17 @@ def search_annual_report(corp_code: str,
     else:
         pblntf_detail_ty.append('F002')
 
+    # finally 블록의 return은 Python 3.14부터 SyntaxWarning이므로 동일 동작으로 재작성
+    # (기존과 같이 검색 중 발생한 모든 예외를 RuntimeError로 변환)
     try:
         # 사업보고서 검색(최종보고서)
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                  pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at=last_reprt_at)
-    except NoDataReceived:
+    except Exception:
         raise RuntimeError('Could not find an annual report')
-    finally:
-        if len(reports) == 0:
-            raise RuntimeError('Could not find an annual report')
-        return reports
+    if len(reports) == 0:
+        raise RuntimeError('Could not find an annual report')
+    return reports
 
 
 # 인카금융서비스에서 반기보고서가 없는 경우 발생하는 오류 처리
@@ -1415,8 +1620,7 @@ def search_other_report(corp_code, bgn_de, end_de, pblntf_detail_ty):
             'list': [],
         }
         reports = SearchResults(resp)
-    finally:
-        return reports
+    return reports
 
 
 def extract(corp_code: str,
@@ -1432,7 +1636,9 @@ def extract(corp_code: str,
             progressbar: bool = True,
             skip_error: bool = True,
             last_report_only: bool = True,
-            min_required: int = 4) -> FinancialStatement:
+            min_required: int = 4,
+            workers: int = 1,
+            cache: Union[bool, str] = False) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1466,6 +1672,14 @@ def extract(corp_code: str,
         최종 보고서만을 이용하여 데이터를 추출할지 여부 (default: True)
     min_required: int, optional
         Merge를 위한 최소한의 유효 데이터 개수 (default: 4)
+    workers: int, optional
+        XBRL 분석에 사용할 프로세스 수. 2 이상이면 다운로드는 순차적으로 하되 XBRL 분석을 병렬로 수행하며,
+        결과는 동일하다. dataset='xbrl'일 때만 적용된다. Windows/macOS에서 스크립트로 실행할 경우
+        ``if __name__ == '__main__':`` 블록 안에서 호출해야 한다. (default: 1)
+    cache: bool or str, optional
+        보고서별 분석 결과를 디스크에 저장하고 재사용할지 여부. True이면 기본 캐시 폴더
+        (get_fs_cache_folder()), 문자열이면 해당 폴더를 사용한다. 캐시된 보고서는 다운로드 및 분석을
+        생략하며, 분석 중 발생했던 경고는 다시 표시되지 않는다. 삭제는 clear_fs_cache() (default: False)
     Returns
     -------
     FinancialStatement
@@ -1473,7 +1687,7 @@ def extract(corp_code: str,
 
     """
     if is_notebook():
-        from tqdm import tqdm_notebook as tqdm
+        from tqdm.notebook import tqdm
     else:
         from tqdm import tqdm
 
@@ -1513,16 +1727,42 @@ def extract(corp_code: str,
 
     regex_skip_title = str_to_regex("연장")
 
+    result_cache = None
+    if cache:
+        result_cache = _ResultCache(cache if isinstance(cache, str) else get_fs_cache_folder())
+
+    parallel = None
+    if workers > 1 and dataset == 'xbrl':
+        parallel = _ParallelAnalyzer(workers, fs_tp=fs_tp, separate=separate, lang=lang, separator=separator,
+                                     cache=result_cache)
+    analyze_func = parallel.analyze if parallel is not None else analyze_report
+
+    def analyze(report: Report, **kwargs):
+        if result_cache is None:
+            return analyze_func(report=report, **kwargs)
+        fs_df = result_cache.load(report, kwargs)
+        if fs_df is not None:
+            if parallel is not None:
+                parallel.discard(report)
+            return fs_df
+        fs_df = analyze_func(report=report, **kwargs)
+        result_cache.save(report, kwargs, fs_df)
+        return fs_df
+
     try:
         for idx, tp in enumerate(all_report_tp):
             if check_report_tp(report_tp, tp):
                 if tp == 'annual':
                     reports = search_annual_report(
-                        corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate)
+                        corp_code=corp_code, bgn_de=bgn_de, end_de=end_de, separate=separate,
+                        last_reprt_at=last_reprt_at)
                 else:
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100,
                                              last_reprt_at=last_reprt_at)
+
+                if parallel is not None:
+                    parallel.schedule([x for x in reports if not regex_skip_title.search(x.report_nm)])
 
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report', disable=tqdm_disable):
@@ -1532,8 +1772,9 @@ def extract(corp_code: str,
                             continue
 
                         if statements is None:
-                            statements = analyze_report(report=report,
-                                                        fs_tp=fs_tp,
+                            # 첫 보고서는 dataset 옵션과 무관하게 XBRL 우선으로 추출 (의도된 동작)
+                            statements = analyze(report=report,
+                                                 fs_tp=fs_tp,
                                                         separate=separate,
                                                         lang=lang,
                                                         separator=separator)
@@ -1548,8 +1789,8 @@ def extract(corp_code: str,
                                 # initialize label dictionary
                                 label_df = init_label(statements, fs_tp=fs_tp)
                         else:
-                            nstatements = analyze_report(report=report,
-                                                         fs_tp=fs_tp,
+                            nstatements = analyze(report=report,
+                                                  fs_tp=fs_tp,
                                                          separate=separate,
                                                          lang=lang,
                                                          separator=separator,
@@ -1607,3 +1848,5 @@ def extract(corp_code: str,
         raise e
     finally:
         dart.utils.spinner.spinner_enable = True
+        if parallel is not None:
+            parallel.close()
